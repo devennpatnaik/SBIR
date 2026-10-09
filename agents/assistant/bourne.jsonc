@@ -1,5 +1,4 @@
 {
-  // Whether Bourne deploys this agent with the app. Set to true only when the
-  // app has an agent feature; an inactive agent is source the build leaves out.
-  "active": false
+  // Research assistant for the Lab to Market app (chat drawer in the app).
+  "active": true
 }

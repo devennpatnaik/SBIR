@@ -11,7 +11,9 @@
     "build:backend": "bun build ./backend/index.ts --format=esm --target=browser --conditions=workerd,worker --outfile=dist/backend.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
     "eve": "0.54.3",
+    "hono": "4",
     "jose": "6.2.3",
     "zod": "4.5.4"
   },
