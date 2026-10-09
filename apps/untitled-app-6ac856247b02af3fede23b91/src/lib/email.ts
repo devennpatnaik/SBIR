@@ -3,7 +3,7 @@ import type { Contact, Lab, Project, Technology } from './types';
 /** A plain, editable first-contact email to a technology-transfer office. Nothing is sent by the app. */
 export function draftInquiry(p: Project, t: Technology | undefined, lab: Lab | undefined, contact: Contact | undefined, profile: string) {
   const greeting = contact?.name ? `Dear ${contact.name.split(' ')[0]},` : 'Hello,';
-  const ref = [t?.name && `"${t.name}"`, t?.patent_numbers && `(${t.patent_numbers})`].filter(Boolean).join(' ');
+  const ref = [t?.name && `"${t.name}"`, t?.patent_numbers && `(patent no. ${t.patent_numbers})`].filter(Boolean).join(' ');
   const app = p.application_summary.trim() || '[describe the product you want to build]';
   const customer = p.target_customer.trim() || '[target customer]';
   const subject = `Licensing inquiry: ${t?.name ?? p.name}`;
