@@ -6,3 +6,4 @@ dist/
 .output/
 prisma/schema.prisma
 *.tsbuildinfo
+packages/database/database.types.ts

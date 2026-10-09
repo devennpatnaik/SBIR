@@ -3,12 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*",
+    "backend",
+    "packages/*"
+  ],
   "scripts": {
     "typecheck:agents": "tsc -p tsconfig.agent.json",
-    "build:agents": "eve build",
-    "typecheck:backend": "tsc -p tsconfig.backend.json",
-    "build:backend": "bun build ./backend/index.ts --format=esm --target=browser --conditions=workerd,worker --outfile=dist/backend.mjs"
+    "build:agents": "eve build"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",

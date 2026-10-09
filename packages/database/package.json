@@ -1,0 +1,8 @@
+{
+  "name": "@project/database",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./database.types.ts"
+  }
+}
