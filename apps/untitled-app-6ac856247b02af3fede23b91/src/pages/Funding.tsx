@@ -120,7 +120,7 @@ function SbirSearch({ onSaved }: { onSaved: (id: string) => void }) {
       <p className="text-xs text-slate-500">Queries the official SBIR.gov public API live through the app's server. Results are saved only when you press Save; deadlines are imported as unverified.</p>
       <ErrorNote error={error} />
       {res && !res.available && (
-        <Notice>The SBIR.gov API is not available right now ({res.message}). This is a known, intermittent limitation of that API. Use the <b>How to research manually</b> tab: find the topic on the agency site, then press <b>Add opportunity</b>.</Notice>
+        <Notice>The SBIR.gov API is not available right now ({res.message}). SBIR.gov controls access to that API, so search may stay unavailable. Use the <b>How to research manually</b> tab: find the topic on the agency site, then press <b>Add opportunity</b>.</Notice>
       )}
       {res?.available && !res.results?.length && <Empty title="No open solicitations matched">Try a broader keyword, or check agency sites directly — SBIR.gov does not list every agency topic in real time.</Empty>}
       {res?.available && res.results?.map((s, i) => (

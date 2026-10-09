@@ -12,6 +12,9 @@ const SOURCES: { host: RegExp; name: string }[] = [
 ];
 
 const LABS: { re: RegExp; lab: string; agency: string }[] = [
+  ['Glenn Research Center', 'NASA'], ['Ames Research Center', 'NASA'], ['Langley Research Center', 'NASA'], ['Goddard Space Flight Center', 'NASA'],
+  ['Jet Propulsion Laboratory', 'NASA'], ['Johnson Space Center', 'NASA'], ['Kennedy Space Center', 'NASA'], ['Marshall Space Flight Center', 'NASA'],
+  ['Stennis Space Center', 'NASA'], ['Armstrong Flight Research Center', 'NASA'],
   ['Oak Ridge National Laboratory', 'DOE'], ['Argonne National Laboratory', 'DOE'], ['Lawrence Berkeley National Laboratory', 'DOE'],
   ['Lawrence Livermore National Laboratory', 'DOE'], ['Los Alamos National Laboratory', 'DOE'], ['Sandia National Laboratories', 'DOE'],
   ['Pacific Northwest National Laboratory', 'DOE'], ['National Renewable Energy Laboratory', 'DOE'], ['Idaho National Laboratory', 'DOE'],
@@ -70,7 +73,10 @@ export const extractRoutes = new Hono<{ Bindings: Env }>().post('/', async c => 
   }
 
   const pageTitle = meta(html, 'og:title') || title(html);
-  const description = meta(html, 'og:description') || meta(html, 'description');
+  const metaDescription = meta(html, 'og:description') || meta(html, 'description');
+  // Prefer the page's own paragraphs when the meta description is missing or a generic one-liner.
+  const paras = toText(mainHtml(html)).split('\n').map(p => p.trim()).filter(p => p.length >= 150 && !/cookie|javascript|©|copyright/i.test(p));
+  const description = metaDescription.length >= 120 || !paras.length ? metaDescription : paras.slice(0, 3).join('\n\n').slice(0, 1500);
   const text = toText(mainHtml(html)).slice(0, 30000);
   const all = `${pageTitle}\n${description}\n${text}`;
   const lab = LABS.find(l => l.re.test(all));
@@ -86,7 +92,8 @@ export const extractRoutes = new Hono<{ Bindings: Env }>().post('/', async c => 
     warning: limited
       ? `${sourceName} renders its pages in the browser, so only ${text.length} characters of text could be read automatically. Open the link, copy the technology description, and paste it into "Paste page text" to extract more — or fill the form manually.`
       : '',
-    title: pageTitle.replace(/\s*[|–-]\s*(TechLink|FLC|Lab Partnering Service|DOE).*$/i, '').trim(),
+    // Drop a trailing site name such as " | T2 Portal" or " - TechLink".
+    title: pageTitle.replace(/\s+[|–—-]\s+[^|–—-]{1,40}$/, '').trim() || pageTitle,
     description,
     headings: headings(html),
     text,
