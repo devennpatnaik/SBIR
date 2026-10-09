@@ -1,0 +1,23 @@
+{
+  "name": "project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "typecheck:agents": "tsc -p tsconfig.agent.json",
+    "build:agents": "eve build",
+    "typecheck:backend": "tsc -p tsconfig.backend.json",
+    "build:backend": "bun build ./backend/index.ts --format=esm --target=browser --conditions=workerd,worker --outfile=dist/backend.mjs"
+  },
+  "dependencies": {
+    "eve": "0.54.3",
+    "jose": "6.2.3",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260921.1",
+    "@types/node": "24.13.4",
+    "typescript": "5.9.3"
+  }
+}
