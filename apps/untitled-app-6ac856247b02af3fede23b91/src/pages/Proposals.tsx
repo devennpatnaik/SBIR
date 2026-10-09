@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Plus } from 'lucide-react';
 import { useBundle } from '../lib/bundle';
 import { daysUntil, fmtDate, insertRow, nowIso, updateRow, useQuery } from '../lib/data';
-import { recordStatusChange } from '../lib/actions';
+import { createProposal, recordStatusChange } from '../lib/actions';
 import { navigate } from '../lib/router';
 import type { Opportunity, Proposal, ProposalSection, Question } from '../lib/types';
 import { DocList } from '../components/DocList';
@@ -86,6 +86,7 @@ function ProposalWorkspace({ id }: { id: string }) {
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-2">
           <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Sections, documents & certifications</h2><Button size="sm" onClick={() => setAddOpen(true)}><Plus className="size-3.5" />Add item from solicitation</Button></div>
+          {!secs.length && b.project && o && <Empty title="Checklist not built yet" action={<Button variant="primary" onClick={() => void createProposal(b.project!, o)}>Build checklist from solicitation</Button>}>The checklist is built from the solicitation's required documents plus a standard outline.</Empty>}
           {secs.map(s => <SectionCard key={s.id} s={s} projectId={p.project_id} />)}
         </div>
         <div className="space-y-4">

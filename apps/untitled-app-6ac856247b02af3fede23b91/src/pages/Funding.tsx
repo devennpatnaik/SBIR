@@ -17,7 +17,7 @@ type SbirResponse = { available: boolean; apiUrl: string; status?: number; messa
 export function Funding() {
   const opps = useQuery<Opportunity>('opportunities', q => q.order('close_date', { nullsFirst: false }));
   const links = useQuery<ProjectOpportunity>('project_opportunities', q => q);
-  const projects = useQuery<Project>('projects', q => q.eq('archived', false));
+  const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
   const [activeId] = useActiveProjectId();
   const project = projects.data.find(p => p.id === activeId) ?? projects.data[0];
   const [tab, setTab] = useState<'saved' | 'compare' | 'search' | 'guide'>('saved');

@@ -58,8 +58,13 @@ export async function insertRow<T = Record<string, unknown>>(table: string, valu
 
 export async function insertRows(table: string, values: Record<string, unknown>[]): Promise<void> {
   if (!values.length) return;
-  const res = await client.from(table).insert(values);
-  check(res);
+  // The Data API requires every row in one bulk insert to have the same keys, so group by key set.
+  const groups = new Map<string, Record<string, unknown>[]>();
+  for (const v of values) {
+    const k = Object.keys(v).sort().join(',');
+    groups.set(k, [...(groups.get(k) ?? []), v]);
+  }
+  for (const rows of groups.values()) check(await client.from(table).insert(rows));
   invalidate();
 }
 

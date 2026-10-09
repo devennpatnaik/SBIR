@@ -11,10 +11,10 @@ import { Badge, Button, Card, ErrorNote, Field, InlineText, Input, Modal, Notice
 
 export function OpportunityDetail({ id }: { id: string }) {
   const q = useQuery<Opportunity>('opportunities', b => b.eq('id', id), [id]);
-  const projects = useQuery<Project>('projects', b => b.eq('archived', false));
+  const projects = useQuery<Project>('projects', b => b.eq('archived', false).order('updated_at', { ascending: false }));
   const links = useQuery<ProjectOpportunity>('project_opportunities', b => b.eq('opportunity_id', id), [id]);
   const proposals = useQuery<Proposal>('proposals', b => b.eq('opportunity_id', id), [id]);
-  const [activeId] = useActiveProjectId();
+  const [activeId, setActiveId] = useActiveProjectId();
   const project = projects.data.find(p => p.id === activeId) ?? projects.data[0];
   const questions = useQuery<Question>('questions', b => b.eq('opportunity_id', id).order('created_at'), [id]);
   const [tab, setTab] = useState<'details' | 'edit' | 'eligibility' | 'evidence' | 'source'>('details');
@@ -45,7 +45,9 @@ export function OpportunityDetail({ id }: { id: string }) {
           <div className="text-sm text-slate-600">{o.duration}</div>
           <div className="text-xs text-slate-500">{o.award_type}</div>
         </Card>
-        <Card title={project ? `Project: ${project.name}` : 'Project'}>
+        <Card title="Your project">
+          {projects.data.length > 1 && project && <Select aria-label="Project for this opportunity" className="mb-2" value={project.id} onChange={e => setActiveId(e.target.value)} options={projects.data.map(x => [x.id, x.name] as [string, string])} />}
+          {projects.data.length === 1 && project && <div className="mb-2 text-sm font-medium">{project.name}</div>}
           {!project ? <p className="text-sm text-slate-500">Create a project first.</p> : !link ? (
             <Button size="sm" variant="primary" onClick={() => insertRow('project_opportunities', { project_id: project.id, opportunity_id: o.id })}>Link to project</Button>
           ) : (

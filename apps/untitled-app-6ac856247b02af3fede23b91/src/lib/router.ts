@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const parse = () => (window.location.hash.replace(/^#\/?/, '') || 'dashboard').split('/').filter(Boolean);
+const parse = () => (window.location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard').split('/').filter(Boolean);
 export function useRoute(): string[] {
   const [route, setRoute] = useState(parse);
   useEffect(() => {
