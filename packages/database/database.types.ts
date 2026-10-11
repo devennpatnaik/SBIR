@@ -819,6 +819,57 @@ export type Database = {
         }
         Relationships: []
       }
+      program_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string
+          program_id: string
+          project_id: string | null
+          status: string
+          task_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string
+          program_id: string
+          project_id?: string | null
+          status?: string
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string
+          program_id?: string
+          project_id?: string | null
+          status?: string
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_tracking_project_fk"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_tracking_task_fk"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_opportunities: {
         Row: {
           created_at: string
@@ -1434,18 +1485,21 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          help_profile: Json
           profile: string
           updated_at: string
           user_id: string
           weights: Json
         }
         Insert: {
+          help_profile?: Json
           profile?: string
           updated_at?: string
           user_id?: string
           weights?: Json
         }
         Update: {
+          help_profile?: Json
           profile?: string
           updated_at?: string
           user_id?: string

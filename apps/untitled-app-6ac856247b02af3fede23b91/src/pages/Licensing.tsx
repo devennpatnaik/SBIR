@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { HelpSuggestions } from '../components/Help';
+import { getActiveProject } from '../lib/router';
 import { Copy, Mail, Trash2 } from 'lucide-react';
 import { useBundle, type Bundle } from '../lib/bundle';
 import { AGREEMENT_STATUS, GLOSSARY, PATHWAYS, PROJECT_LICENSING_STATUS } from '../lib/constants';
@@ -17,6 +19,7 @@ export function Licensing() {
   return (
     <div>
       <PageHeader title="Licensing" subtitle="Find the lab's technology-transfer office, answer the key IP questions, choose an agreement pathway, and track every contact. The app never sends email or makes commitments for you." />
+      <HelpSuggestions projectId={getActiveProject()} stage="license" title="Free licensing help" />
       <ProjectPicker>{id => <LicensingFor id={id} />}</ProjectPicker>
     </div>
   );

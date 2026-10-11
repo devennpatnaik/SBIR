@@ -1,12 +1,12 @@
 import { useQuery } from './data';
-import type { Communication, Contact, Evaluation, Interview, Lab, LicensingItem, Opportunity, Project, ProjectOpportunity, Proposal, ProposalSection, Question, Task, Technology, Agreement, StatusHistory } from './types';
+import type { Communication, Contact, Evaluation, Interview, Lab, LicensingItem, Opportunity, Project, ProjectOpportunity, Proposal, ProposalSection, Question, Task, Technology, Agreement, StatusHistory, ProgramTracking } from './types';
 
 export type Bundle = {
   loading: boolean; error: string | null;
   project?: Project; tech?: Technology; evaluation?: Evaluation; lab?: Lab;
   contacts: Contact[]; tasks: Task[]; questions: Question[]; licensing: LicensingItem[]; comms: Communication[];
   links: ProjectOpportunity[]; opps: Opportunity[]; proposals: Proposal[]; sections: ProposalSection[]; interviews: Interview[];
-  agreements: Agreement[]; history: StatusHistory[];
+  agreements: Agreement[]; history: StatusHistory[]; programs: ProgramTracking[];
 };
 
 /** Loads everything the workspace screens and the next-action engine need for one project. */
@@ -31,6 +31,7 @@ export function useBundle(projectId: string | null | undefined): Bundle {
   const sections = useQuery<ProposalSection>('proposal_sections', q => q.in('proposal_id', propIds).order('sort'), [propIds.join(',')], propIds.length > 0);
   const interviews = useQuery<Interview>('interviews', q => q.eq('project_id', id).order('interview_date', { ascending: false }), [id], on);
   const agreements = useQuery<Agreement>('agreements', q => q.eq('project_id', id).order('created_at'), [id], on);
+  const programs = useQuery<ProgramTracking>('program_tracking', q => q.eq('project_id', id), [id], on);
   const history = useQuery<StatusHistory>('status_history', q => q.eq('project_id', id).order('created_at', { ascending: false }), [id], on);
   return {
     loading: p.loading || (!!project && t.loading),
@@ -38,6 +39,6 @@ export function useBundle(projectId: string | null | undefined): Bundle {
     project, tech: t.data[0], evaluation: ev.data[0], lab: lab.data[0],
     contacts: contacts.data, tasks: tasks.data, questions: questions.data, licensing: licensing.data, comms: comms.data,
     links: links.data, opps: opps.data, proposals: proposals.data, sections: sections.data, interviews: interviews.data,
-    agreements: agreements.data, history: history.data,
+    agreements: agreements.data, history: history.data, programs: programs.data,
   };
 }

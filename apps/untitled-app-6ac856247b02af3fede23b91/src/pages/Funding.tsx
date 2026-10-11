@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { HelpSuggestions } from '../components/Help';
 import { Plus, Search } from 'lucide-react';
 import { backend, daysUntil, fmtDate, insertRow, nowIso, updateRow, useQuery } from '../lib/data';
 import { FUNDING_SITES } from '../lib/constants';
@@ -31,6 +32,7 @@ export function Funding() {
     <div>
       <PageHeader title="Funding opportunities" subtitle="Save real SBIR/STTR topics from official sources, record eligibility and deadlines, and connect them to your project."
         actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus className="size-4" />Add opportunity</Button>} />
+      <HelpSuggestions projectId={project?.id} stage="propose" title="Free help writing your proposal" />
       <Tabs tabs={[['saved', `Saved (${opps.data.length})`], ['compare', 'Compare'], ['search', 'Search SBIR.gov'], ['guide', 'How to research manually']]} value={tab} onChange={setTab} />
       <div className="mt-4">
         {tab === 'saved' && (

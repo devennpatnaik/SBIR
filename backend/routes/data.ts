@@ -10,7 +10,7 @@ import type { Env } from '../lib/env';
 const TABLES = new Set([
   'agreements', 'communications', 'contacts', 'documents', 'evaluations', 'interviews', 'labs', 'licensing_items',
   'opportunities', 'project_opportunities', 'projects', 'proposal_sections', 'proposals', 'questions', 'sources',
-  'status_history', 'tasks', 'technologies', 'user_settings',
+  'status_history', 'tasks', 'technologies', 'user_settings', 'program_tracking',
   'bourne_uploads', 'bourne_artifacts', 'bourne_artifact_revisions', 'bourne_agent_sessions', 'bourne_agent_messages',
 ]);
 const FORWARD_REQUEST = ['authorization', 'content-type', 'accept', 'prefer', 'range', 'range-unit', 'accept-profile', 'content-profile'];

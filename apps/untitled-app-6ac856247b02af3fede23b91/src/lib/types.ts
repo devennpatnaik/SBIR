@@ -76,3 +76,6 @@ export type Interview = {
   problem_confirmed: string; willingness_to_pay: string; current_solution: string; notes: string; key_quotes: string; next_step: string;
   pilot_interest: boolean; created_at: string;
 };
+export type ProgramTracking = {
+  id: string; project_id: string | null; program_id: string; status: string; notes: string; task_id: string | null; created_at: string; updated_at: string;
+};

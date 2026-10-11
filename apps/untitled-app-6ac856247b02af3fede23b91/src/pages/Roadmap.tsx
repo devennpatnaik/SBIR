@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { HelpSuggestions } from '../components/Help';
+import { getActiveProject } from '../lib/router';
 import { Trash2 } from 'lucide-react';
 import { useBundle, type Bundle } from '../lib/bundle';
 import { ROADMAP_CATEGORIES } from '../lib/constants';
@@ -27,6 +29,7 @@ export function Roadmap() {
   return (
     <div>
       <PageHeader title="Commercialization roadmap" subtitle="Milestones from customer discovery to revenue. It continues after any SBIR/STTR award — Phase III and commercial sales are never automatic." />
+      <HelpSuggestions projectId={getActiveProject()} stage="awarded" title="Free help after an award" />
       <ProjectPicker>{id => <RoadmapFor id={id} />}</ProjectPicker>
     </div>
   );

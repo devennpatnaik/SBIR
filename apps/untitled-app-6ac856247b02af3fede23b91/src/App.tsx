@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Briefcase, ClipboardList, FileText, FlaskConical, Gauge, Landmark, LogOut, Map, MessageSquare, Scale, Search } from 'lucide-react';
+import { BookOpen, Briefcase, LifeBuoy, ClipboardList, FileText, FlaskConical, Gauge, Landmark, LogOut, Map, MessageSquare, Scale, Search } from 'lucide-react';
 import { client, useSession } from './client';
 import { useRoute, navigate } from './lib/router';
 import { cn } from './lib/utils';
@@ -16,6 +16,7 @@ import { OpportunityDetail } from './pages/OpportunityDetail';
 import { Proposals } from './pages/Proposals';
 import { Roadmap } from './pages/Roadmap';
 import { Documents } from './pages/Documents';
+import { Help } from './pages/Help';
 import { AssistantDrawer } from './components/Assistant';
 
 const NAV = [
@@ -60,6 +61,9 @@ export function App() {
           ))}
         </nav>
         <div className="space-y-2 border-t border-slate-100 p-3">
+          <a href="#/help" className={cn('flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium', active === 'help' ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50')}>
+            <LifeBuoy className="size-4" />Free help & programs
+          </a>
           <button type="button" onClick={() => setAssistantOpen(true)} className="flex w-full items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
             <MessageSquare className="size-4" />Research assistant
           </button>
@@ -73,6 +77,7 @@ export function App() {
         <div className="mx-auto max-w-6xl">
           <DataErrorBanner />
           {section === 'dashboard' && <Dashboard />}
+          {section === 'help' && <Help />}
           {section === 'discover' && <Discover />}
           {section === 'tech' && id && <TechnologyDetail id={id} />}
           {section === 'compare' && <Compare />}

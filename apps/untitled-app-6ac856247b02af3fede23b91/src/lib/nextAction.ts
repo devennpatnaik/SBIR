@@ -1,6 +1,7 @@
 import { daysUntil } from './data';
 import { summarize } from './scoring';
 import type { Bundle } from './bundle';
+import { ACTIVE_TRACK, normalizeAgency, programById, programDaysLeft, stageOf } from './programs';
 
 export type Action = { title: string; why: string; link: string; area: string; urgency: 'now' | 'soon' | 'later' };
 export type Deadline = { label: string; date: string; days: number; verified: boolean; link: string };
@@ -32,6 +33,12 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
   for (const c of b.comms) {
     const d = daysUntil(c.follow_up_date);
     if (c.follow_up_date && d !== null && d <= 14 && c.status === 'sent_by_user') deadlines.push({ label: `Follow up: ${c.subject || 'outreach'}`, date: c.follow_up_date, days: d, verified: true, link: 'licensing?tab=outreach' });
+  }
+  for (const t of b.programs ?? []) {
+    const prog = programById(t.program_id);
+    if (!prog || prog.timing.type !== 'deadline' || !ACTIVE_TRACK.has(t.status) || t.status !== 'considering' && t.status !== 'preparing') continue;
+    const d = programDaysLeft(prog);
+    if (d !== null && d >= 0 && d <= 30 && !b.tasks.some(x => x.id === t.task_id)) deadlines.push({ label: `${prog.name} application due`, date: prog.timing.date, days: d, verified: true, link: `help?program=${prog.id}` });
   }
   deadlines.sort((a, b2) => a.days - b2.days);
 
@@ -85,6 +92,14 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
     if (unconfirmed) add({ title: 'Confirm proposal requirements against the solicitation', why: `${unconfirmed} checklist items are generic and not yet confirmed against "${pr.title}".`, link: `proposals/${pr.id}`, area: 'proposal', urgency: 'soon' });
     else if (left) add({ title: `Work on proposal sections (${left} remaining)`, why: pr.title, link: `proposals/${pr.id}`, area: 'proposal', urgency: 'soon' });
   }
+
+  // Free public help for the current step (licensing intermediaries, proposal coaching)
+  const stage = stageOf(p.status);
+  const usingHelp = (b.programs ?? []).some(t => ACTIVE_TRACK.has(t.status) || t.status === 'completed');
+  const techAgency = normalizeAgency(b.tech?.agency);
+  if (!usingHelp && (stage === 'license' || stage === 'discover') && (techAgency === 'DoD' || techAgency === 'VA')) add({ title: 'Ask TechLink for free licensing help', why: `Your technology comes from a ${techAgency} lab. TechLink is the official, no-cost licensing intermediary for DoD and VA labs.`, link: 'help?program=techlink', area: 'licensing', urgency: 'soon' });
+  else if (!usingHelp && (stage === 'license' || stage === 'discover') && techAgency === 'NASA') add({ title: 'Check NASA’s startup license (no up-front fee)', why: 'NASA offers U.S. startups formed to commercialize its technology a non-exclusive license with no up-front fee.', link: 'help?program=nasa_startup_license', area: 'licensing', urgency: 'soon' });
+  else if (!usingHelp && (stage === 'propose' || b.links.length > 0)) add({ title: 'Line up free proposal help', why: 'Agencies and SBA fund coaching, Phase 0 programs and local partners that help first-time applicants. See which ones fit you.', link: 'help?stage=propose', area: 'funding', urgency: 'soon' });
 
   // Next open user tasks (respecting dependencies)
   const doneIds = new Set(b.tasks.filter(t => t.status === 'done').map(t => t.id));

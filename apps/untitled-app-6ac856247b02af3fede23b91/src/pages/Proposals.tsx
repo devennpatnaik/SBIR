@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { HelpSuggestions } from '../components/Help';
+import { getActiveProject } from '../lib/router';
 import { ArrowLeft, CheckCircle2, Plus } from 'lucide-react';
 import { useBundle } from '../lib/bundle';
 import { daysUntil, fmtDate, insertRow, nowIso, updateRow, useQuery } from '../lib/data';
@@ -18,6 +20,7 @@ export function Proposals({ id }: { id?: string }) {
   return (
     <div>
       <PageHeader title="Proposal workspace" subtitle="One workspace per solicitation you pursue. The solicitation is the authority for structure and requirements." />
+      <HelpSuggestions projectId={getActiveProject()} stage="propose" title="Free help writing your proposal" />
       <ProjectPicker>{pid => <ProposalList projectId={pid} />}</ProjectPicker>
     </div>
   );

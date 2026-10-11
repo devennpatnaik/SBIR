@@ -4,6 +4,7 @@ import { useQuery } from '../lib/data';
 import { navigate, useActiveProjectId } from '../lib/router';
 import type { Project, Technology } from '../lib/types';
 import { DeadlinesAndBlockers, NextActionPanel, StageBar } from '../components/ProjectParts';
+import { HelpSuggestions } from '../components/Help';
 import { Button, Card, Empty, PageHeader, SampleBadge, Select } from '../components/ui';
 
 export function Dashboard() {
@@ -33,6 +34,7 @@ export function Dashboard() {
             </li>
           ))}</ol>
         </Card>
+        <div className="mt-4"><HelpSuggestions projectId={null} stage="discover" limit={4} title="Free help finding and evaluating a technology" /></div>
         <div className="mt-4"><Empty title="You are not pursuing a technology yet">Once you select a technology, this dashboard shows its stage, your next action, approaching deadlines, and what is blocking progress.</Empty></div>
       </div>
     );
@@ -56,6 +58,7 @@ export function Dashboard() {
         <NextActionPanel bundle={b} limit={6} />
       </div>
       <Card className="mb-4"><StageBar project={current} /></Card>
+      <HelpSuggestions projectId={current.id} limit={3} title="Free help that fits right now" />
       <DeadlinesAndBlockers bundle={b} />
     </div>
   );
