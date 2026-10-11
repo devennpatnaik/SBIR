@@ -28,7 +28,7 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
   const pursued = new Set(b.links.filter(l => l.status !== 'rejected').map(l => l.opportunity_id));
   for (const o of b.opps.filter(o => pursued.has(o.id))) {
     const d = daysUntil(o.close_date);
-    if (o.close_date && d !== null && d >= -1) deadlines.push({ label: `${o.agency} ${o.program} ${o.topic_number || o.topic_title} closes`, date: o.close_date, days: d, verified: o.deadline_verified, link: `funding/${o.id}` });
+    if (o.close_date && d !== null && d >= -1 && d <= 30) deadlines.push({ label: `${o.agency} ${o.program} ${o.topic_number || o.topic_title} closes`, date: o.close_date, days: d, verified: o.deadline_verified, link: `funding/${o.id}` });
   }
   for (const c of b.comms) {
     const d = daysUntil(c.follow_up_date);
@@ -59,7 +59,7 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
   const sent = outbound.filter(c => c.status === 'sent_by_user');
   const inbound = b.comms.filter(c => c.direction === 'inbound');
   if (!outbound.length) add({ title: 'Draft an introductory email to the tech-transfer office', why: 'No licensing outreach yet. The app drafts it; you review and send it yourself.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
-  else if (!sent.length) add({ title: 'Review and send your drafted outreach email', why: 'A draft exists but has not been marked as sent.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
+  else if (!sent.length) add({ title: 'Review and send your drafted outreach email', why: b.tech?.is_sample ? 'Practice reviewing this fictional draft. Do not send it to the sample contact.' : 'A draft exists but has not been marked as sent.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
   else if (!inbound.length) {
     const last = sent[0];
     const since = last?.occurred_at ? Math.floor((Date.now() - new Date(last.occurred_at).getTime()) / 86400000) : 0;

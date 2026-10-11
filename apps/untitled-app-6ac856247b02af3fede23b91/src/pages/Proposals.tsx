@@ -1,3 +1,4 @@
+import { downloadMarkdown, proposalMarkdown } from '../lib/export';
 import { useState } from 'react';
 import { HelpSuggestions } from '../components/Help';
 import { getActiveProject } from '../lib/router';
@@ -28,6 +29,7 @@ export function Proposals({ id }: { id?: string }) {
 
 function ProposalList({ projectId }: { projectId: string }) {
   const b = useBundle(projectId);
+  if (b.loading) return <p role="status" className="text-sm text-slate-500">Loading proposals…</p>;
   if (!b.proposals.length) return <Empty title="No proposal workspaces yet" action={<Button variant="primary" onClick={() => navigate('funding')}>Go to Funding Opportunities</Button>}>Open a saved funding opportunity, mark it as one you are pursuing, and press <b>Start proposal workspace</b>.</Empty>;
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -65,7 +67,7 @@ function ProposalWorkspace({ id }: { id: string }) {
   const complete = active.filter(s => s.status === 'complete');
   const needsEv = active.filter(s => s.status === 'needs_evidence' || (s.evidence_needed.trim() && s.status !== 'complete'));
   const unconfirmed = active.filter(s => s.required_status === 'confirm_in_solicitation');
-  const elig = eq.data.filter(q => q.status === 'open');
+  const elig = eq.data.filter(q => q.status === 'open' && q.kind === 'eligibility');
   const d = daysUntil(o?.close_date);
 
   return (
@@ -73,6 +75,7 @@ function ProposalWorkspace({ id }: { id: string }) {
       <button type="button" onClick={() => navigate('proposals')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />All proposals</button>
       <PageHeader title={p.title} subtitle={o && <span className="flex flex-wrap items-center gap-2">{o.agency} {o.branch} · {o.solicitation_number}<SourceLink url={o.source_url} label="Solicitation" /><a className="text-xs text-blue-700 hover:underline" href={`#/funding/${o.id}`}>Opportunity record</a></span>}
         actions={<>
+          <Button disabled={b.loading} onClick={() => downloadMarkdown(p.title, proposalMarkdown(p, o, secs))}>Download saved draft</Button>
           <Select aria-label="Proposal status" value={p.status} onChange={e => e.target.value === 'submitted_confirmed' ? setSubmitOpen(true) : void updateRow('proposals', p.id, { status: e.target.value })} options={PSTATUS} className="w-56" />
         </>} />
       <Notice tone="slate">Drafts here are working material, not validated evidence or a completed application. Use the official solicitation as the authority for every requirement, page limit and format.</Notice>

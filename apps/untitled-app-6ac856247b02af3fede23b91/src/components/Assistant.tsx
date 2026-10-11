@@ -7,7 +7,7 @@ import { getActiveProject } from '../lib/router';
 import { invalidate } from '../lib/data';
 import { Button, Textarea } from './ui';
 
-const KEY = 'ltm:assistant-session';
+
 const CONTEXT_RE = /^\[App context:[^\]]*\]\s*/;
 
 const PROMPTS = [
@@ -19,7 +19,8 @@ const PROMPTS = [
   'Improve my licensing outreach email draft.',
 ];
 
-export function AssistantDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
+  const KEY = `ltm:${userId}:assistant-session`;
   const chat = useAgentChat({ agentName: 'assistant', initialSessionId: localStorage.getItem(KEY), onSessionIdChange: id => (id ? localStorage.setItem(KEY, id) : localStorage.removeItem(KEY)) });
   const [text, setText] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
@@ -30,7 +31,7 @@ export function AssistantDrawer({ open, onClose }: { open: boolean; onClose: () 
   useEffect(() => { if (chat.status === 'idle') invalidate(); }, [chat.status]);
 
   const send = async (msg: string) => {
-    if (!msg.trim()) return;
+    if (!msg.trim() || busy || chat.status === 'waiting-for-input') return;
     const ctx = `[App context: page=${window.location.hash || '#/dashboard'}; active_project_id=${getActiveProject() ?? 'none'}]`;
     setText('');
     await chat.send(`${ctx}\n${msg.trim()}`);

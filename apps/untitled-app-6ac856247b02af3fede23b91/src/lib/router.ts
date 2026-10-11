@@ -12,11 +12,13 @@ export function useRoute(): string[] {
 }
 export const navigate = (path: string) => { window.location.hash = `/${path.replace(/^\//, '')}`; };
 
-const KEY = 'ltm:active-project';
+let account = '';
+export function setStorageUser(id: string) { account = id; }
+const storageKey = () => `ltm:${account}:active-project`;
 const subs = new Set<(id: string | null) => void>();
-export function getActiveProject(): string | null { return localStorage.getItem(KEY); }
+export function getActiveProject(): string | null { return localStorage.getItem(storageKey()); }
 export function setActiveProject(id: string | null) {
-  if (id) localStorage.setItem(KEY, id); else localStorage.removeItem(KEY);
+  if (id) localStorage.setItem(storageKey(), id); else localStorage.removeItem(storageKey());
   subs.forEach(s => s(id));
 }
 export function useActiveProjectId(): [string | null, (id: string | null) => void] {
@@ -37,3 +39,5 @@ export function setHashParam(key: string, value: string) {
   window.history.replaceState(null, '', `${path}?${sp}`);
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 }
+
+window.addEventListener('storage', e => { if (e.key === storageKey()) subs.forEach(s => s(getActiveProject())); });

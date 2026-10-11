@@ -62,7 +62,7 @@ export type FitContext = {
 export type Fit = { level: 'now' | 'later' | 'no'; reasons: string[] };
 
 export type Timing =
-  | { type: 'deadline'; date: string; label: string; verified: true }
+  | { type: 'deadline'; date: string; closesAt: string; label: string; verified: true }
   | { type: 'rolling'; label: string }
   | { type: 'cycle'; label: string }
   | { type: 'with_proposal'; label: string }
@@ -115,7 +115,7 @@ export const PROGRAMS: Program[] = [
     eligibility: 'A U.S. small business that has never received an NIH SBIR/STTR award, or none in the last 10 years, with a cancer-focused technology in an NCI topic area (therapeutics, diagnostics, imaging, devices, prevention, cancer control, research tools, digital health). Phase I only. NCI expects 10–25 hours per week.',
     cost: 'No cost. Provides coaching, not funding.',
     free: true,
-    timing: { type: 'deadline', date: '2026-10-12', label: 'Submission deadline Monday, Oct 12, 2026 at 5:00 p.m. ET (per NCI page updated Aug 31, 2026)', verified: true },
+    timing: { type: 'deadline', date: '2026-10-12', closesAt: '2026-10-12T17:00:00-04:00', label: 'Submission deadline Monday, Oct 12, 2026 at 5:00 p.m. ET (per NCI page updated Aug 31, 2026)', verified: true },
     url: 'https://sbir.cancer.gov/small-business-funding/application-process/step',
     contact: 'ncisbir@mail.nih.gov',
     fit: c => {
@@ -537,8 +537,10 @@ export function rankPrograms(c: FitContext): Ranked[] {
 /** Days until a program deadline (end of that day, Eastern), or null when it has none. */
 export function programDaysLeft(p: Program, today = new Date()): number | null {
   if (p.timing.type !== 'deadline') return null;
-  const end = new Date(`${p.timing.date}T23:59:59-04:00`);
-  return Math.floor((end.getTime() - today.getTime()) / 86_400_000);
+  const end = new Date(p.timing.closesAt);
+  if (today >= end) return -1;
+  const localDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(today);
+  return Math.round((Date.parse(`${p.timing.date}T00:00:00Z`) - Date.parse(`${localDay}T00:00:00Z`)) / 86_400_000);
 }
 
 export const TRACK_STATUS: Record<string, string> = {

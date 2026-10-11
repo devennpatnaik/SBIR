@@ -1,3 +1,4 @@
+import { DemoLauncher } from '../components/Demo';
 import { useBundle } from '../lib/bundle';
 import { PROJECT_LICENSING_STATUS, statusIndex, statusLabel } from '../lib/constants';
 import { useQuery } from '../lib/data';
@@ -25,7 +26,8 @@ export function Dashboard() {
     return (
       <div>
         <PageHeader title="Welcome" subtitle="This workspace takes you from a federal-lab technology to a license, an SBIR/STTR proposal, and a commercial product — one next action at a time." />
-        <Card title="Get started">
+        <DemoLauncher welcome />
+        <Card title="Or start your own project">
           <ol className="space-y-3">{steps.map((s, i) => (
             <li key={s.title} className="flex items-start gap-3">
               <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${s.done ? 'bg-emerald-600 text-white' : 'bg-slate-200'}`}>{s.done ? '✓' : i + 1}</span>
@@ -55,7 +57,7 @@ export function Dashboard() {
             <div className="text-sm font-medium">Stage {statusIndex(current.status) + 1}: {statusLabel(current.status)}</div>
           </div>
         </Card>
-        <NextActionPanel bundle={b} limit={6} />
+        <NextActionPanel bundle={b} limit={3} />
       </div>
       <Card className="mb-4"><StageBar project={current} /></Card>
       <HelpSuggestions projectId={current.id} limit={3} title="Free help that fits right now" />

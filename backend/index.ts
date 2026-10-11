@@ -4,9 +4,13 @@ import type { Env } from './lib/env';
 import { extractRoutes } from './routes/extract';
 import { sbirRoutes } from './routes/sbir';
 import { dataRoutes } from './routes/data';
+import { demoRoutes } from './routes/demo';
 
 const app = new Hono<{ Bindings: Env }>();
 const apiCors = cors({ origin: origin => origin, allowHeaders: ['Authorization', 'Content-Type'], allowMethods: ['GET', 'POST', 'OPTIONS'] });
+app.use('/demo', apiCors);
+app.use('/demo/*', apiCors);
+app.route('/demo', demoRoutes);
 app.use('/extract/*', apiCors);
 app.use('/extract', apiCors);
 app.use('/sbir/*', apiCors);

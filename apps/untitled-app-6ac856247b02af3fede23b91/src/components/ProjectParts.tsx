@@ -61,6 +61,8 @@ function StatusModal({ open, onClose, project }: { open: boolean; onClose: () =>
 
 export function NextActionPanel({ bundle, limit = 5 }: { bundle: Bundle; limit?: number }) {
   const { actions } = analyze(bundle);
+  if (bundle.loading) return <Card title="What to do next"><p role="status" className="text-sm text-slate-500">Checking your project records…</p></Card>;
+  if (bundle.error) return <ErrorNote error={bundle.error} />;
   if (!bundle.project) return null;
   const [first, ...rest] = actions;
   return (
@@ -90,12 +92,14 @@ export function NextActionPanel({ bundle, limit = 5 }: { bundle: Bundle; limit?:
 
 export function DeadlinesAndBlockers({ bundle }: { bundle: Bundle }) {
   const { deadlines, blockers } = analyze(bundle);
+  if (bundle.loading) return <p role="status" className="text-sm text-slate-500">Checking deadlines and blockers…</p>;
+  if (bundle.error) return <ErrorNote error={bundle.error} />;
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card title={<span className="flex items-center gap-1.5"><CalendarClock className="size-4" />Approaching deadlines</span>}>
         {!deadlines.length ? <p className="text-sm text-slate-500">No deadlines in the next 30 days. Add due dates to tasks and close dates to funding opportunities.</p> : (
           <ul className="space-y-2">{deadlines.slice(0, 6).map(d => (
-            <li key={d.label + d.date} className="flex items-start justify-between gap-2 text-sm">
+            <li key={d.label + d.date} className="flex flex-wrap items-start justify-between gap-2 text-sm">
               <a href={`#/${d.link}`} className="hover:underline">{d.label}</a>
               <span className="flex shrink-0 items-center gap-1">
                 {!d.verified && <Badge tone="amber" title="Not confirmed against a current official source">unverified</Badge>}
@@ -164,7 +168,7 @@ function TaskRow({ t, all, dependsTitle }: { t: Task; all: Task[]; dependsTitle?
   return (
     <li className="px-3 py-2">
       <div className="flex items-start gap-2">
-        <button type="button" aria-label={isDone ? `Reopen ${t.title}` : `Complete ${t.title}`} onClick={() => updateRow('tasks', t.id, { status: isDone ? 'todo' : 'done', completed_at: isDone ? null : nowIso() })} className="mt-0.5">
+        <button type="button" disabled={!isDone && !!(depOpen || t.status === 'blocked')} title={depOpen ? 'Complete the prerequisite first' : t.status === 'blocked' ? 'Resolve the blocker first' : undefined} aria-label={isDone ? `Reopen ${t.title}` : `Complete ${t.title}`} onClick={() => updateRow('tasks', t.id, { status: isDone ? 'todo' : 'done', completed_at: isDone ? null : nowIso() })} className="mt-0.5">
           {isDone ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="size-4 text-slate-400 hover:text-blue-700" />}
         </button>
         <div className="min-w-0 flex-1">
@@ -188,7 +192,7 @@ function TaskRow({ t, all, dependsTitle }: { t: Task; all: Task[]; dependsTitle?
 
 function TaskEditor({ t, all, onClose }: { t: Task; all: Task[]; onClose: () => void }) {
   const [v, setV] = useState({ title: t.title, description: t.description, status: t.status, due_date: t.due_date ?? '', blocker: t.blocker, depends_on: t.depends_on ?? '', evidence: t.evidence, roadmap_category: t.roadmap_category });
-  const { busy, run } = useAsync();
+  const { busy, error, run } = useAsync();
   return (
     <div className="ml-6 mt-2 grid gap-2 rounded-md bg-slate-50 p-3 md:grid-cols-2">
       <Field label="Title" className="md:col-span-2"><Input aria-label="Task title" value={v.title} onChange={e => setV({ ...v, title: e.target.value })} /></Field>
@@ -200,7 +204,7 @@ function TaskEditor({ t, all, onClose }: { t: Task; all: Task[]; onClose: () => 
       {t.kind === 'milestone' && <Field label="Roadmap category"><Select aria-label="Milestone category" value={v.roadmap_category} onChange={e => setV({ ...v, roadmap_category: e.target.value })} options={ROADMAP_CATEGORIES.map(c => [c.key, c.label] as [string, string])} /></Field>}
       <Field label="Evidence / outcome" className="md:col-span-2"><Textarea aria-label="Task evidence" rows={2} value={v.evidence} onChange={e => setV({ ...v, evidence: e.target.value })} placeholder="What proves this is done? Link or note." /></Field>
       <div className="flex gap-2 md:col-span-2">
-        <Button size="sm" variant="primary" busy={busy} onClick={() => run(async () => { await updateRow('tasks', t.id, { ...v, due_date: v.due_date || null, depends_on: v.depends_on || null, completed_at: v.status === 'done' ? (t.completed_at ?? nowIso()) : null }); onClose(); })}>Save</Button>
+        <ErrorNote error={error} /><Button size="sm" variant="primary" busy={busy} onClick={() => run(async () => { if (!v.title.trim()) throw new Error('Add a task title.'); if (v.status === 'done' && v.depends_on && all.find(x => x.id === v.depends_on)?.status !== 'done') throw new Error('Complete the prerequisite first.'); await updateRow('tasks', t.id, { ...v, due_date: v.due_date || null, depends_on: v.depends_on || null, completed_at: v.status === 'done' ? (t.completed_at ?? nowIso()) : null }); onClose(); })}>Save</Button>
         <Button size="sm" onClick={onClose}>Cancel</Button>
         <Button size="sm" variant="danger" className="ml-auto" onClick={() => deleteRow('tasks', t.id)}><Trash2 className="size-3.5" />Delete</Button>
       </div>

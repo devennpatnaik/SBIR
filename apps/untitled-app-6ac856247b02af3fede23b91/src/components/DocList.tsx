@@ -1,3 +1,4 @@
+import { downloadMarkdown } from '../lib/export';
 import { useRef, useState } from 'react';
 import { FileUp, Trash2 } from 'lucide-react';
 import { deleteRow, fmtDate, insertRow, updateRow, useQuery } from '../lib/data';
@@ -68,6 +69,7 @@ function DocEditor({ scope, doc, onDone }: { scope: Scope; doc?: Doc; onDone: ()
       <Field label="Content"><Textarea aria-label="Document content" rows={14} readOnly={readonly} value={v.body} onChange={e => setV({ ...v, body: e.target.value })} /></Field>
       <Field label="Source URL (if any)"><Input aria-label="Document source URL" value={v.source_url} disabled={readonly} onChange={e => setV({ ...v, source_url: e.target.value })} /></Field>
       <ErrorNote error={error} />
+      {doc && <Button onClick={() => downloadMarkdown(v.title, `# ${v.title}\n\n${doc.is_ai_generated ? "AI-generated working material. Verify before use.\n\n" : ""}${v.body}\n\nSource: ${v.source_url || "None recorded"}`)}>Download note</Button>}
       {!readonly && <Button variant="primary" busy={busy} disabled={!v.title.trim()} onClick={() => run(async () => {
         if (doc) await updateRow('documents', doc.id, { ...v, updated_at: new Date().toISOString() }); else await insertRow('documents', { ...scope, ...v });
         onDone();

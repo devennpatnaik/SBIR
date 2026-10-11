@@ -1,9 +1,10 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
+import { reportWriteError } from '../lib/data';
 import { cn } from '../lib/utils';
 
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; size?: 'sm' | 'md'; busy?: boolean };
-export function Button({ variant = 'secondary', size = 'md', busy, className, children, disabled, ...rest }: BtnProps) {
+export function Button({ variant = 'secondary', size = 'md', busy, className, children, disabled, onClick, ...rest }: BtnProps) {
   return (
     <button
       type="button"
@@ -18,6 +19,12 @@ export function Button({ variant = 'secondary', size = 'md', busy, className, ch
         className,
       )}
       {...rest}
+      onClick={event => {
+        try {
+          const result = onClick?.(event) as unknown;
+          if (result && typeof (result as Promise<unknown>).catch === 'function') void (result as Promise<unknown>).catch(reportWriteError);
+        } catch (error) { reportWriteError(error); }
+      }}
     >
       {busy && <Loader2 className="size-3.5 animate-spin" />}
       {children}
@@ -29,7 +36,7 @@ export function Card({ className, children, title, actions }: { className?: stri
   return (
     <section className={cn('rounded-lg border border-slate-200 bg-white shadow-sm', className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
           <div className="flex items-center gap-2">{actions}</div>
         </header>
@@ -159,19 +166,23 @@ export function Notice({ tone = 'amber', children }: { tone?: 'amber' | 'blue' |
 export function InlineText({ value, onSave, multiline, placeholder, label, rows }: { value: string; onSave: (v: string) => Promise<void> | void; multiline?: boolean; placeholder?: string; label: string; rows?: number }) {
   const [v, setV] = useState(value);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => setV(value), [value]);
   const commit = async () => {
     if (v === value) return;
-    await onSave(v);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+    setError(null); setSaving(true);
+    try { await onSave(v); setSaved(true); setTimeout(() => setSaved(false), 1500); }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setSaving(false); }
   };
   return (
     <div className="flex flex-col gap-1 text-sm">
-      <div className="flex items-center justify-between"><span className="font-medium text-slate-700">{label}</span>{saved && <span className="text-xs text-emerald-700">Saved</span>}</div>
+      <div className="flex items-center justify-between"><span className="font-medium text-slate-700">{label}</span>{saving && <span role="status" className="text-xs text-slate-500">Saving…</span>}{saved && <span className="text-xs text-emerald-700">Saved</span>}</div>
       {multiline
         ? <Textarea aria-label={label} rows={rows ?? 3} value={v} placeholder={placeholder} onChange={e => setV(e.target.value)} onBlur={commit} />
         : <Input aria-label={label} value={v} placeholder={placeholder} onChange={e => setV(e.target.value)} onBlur={commit} />}
+      {error && <div role="alert" className="text-xs text-red-700">Not saved: {error} <button type="button" className="underline" onClick={commit}>Retry save</button></div>}
     </div>
   );
 }
@@ -181,7 +192,7 @@ export function useAsync() {
   const [error, setError] = useState<string | null>(null);
   const run = async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
     setBusy(true); setError(null);
-    try { return await fn(); } catch (e) { setError(e instanceof Error ? e.message : String(e)); return undefined; } finally { setBusy(false); }
+    try { return await fn(); } catch (e) { reportWriteError(e); setError(e instanceof Error ? e.message : String(e)); return undefined; } finally { setBusy(false); }
   };
   return { busy, error, run, setError };
 }

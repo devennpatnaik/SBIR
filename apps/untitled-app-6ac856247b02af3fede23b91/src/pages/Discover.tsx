@@ -1,3 +1,4 @@
+import { DemoLauncher } from '../components/Demo';
 import { useMemo, useRef, useState } from 'react';
 import { Download, Link2, PenLine, Star, Upload } from 'lucide-react';
 import { backend, insertRow, insertRows, nowIso, updateRow, useQuery, fmtDate } from '../lib/data';
@@ -104,7 +105,7 @@ export function Discover() {
 
       {!techs.loading && !techs.data.length ? (
         <Empty title="No technologies yet" action={<div className="flex gap-2"><Button variant="primary" onClick={() => setAdding('url')}>Add from URL</Button><LoadSample /></div>}>
-          Start with a technology page URL from TechLink, DOE Lab Partnering Service, the FLC, or a lab's own site. You can also enter one manually or import a CSV. A clearly labeled sample is available if you want to try the workflow first.
+          Start with a technology page URL from TechLink, DOE Lab Partnering Service, the FLC, or a lab's own site. You can also enter one manually or import a CSV. Use Demo company to explore a complete, clearly labeled business scenario.
         </Empty>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -249,21 +250,4 @@ function ImportCsv({ onDone }: { onDone: () => void }) {
   );
 }
 
-function LoadSample() {
-  const { busy, run } = useAsync();
-  return (
-    <Button busy={busy} onClick={() => run(async () => {
-      const row = await insertRow<Technology>('technologies', {
-        is_sample: true,
-        name: '[SAMPLE] Low-power corrosion sensor for steel infrastructure',
-        description: 'SAMPLE DATA — not a real technology. A fictional printed sensor that detects early corrosion under coatings on steel bridges and pipelines and reports wirelessly.',
-        source_url: '', source_name: 'Sample data', lab_name: 'Sample National Laboratory (fictional)', agency: 'Sample agency',
-        category: 'Sensors', maturity: 'TRL 4 (fictional)', applications: 'Bridge inspection\nPipeline integrity monitoring',
-        customers: 'State DOT bridge inspection units\nPipeline operators', competitors: 'Manual ultrasonic thickness testing\nDrone visual inspection',
-        ip_info: 'Fictional — no real patent.', licensing_status: 'unknown',
-        open_questions: 'Is it available to license?\nWhat is the sensor lifetime in the field?', last_reviewed_at: nowIso(),
-      });
-      navigate(`tech/${row.id}`);
-    })}>Try with a sample technology</Button>
-  );
-}
+function LoadSample() { return <DemoLauncher />; }

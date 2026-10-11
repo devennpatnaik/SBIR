@@ -128,3 +128,9 @@
     @apply font-sans;
     }
 }
+@layer base {
+  button, input, select, textarea { max-width: 100%; }
+  button:not(:disabled), a { cursor: pointer; }
+  :focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+  p, dd, h1, h2, h3 { overflow-wrap: anywhere; }
+}

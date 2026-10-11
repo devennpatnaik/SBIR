@@ -67,7 +67,8 @@ export async function addProgramTask(projectId: string, program: Program, row?: 
     priority: due ? 1 : 2,
   });
   if (row) {
-    await client.from('program_tracking').update({ task_id: task.id, status: row.status === 'considering' ? 'preparing' : row.status, updated_at: new Date().toISOString() }).eq('id', row.id);
+    const saved = await client.from('program_tracking').update({ task_id: task.id, status: row.status === 'considering' ? 'preparing' : row.status, updated_at: new Date().toISOString() }).eq('id', row.id);
+    if (saved.error) throw new Error(saved.error.message);
   } else {
     await insertRow('program_tracking', { project_id: projectId, program_id: program.id, status: 'preparing', task_id: task.id });
   }

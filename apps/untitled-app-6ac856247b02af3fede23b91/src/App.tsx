@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { BookOpen, Briefcase, LifeBuoy, ClipboardList, FileText, FlaskConical, Gauge, Landmark, LogOut, Map, MessageSquare, Scale, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Menu, X, BookOpen, Briefcase, LifeBuoy, ClipboardList, FileText, FlaskConical, Gauge, Landmark, LogOut, Map, MessageSquare, Scale, Search } from 'lucide-react';
 import { client, useSession } from './client';
-import { useRoute, navigate } from './lib/router';
+import { setStorageUser, useActiveProjectId, useRoute, navigate } from './lib/router';
 import { cn } from './lib/utils';
-import { invalidate, useDataError } from './lib/data';
+import { clearWriteError, invalidate, useDataError, useQuery } from './lib/data';
+import { DemoGuide, DemoLauncher } from './components/Demo';
+import type { Project } from './lib/types';
 import { Dashboard } from './pages/Dashboard';
 import { Discover } from './pages/Discover';
 import { TechnologyDetail } from './pages/TechnologyDetail';
@@ -34,20 +36,36 @@ const SECTION_OF: Record<string, string> = { tech: 'discover', funding: 'funding
 
 export function App() {
   const { data: session, isPending } = useSession();
+  if (isPending) return <p role="status" className="p-8 text-sm text-slate-500">Opening your workspace…</p>;
+  if (!session) return <SignIn />;
+  setStorageUser(session.user.id);
+  return <Workspace key={session.user.id} user={session.user} />;
+}
+
+function Workspace({ user }: { user: { id: string; email: string } }) {
   const route = useRoute();
   const [assistantOpen, setAssistantOpen] = useState(false);
-
-  if (isPending) return null;
-  if (!session) return <SignIn />;
-
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeId, setActive] = useActiveProjectId();
+  const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
+  useEffect(() => {
+    if (!projects.loading && !projects.error && !projects.data.some(p => p.id === activeId)) setActive(projects.data[0]?.id ?? null);
+  }, [projects.data, projects.loading, projects.error, activeId, setActive]);
+  useEffect(() => { setMenuOpen(false); }, [route.join('/')]);
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenuOpen(false); setAssistantOpen(false); } };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, []);
   const [section = 'dashboard', id] = route;
   const active = SECTION_OF[section] ?? section;
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-slate-200 bg-white">
+      {menuOpen && <button type="button" aria-label="Close navigation overlay" className="fixed inset-0 z-30 bg-slate-900/40 md:hidden" onClick={() => setMenuOpen(false)} />}
+      <aside id="main-navigation" className={cn('fixed inset-y-0 left-0 z-40 h-dvh w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:sticky md:top-0 md:flex', menuOpen ? 'flex' : 'hidden')}>
         <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-4">
-          <BookOpen className="size-5 text-blue-700" />
+          <BookOpen className="size-5 text-blue-700" /><button aria-label="Close menu" type="button" onClick={() => setMenuOpen(false)} className="absolute right-2 top-2 p-2 md:hidden"><X className="size-4" /></button>
           <div>
             <div className="text-sm font-semibold leading-tight">Lab to Market</div>
             <div className="text-[11px] text-slate-500">Federal tech → SBIR → product</div>
@@ -61,6 +79,7 @@ export function App() {
           ))}
         </nav>
         <div className="space-y-2 border-t border-slate-100 p-3">
+          <DemoLauncher />
           <a href="#/help" className={cn('flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium', active === 'help' ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50')}>
             <LifeBuoy className="size-4" />Free help & programs
           </a>
@@ -68,14 +87,16 @@ export function App() {
             <MessageSquare className="size-4" />Research assistant
           </button>
           <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
-            <span className="truncate" title={session.user.email}>{session.user.email}</span>
+            <span className="truncate" title={user.email}>{user.email}</span>
             <button type="button" aria-label="Sign out" title="Sign out" onClick={() => client.auth.signOut()} className="rounded p-1 hover:bg-slate-100"><LogOut className="size-3.5" /></button>
           </div>
         </div>
       </aside>
-      <main className="min-w-0 flex-1 px-8 py-6">
+      <main id="workspace" className="min-w-0 flex-1 px-4 py-4 md:px-8 md:py-6">
+        <header className="mb-4 flex items-center justify-between md:hidden"><span className="font-semibold">Lab to Market</span><button type="button" aria-label="Open menu" aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setMenuOpen(true)} className="rounded border bg-white p-2"><Menu className="size-5" /></button></header>
         <div className="mx-auto max-w-6xl">
           <DataErrorBanner />
+          <DemoGuide section={section} />
           {section === 'dashboard' && <Dashboard />}
           {section === 'help' && <Help />}
           {section === 'discover' && <Discover />}
@@ -94,7 +115,7 @@ export function App() {
           )}
         </div>
       </main>
-      <AssistantDrawer open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+      <AssistantDrawer userId={user.id} open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </div>
   );
 }
@@ -104,8 +125,8 @@ function DataErrorBanner() {
   if (!message) return null;
   return (
     <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      <span><strong>Couldn't load your data.</strong> {message}</span>
-      <button type="button" onClick={() => invalidate()} className="shrink-0 font-medium underline">Try again</button>
+      <span><strong>Something needs attention.</strong> {message}</span>
+      <button type="button" onClick={() => { clearWriteError(); invalidate(); }} className="shrink-0 font-medium underline">Try again</button>
     </div>
   );
 }

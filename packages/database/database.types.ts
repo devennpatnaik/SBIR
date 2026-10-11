@@ -418,6 +418,36 @@ export type Database = {
           },
         ]
       }
+      demo_workspaces: {
+        Row: {
+          created_at: string
+          lab_id: string
+          opportunity_ids: string[]
+          project_id: string
+          proposal_id: string
+          technology_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          lab_id: string
+          opportunity_ids: string[]
+          project_id: string
+          proposal_id: string
+          technology_ids: string[]
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          lab_id?: string
+          opportunity_ids?: string[]
+          project_id?: string
+          proposal_id?: string
+          technology_ids?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           body: string
@@ -1512,7 +1542,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      manage_demo: { Args: { operation?: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never

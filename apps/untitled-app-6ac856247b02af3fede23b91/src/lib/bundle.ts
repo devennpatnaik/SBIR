@@ -33,9 +33,10 @@ export function useBundle(projectId: string | null | undefined): Bundle {
   const agreements = useQuery<Agreement>('agreements', q => q.eq('project_id', id).order('created_at'), [id], on);
   const programs = useQuery<ProgramTracking>('program_tracking', q => q.eq('project_id', id), [id], on);
   const history = useQuery<StatusHistory>('status_history', q => q.eq('project_id', id).order('created_at', { ascending: false }), [id], on);
+  const all = [p, t, ev, lab, contacts, tasks, questions, licensing, comms, links, opps, proposals, sections, interviews, agreements, programs, history];
   return {
-    loading: p.loading || (!!project && t.loading),
-    error: p.error ?? t.error ?? tasks.error,
+    loading: all.some(q => q.loading),
+    error: all.find(q => q.error)?.error ?? null,
     project, tech: t.data[0], evaluation: ev.data[0], lab: lab.data[0],
     contacts: contacts.data, tasks: tasks.data, questions: questions.data, licensing: licensing.data, comms: comms.data,
     links: links.data, opps: opps.data, proposals: proposals.data, sections: sections.data, interviews: interviews.data,

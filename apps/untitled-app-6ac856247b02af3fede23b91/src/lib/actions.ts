@@ -1,6 +1,6 @@
 import { client } from '../client';
 import { LICENSING_TOPICS, PROPOSAL_TEMPLATE, STARTER_TASKS } from './constants';
-import { insertRow, insertRows, invalidate, nowIso } from './data';
+import { insertRow, insertRows, invalidate, nowIso, updateRow } from './data';
 import type { Lab, Opportunity, Project, Proposal, Technology } from './types';
 
 /** Finds the user's lab record by name, creating it if needed. */
@@ -74,6 +74,6 @@ export async function createProposal(project: Project, opp: Opportunity): Promis
 }
 
 export async function recordStatusChange(project: Project, to: string, reason: string) {
-  await client.from('projects').update({ status: to, updated_at: nowIso() }).eq('id', project.id);
+  await updateRow('projects', project.id, { status: to, updated_at: nowIso() });
   await insertRows('status_history', [{ project_id: project.id, from_status: project.status, to_status: to, reason }]);
 }
