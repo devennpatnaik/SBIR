@@ -13,8 +13,10 @@ app.use('/sbir/*', apiCors);
 // Data API requests carry PostgREST headers (Prefer, Range…); reflect what the browser asks for.
 app.use('/data/*', cors({ origin: origin => origin, allowMethods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], exposeHeaders: ['Content-Range', 'Preference-Applied'], maxAge: 600 }));
 app.get('/health', c => c.json({ ok: true }));
+app.get('/live', c => c.json({ message: 'Live updates are not enabled for this app.' }, 501));
 app.route('/extract', extractRoutes);
 app.route('/sbir', sbirRoutes);
 app.route('/data', dataRoutes);
 
+export { Live } from './lib/live';
 export default app;
