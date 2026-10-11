@@ -13,7 +13,7 @@ CREATE TABLE bourne_agent_sessions (
 );
 
 CREATE TABLE bourne_agent_messages (
-  session_id uuid NOT NULL REFERENCES bourne_agent_sessions (id) ON DELETE CASCADE,
+  session_id uuid NOT NULL,
   turn_id uuid NOT NULL,
   message_id text NOT NULL,
   message_type text NOT NULL,
@@ -22,6 +22,8 @@ CREATE TABLE bourne_agent_messages (
   timestamp timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (session_id, turn_id, message_id)
 );
+-- Foreign keys added after CREATE TABLE: an inline REFERENCES makes the platform notify hook attach its trigger twice.
+ALTER TABLE bourne_agent_messages ADD CONSTRAINT bourne_agent_messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES bourne_agent_sessions (id) ON DELETE CASCADE;
 
 CREATE INDEX bourne_agent_sessions_user_id_idx ON bourne_agent_sessions (user_id, updated_at DESC);
 

@@ -11,7 +11,7 @@ CREATE TABLE bourne_artifacts (
 
 CREATE TABLE bourne_artifact_revisions (
   id uuid PRIMARY KEY,
-  artifact_id uuid NOT NULL REFERENCES bourne_artifacts (id) ON DELETE CASCADE,
+  artifact_id uuid NOT NULL,
   run_id text NOT NULL,
   function_name text NOT NULL,
   content text,
@@ -20,6 +20,8 @@ CREATE TABLE bourne_artifact_revisions (
   size_bytes bigint NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Foreign keys added after CREATE TABLE: an inline REFERENCES makes the platform notify hook attach its trigger twice.
+ALTER TABLE bourne_artifact_revisions ADD CONSTRAINT bourne_artifact_revisions_artifact_id_fkey FOREIGN KEY (artifact_id) REFERENCES bourne_artifacts (id) ON DELETE CASCADE;
 
 CREATE INDEX bourne_artifact_revisions_artifact_id_idx ON bourne_artifact_revisions (artifact_id, created_at);
 CREATE INDEX bourne_artifact_revisions_run_id_idx ON bourne_artifact_revisions (run_id);
