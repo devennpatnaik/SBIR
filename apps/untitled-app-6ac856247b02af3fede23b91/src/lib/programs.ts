@@ -339,7 +339,7 @@ export const PROGRAMS: Program[] = [
     timing: { type: 'rolling', label: 'Anytime.' },
     url: 'https://federallabs.org/flc-business/how-to-search',
     contact: 'info@federallabs.org',
-    fit: c => c.stage === 'discover' ? now('Broadest single search across federal labs.') : later('Useful if you need a second technology or a test facility.'),
+    fit: c => c.stage === 'discover' && !c.techAgency ? now('Broadest single search across federal labs.') : later('Useful if you need a second technology, a test facility or lab expertise.'),
   },
   {
     id: 'doe_lps',
@@ -354,14 +354,14 @@ export const PROGRAMS: Program[] = [
     free: true,
     timing: { type: 'rolling', label: 'Anytime.' },
     url: 'https://www.energy.gov/technologycommercialization/lab-partnering-service',
-    fit: c => c.techAgency === 'DOE' ? now('Your technology is from a DOE lab — contact the lab and its experts here.') : c.stage === 'discover' ? now('Search DOE national-lab technologies.') : later('Useful for DOE technologies or lab facilities.'),
+    fit: c => c.techAgency === 'DOE' ? now('Your technology is from a DOE lab — contact the lab and its experts here.') : c.stage === 'discover' && !c.techAgency ? now('Search DOE national-lab technologies.') : later('Useful for DOE technologies, lab facilities or lab experts.'),
   },
   {
     id: 'nasa_startup_license',
     name: 'NASA Startup License (and Evaluation License)',
     sponsor: 'NASA Technology Transfer Program',
     kind: 'licensing_help',
-    stages: ['license'],
+    stages: ['discover', 'license'],
     summary: 'NASA offers startups a license with no up-front fee for commercial use of its patented technologies, and a 12-month evaluation license to test a technology first.',
     gives: ['Startup license: no up-front fee (normal non-exclusive up-front fees are usually $5,000–$10,000)', 'Evaluation license: typically 12 months for $2,500, adjustable', 'Online application through NASA’s ATLAS system'],
     eligibility: 'Startup license: U.S. companies formed to commercialize the licensed NASA technology. Non-exclusive (NASA will consider more exclusivity on request). Requires a commercialization plan and progress reporting.',
@@ -514,6 +514,14 @@ export function stageOf(status: string | null | undefined): Stage {
 
 export type Ranked = { program: Program; fit: Fit };
 const LEVEL = { now: 0, later: 1, no: 2 } as const;
+/** Kinds of help that matter most at each stage; general mentoring and tutorials sort after targeted help. */
+const KIND_ORDER: Record<Stage, Kind[]> = {
+  discover: ['licensing_help', 'tech_search', 'fellowship', 'training', 'proposal_help', 'funding_help', 'mentoring', 'legal', 'manufacturing'],
+  license: ['licensing_help', 'tech_search', 'fellowship', 'proposal_help', 'training', 'mentoring', 'funding_help', 'legal', 'manufacturing'],
+  propose: ['proposal_help', 'funding_help', 'training', 'licensing_help', 'fellowship', 'mentoring', 'tech_search', 'legal', 'manufacturing'],
+  awarded: ['funding_help', 'training', 'manufacturing', 'legal', 'mentoring', 'proposal_help', 'licensing_help', 'fellowship', 'tech_search'],
+};
+const GENERAL = new Set(['score', 'sbdc', 'sbir_tutorials', 'sba_fast']);
 
 /** All programs with their fit for this context, best first; programs for the current stage rank above others. */
 export function rankPrograms(c: FitContext): Ranked[] {
@@ -521,6 +529,8 @@ export function rankPrograms(c: FitContext): Ranked[] {
     LEVEL[a.fit.level] - LEVEL[b.fit.level]
     || Number(!a.program.stages.includes(c.stage)) - Number(!b.program.stages.includes(c.stage))
     || Number(a.program.timing.type !== 'deadline') - Number(b.program.timing.type !== 'deadline')
+    || Number(GENERAL.has(a.program.id)) - Number(GENERAL.has(b.program.id))
+    || KIND_ORDER[c.stage].indexOf(a.program.kind) - KIND_ORDER[c.stage].indexOf(b.program.kind)
     || Number(!a.program.free) - Number(!b.program.free));
 }
 

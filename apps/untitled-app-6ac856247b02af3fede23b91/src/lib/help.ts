@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { insertRow, invalidate, useQuery } from './data';
 import { client } from '../client';
-import { normalizeAgency, programById, rankPrograms, stageOf, type Agency, type FitContext, type HelpProfile, type Program, type Ranked, type Stage } from './programs';
+import { normalizeAgency, programById, rankPrograms, stageOf, type Agency, type FitContext, type Program, type Ranked, type Stage } from './programs';
 import { useSettings } from './settings';
 import type { Opportunity, Project, ProgramTracking, ProjectOpportunity, Technology } from './types';
 
@@ -28,11 +28,6 @@ export function useHelp(projectId: string | null | undefined, stageOverride?: St
   const ranked: Ranked[] = useMemo(() => rankPrograms(ctx), [ctx]);
   const profileSet = !!(profile.award || profile.agencies?.length || profile.areas?.length);
   return { loading: settings.loading || project.loading || tracking.loading, project: p, ctx, ranked, tracking: tracking.data, profile, profileSet, techName: tech.data[0]?.name };
-}
-
-export async function saveHelpProfile(profile: HelpProfile) {
-  const { saveSettings } = await import('./settings');
-  await saveSettings({ help_profile: profile });
 }
 
 /** Creates or updates the user's tracking row for a program on a project (or with no project). */
