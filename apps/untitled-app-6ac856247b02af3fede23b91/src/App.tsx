@@ -92,27 +92,46 @@ export function App() {
   );
 }
 
+function friendlyAuthError(message: string, mode: 'signIn' | 'signUp'): string {
+  const m = message.toLowerCase();
+  if (m.includes('email or password') || m.includes('credentials') || m.includes('incorrect')) return 'Email or password is incorrect. If you are new, use Create an account.';
+  if (m.includes('already') || m.includes('exists')) return 'An account with this email already exists. Use Sign in instead.';
+  if (m.includes('invalid email address') || m.includes('body.email')) return 'Enter a valid email address.';
+  if (m.includes('password') && (m.includes('small') || m.includes('short') || m.includes('least'))) return 'Password must be at least 8 characters.';
+  if (mode === 'signIn' && (m.includes('invalid') || m.includes('not found'))) return 'Email or password is incorrect. If you are new, use Create an account.';
+  return message || (mode === 'signUp' ? 'Could not create the account.' : 'Sign in failed.');
+}
+
 function SignIn() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const submit = async (mode: 'signIn' | 'signUp') => {
+  // Read the fields from the form itself so browser/password-manager autofill is always included.
+  const submit = async (form: HTMLFormElement) => {
+    const data = new FormData(form);
+    const email = String(data.get('email') ?? '').trim();
+    const password = String(data.get('password') ?? '');
+    const confirm = String(data.get('confirm') ?? '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('Enter a valid email address.');
+    if (mode === 'signUp' && password.length < 8) return setError('Choose a password of at least 8 characters.');
+    if (mode === 'signIn' && !password) return setError('Enter your password.');
+    if (mode === 'signUp' && password !== confirm) return setError('The two passwords do not match.');
     setBusy(true);
     setError('');
     try {
       const result = mode === 'signUp'
         ? await client.auth.signUp.email({ email, password, name: email })
         : await client.auth.signIn.email({ email, password });
-      setError(result.error?.message ?? '');
+      if (result.error) setError(friendlyAuthError(result.error.message ?? '', mode));
     } catch (caught) {
-      setError(caught instanceof Error && caught.message ? caught.message : 'Sign in failed');
+      setError(friendlyAuthError(caught instanceof Error ? caught.message : '', mode));
     } finally {
       setBusy(false);
     }
   };
 
+  const signUp = mode === 'signUp';
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
       <div className="w-full max-w-sm">
@@ -121,16 +140,30 @@ function SignIn() {
           <h1 className="text-xl font-semibold">Lab to Market</h1>
           <p className="mt-1 text-sm text-slate-600">Find a federal-lab technology, license it, fund it through SBIR/STTR, and bring it to market.</p>
         </div>
-        <form onSubmit={e => e.preventDefault()} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <form noValidate onSubmit={e => { e.preventDefault(); void submit(e.currentTarget); }} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-semibold">{signUp ? 'Create your account' : 'Sign in'}</h2>
           <label className="flex flex-col gap-1 text-sm">Email
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="rounded-md border border-slate-300 px-3 py-2" />
+            <input name="email" type="email" autoComplete="email" inputMode="email" className="rounded-md border border-slate-300 px-3 py-2" />
           </label>
           <label className="flex flex-col gap-1 text-sm">Password
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} required className="rounded-md border border-slate-300 px-3 py-2" />
+            <input name="password" type="password" autoComplete={signUp ? 'new-password' : 'current-password'} className="rounded-md border border-slate-300 px-3 py-2" />
+            {signUp && <span className="text-xs text-slate-500">At least 8 characters.</span>}
           </label>
-          <button type="submit" disabled={busy} onClick={() => submit('signIn')} className="rounded-md bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800">Sign in</button>
-          <button type="button" disabled={busy} onClick={() => submit('signUp')} className="rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50">Create account</button>
-          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+          {signUp && (
+            <label className="flex flex-col gap-1 text-sm">Confirm password
+              <input name="confirm" type="password" autoComplete="new-password" className="rounded-md border border-slate-300 px-3 py-2" />
+            </label>
+          )}
+          {error && <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          <button type="submit" disabled={busy} className="rounded-md bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-60">
+            {busy ? 'Please wait…' : signUp ? 'Create account' : 'Sign in'}
+          </button>
+          <p className="text-center text-sm text-slate-600">
+            {signUp ? 'Already have an account? ' : 'New here? '}
+            <button type="button" className="font-medium text-blue-700 hover:underline" onClick={() => { setMode(signUp ? 'signIn' : 'signUp'); setError(''); }}>
+              {signUp ? 'Sign in' : 'Create an account'}
+            </button>
+          </p>
         </form>
         <p className="mt-4 text-center text-xs text-slate-500">Your projects are private to your account.</p>
       </div>
