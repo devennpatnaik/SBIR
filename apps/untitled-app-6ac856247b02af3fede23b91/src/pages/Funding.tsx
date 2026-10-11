@@ -23,7 +23,7 @@ export function Funding() {
   const project = projects.data.find(p => p.id === activeId) ?? projects.data[0];
   const [tab, setTab] = useState<'saved' | 'compare' | 'search' | 'guide'>('saved');
   const [adding, setAdding] = useState(false);
-  const [rel, setRel] = useState('active');
+  const [rel, setRel] = useState('all');
 
   const list = useMemo(() => opps.data.filter(o => rel === 'all' ? true : rel === 'active' ? o.relevance !== 'irrelevant' : o.relevance === rel), [opps.data, rel]);
   const linkOf = (oid: string) => links.data.find(l => l.opportunity_id === oid && l.project_id === project?.id);
@@ -62,7 +62,7 @@ export function Funding() {
             )}
           </>
         )}
-        {tab === 'compare' && <CompareOpps opps={list} />}
+        {tab === 'compare' && <><p className="mb-3 text-xs text-slate-500">All saved opportunities, including rejected options, so you can compare the reasons for your choice.</p><CompareOpps opps={opps.data} /></>}
         {tab === 'search' && <SbirSearch onSaved={id => navigate(`funding/${id}`)} />}
         {tab === 'guide' && <ManualGuide />}
       </div>

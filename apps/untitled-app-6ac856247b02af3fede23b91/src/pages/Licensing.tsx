@@ -174,7 +174,7 @@ function Pathway({ b }: { b: Bundle }) {
       </Card>
       <Card title="Agreements" className="lg:col-span-2">
         {b.agreements.length ? (
-          <table className="mb-3 w-full text-sm"><thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Type</th><th>Counterparty</th><th>Status</th><th>Notes</th><th /></tr></thead>
+          <div className="mb-3 overflow-x-auto"><table className="w-full min-w-[600px] text-sm"><thead className="text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Type</th><th>Counterparty</th><th>Status</th><th>Notes</th><th /></tr></thead>
             <tbody>{b.agreements.map(x => (
               <tr key={x.id} className="border-t border-slate-100 align-top">
                 <td className="py-2">{PATHWAYS[x.agreement_type]?.label ?? x.agreement_type}</td><td>{x.counterparty}</td>
@@ -184,7 +184,7 @@ function Pathway({ b }: { b: Bundle }) {
                 }} className="w-48" /></td>
                 <td className="text-xs text-slate-600">{x.notes}</td>
                 <td><Button size="sm" variant="ghost" aria-label="Delete agreement" onClick={() => deleteRow('agreements', x.id)}><Trash2 className="size-3.5" /></Button></td>
-              </tr>))}</tbody></table>
+              </tr>))}</tbody></table></div>
         ) : <p className="mb-3 text-sm text-slate-500">No agreements tracked yet.</p>}
         <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); void run(async () => { await insertRow('agreements', { ...a, project_id: p.id }); setA({ ...a, notes: '' }); }); }}>
           <Select aria-label="Agreement type" value={a.agreement_type} onChange={e => setA({ ...a, agreement_type: e.target.value })} options={{ evaluation_license: 'Evaluation license', option: 'Option', nonexclusive_license: 'Non-exclusive license', exclusive_license: 'Exclusive license', crada: 'CRADA', nda: 'NDA', other: 'Other' }} className="w-48" />
