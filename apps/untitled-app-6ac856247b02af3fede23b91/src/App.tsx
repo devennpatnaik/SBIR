@@ -89,7 +89,7 @@ export function App() {
           {section === 'proposals' && <Proposals id={id} />}
           {section === 'roadmap' && <Roadmap />}
           {section === 'documents' && <Documents />}
-          {!['dashboard', 'discover', 'tech', 'compare', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents'].includes(section) && (
+          {!['dashboard', 'discover', 'tech', 'compare', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
             <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate('dashboard')}>Go to dashboard</button></p>
           )}
         </div>

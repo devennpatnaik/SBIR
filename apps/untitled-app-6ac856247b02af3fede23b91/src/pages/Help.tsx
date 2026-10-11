@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { LifeBuoy } from 'lucide-react';
 import { HelpProfileForm, ProgramCard } from '../components/Help';
 import { useHelp } from '../lib/help';
-import { ACTIVE_TRACK, CHECKED_ON, KIND_LABEL, STAGE_LABEL, programDaysLeft, type Kind, type Ranked, type Stage } from '../lib/programs';
+import { ACTIVE_TRACK, AREA_LABEL, CHECKED_ON, KIND_LABEL, STAGE_LABEL, programDaysLeft, type Kind, type Ranked, type Stage } from '../lib/programs';
 import { hashParam, useActiveProjectId } from '../lib/router';
 import { fmtDate, useQuery } from '../lib/data';
 import type { Project } from '../lib/types';
@@ -59,6 +59,7 @@ export function Help() {
             Matching for <strong>{project?.name ?? 'you (no project yet)'}</strong> · stage: {STAGE_LABEL[h.ctx.stage]}
             {h.ctx.techAgency && <> · technology from {h.ctx.techAgency}</>}
             {h.ctx.targetAgencies.size > 0 && <> · funding targets: {[...h.ctx.targetAgencies].join(', ')}</>}
+            {!!h.profile.areas?.length && <> · area: {h.profile.areas.map(a => AREA_LABEL[a]).join(', ')}</>}
             {h.profile.award && <> · award: {h.profile.award === 'none' ? 'none yet' : h.profile.award === 'phase1' ? 'Phase I' : 'Phase II'}</>}
           </p>
         )}
