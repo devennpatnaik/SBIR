@@ -11,6 +11,25 @@ export function invalidate() {
 }
 if (typeof window !== 'undefined') window.addEventListener('focus', () => invalidate());
 
+/** The latest load failure anywhere in the app, shown as one banner; cleared by the next successful load. */
+let dataError: string | null = null;
+const errorListeners = new Set<(message: string | null) => void>();
+function reportDataError(message: string | null) {
+  if (message === dataError) return;
+  dataError = message;
+  errorListeners.forEach(l => l(message));
+}
+export function useDataError(): string | null {
+  const [message, setMessage] = useState(dataError);
+  useEffect(() => {
+    errorListeners.add(setMessage);
+    return () => {
+      errorListeners.delete(setMessage);
+    };
+  }, []);
+  return message;
+}
+
 type Result<T> = { data: T[]; loading: boolean; error: string | null; reload: () => void };
 
 /**
@@ -34,8 +53,15 @@ export function useQuery<T>(table: string, build: (q: any) => any, deps: unknown
       setState({ data: [], loading: false, error: null });
       return;
     }
-    const { data, error } = await build(client.from(table).select('*'));
-    setState({ data: (data ?? []) as T[], loading: false, error: error?.message ?? null });
+    try {
+      const { data, error } = await build(client.from(table).select('*'));
+      setState({ data: (data ?? []) as T[], loading: false, error: error?.message ?? null });
+      reportDataError(error ? error.message || 'Could not load your data.' : null);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : 'Could not load your data.';
+      setState(prev => ({ ...prev, loading: false, error: message }));
+      reportDataError(message);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table, enabled, ...deps]);
   useEffect(() => {

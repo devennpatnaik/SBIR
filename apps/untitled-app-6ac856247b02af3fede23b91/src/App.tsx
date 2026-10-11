@@ -3,6 +3,7 @@ import { BookOpen, Briefcase, ClipboardList, FileText, FlaskConical, Gauge, Land
 import { client, useSession } from './client';
 import { useRoute, navigate } from './lib/router';
 import { cn } from './lib/utils';
+import { invalidate, useDataError } from './lib/data';
 import { Dashboard } from './pages/Dashboard';
 import { Discover } from './pages/Discover';
 import { TechnologyDetail } from './pages/TechnologyDetail';
@@ -70,6 +71,7 @@ export function App() {
       </aside>
       <main className="min-w-0 flex-1 px-8 py-6">
         <div className="mx-auto max-w-6xl">
+          <DataErrorBanner />
           {section === 'dashboard' && <Dashboard />}
           {section === 'discover' && <Discover />}
           {section === 'tech' && id && <TechnologyDetail id={id} />}
@@ -88,6 +90,17 @@ export function App() {
         </div>
       </main>
       <AssistantDrawer open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+    </div>
+  );
+}
+
+function DataErrorBanner() {
+  const message = useDataError();
+  if (!message) return null;
+  return (
+    <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      <span><strong>Couldn't load your data.</strong> {message}</span>
+      <button type="button" onClick={() => invalidate()} className="shrink-0 font-medium underline">Try again</button>
     </div>
   );
 }

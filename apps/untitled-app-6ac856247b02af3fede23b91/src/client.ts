@@ -4,7 +4,9 @@ import { BetterAuthReactAdapter } from '@neondatabase/neon-js/auth/react/adapter
 
 export const client = createClient({
   auth: { url: import.meta.env.VITE_NEON_AUTH_BASE_URL, adapter: BetterAuthReactAdapter() },
-  dataApi: { url: import.meta.env.VITE_NEON_DATA_API_URL },
+  // Every read and write goes through this project's backend, which forwards it with the user's own token
+  // (row level security applies). Built apps are not given direct database access.
+  dataApi: { url: `${import.meta.env.VITE_BOURNE_BACKEND_URL}/data/rest` },
 });
 
 /**
