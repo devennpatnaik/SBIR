@@ -62,7 +62,7 @@ export function Funding() {
             )}
           </>
         )}
-        {tab === 'compare' && <CompareOpps opps={list.filter(o => o.relevance !== 'irrelevant')} />}
+        {tab === 'compare' && <CompareOpps opps={list} />}
         {tab === 'search' && <SbirSearch onSaved={id => navigate(`funding/${id}`)} />}
         {tab === 'guide' && <ManualGuide />}
       </div>

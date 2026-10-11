@@ -80,7 +80,7 @@ function ProposalWorkspace({ id }: { id: string }) {
         </>} />
       <Notice tone="slate">Drafts here are working material, not validated evidence or a completed application. Use the official solicitation as the authority for every requirement, page limit and format.</Notice>
 
-      <div className="my-4 grid gap-3 md:grid-cols-5">
+      <div className="my-4 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="Complete" value={`${complete.length}/${active.length}`} tone="green" />
         <Stat label="Incomplete" value={String(active.length - complete.length)} />
         <Stat label="Missing evidence" value={String(needsEv.length)} tone={needsEv.length ? 'amber' : undefined} />
@@ -123,7 +123,7 @@ function SectionCard({ s, projectId }: { s: ProposalSection; projectId: string }
         <button type="button" onClick={() => updateRow('proposal_sections', s.id, { status: s.status === 'complete' ? 'drafting' : 'complete', updated_at: nowIso() })} aria-label={`Toggle complete: ${s.title}`}>
           <CheckCircle2 className={`size-5 ${s.status === 'complete' ? 'text-emerald-600' : 'text-slate-300 hover:text-slate-500'}`} />
         </button>
-        <button type="button" className="flex-1 text-left text-sm font-medium" onClick={() => setOpen(!open)}>{s.title}</button>
+        <button type="button" className="min-w-0 flex-1 basis-[80%] text-left text-sm font-medium sm:basis-0" onClick={() => setOpen(!open)}>{s.title}</button>
         <Badge tone="slate">{s.kind}</Badge>
         <Badge tone={s.required_status === 'confirmed_required' ? 'blue' : s.required_status === 'confirm_in_solicitation' ? 'amber' : 'slate'}>{REQ[s.required_status]}</Badge>
         <Badge tone={s.status === 'complete' ? 'green' : s.status === 'needs_evidence' ? 'red' : 'slate'}>{SSTATUS[s.status]}</Badge>

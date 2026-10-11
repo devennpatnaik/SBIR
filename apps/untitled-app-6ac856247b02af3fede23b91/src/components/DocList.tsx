@@ -38,12 +38,12 @@ export function DocList({ scope, compact, kindFilter }: { scope: Scope; compact?
         <ul className="divide-y divide-slate-100 rounded-md border border-slate-200 bg-white">
           {q.data.map(d => (
             <li key={d.id} className="flex items-start justify-between gap-2 px-3 py-2 text-sm">
-              <button type="button" className="min-w-0 text-left" onClick={() => d.upload_id ? void uploadUrl(d.upload_id).then(u => window.open(u, '_blank')) : setOpen(d)}>
+              <button type="button" className="min-w-0 text-left" onClick={() => d.upload_id ? void run(async () => { const url = await uploadUrl(d.upload_id!); window.open(url, '_blank', 'noopener'); }) : setOpen(d)}>
                 <div className="font-medium hover:underline">{d.title}</div>
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500"><Badge>{DOC_KINDS[d.kind] ?? d.kind}</Badge>{d.is_ai_generated && <Badge tone="amber">AI-generated — not verified</Badge>}{fmtDate(d.created_at)}{d.source_url && <SourceLink url={d.source_url} />}</div>
                 {!compact && d.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-600">{d.body}</p>}
               </button>
-              <Button size="sm" variant="ghost" aria-label={`Delete ${d.title}`} onClick={() => { if (confirm(`Delete "${d.title}"?`)) void deleteRow('documents', d.id); }}><Trash2 className="size-3.5" /></Button>
+              <Button size="sm" variant="ghost" aria-label={`Delete ${d.title}`} onClick={() => { if (confirm(`Delete "${d.title}"?`)) void run(() => deleteRow('documents', d.id)); }}><Trash2 className="size-3.5" /></Button>
             </li>
           ))}
         </ul>

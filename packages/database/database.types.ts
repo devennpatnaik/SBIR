@@ -1542,6 +1542,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      app_user_id: { Args: never; Returns: string }
       manage_demo: { Args: { operation?: string }; Returns: Json }
     }
     Enums: {

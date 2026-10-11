@@ -1,13 +1,13 @@
 import { client } from './client';
 
 export function runtimeUrl(path: string): string {
-  const base = import.meta.env.VITE_BOURNE_RUNTIME_URL;
+  const base = import.meta.env.VITE_BOURNE_BACKEND_URL;
   if (!base) throw new Error('Uploads, artifacts and agents work only in a built app');
-  return `${base}${path}`;
+  return `${base}/bourne${path}`;
 }
 
 export function dataUrl(path: string): string {
-  const base = import.meta.env.VITE_BOURNE_DATA_URL || import.meta.env.VITE_BOURNE_RUNTIME_URL;
+  const base = import.meta.env.VITE_BOURNE_BACKEND_URL;
   if (!base) throw new Error('App data works only in a built app');
   return `${base}${path}`;
 }

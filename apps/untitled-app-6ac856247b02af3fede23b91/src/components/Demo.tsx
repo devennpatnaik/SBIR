@@ -72,7 +72,7 @@ export function DemoGuide({ section }: { section: string }) {
     </div>
     <p className="mt-1 text-xs">Fictional training data, not verified evidence. No real license, customer commitment, application or award. All demo dates are illustrative.</p>
     <div className="mt-2 flex flex-wrap items-center gap-2">
-      <span className="min-w-0 flex-1">{current[2]}</span>
+      <span className="w-full min-w-0 sm:w-auto sm:flex-1">{current[2]}</span>
       {index > 0 && <Button size="sm" onClick={() => navigate(steps[index - 1][0])}>Back</Button>}
       <Button size="sm" onClick={() => navigate(steps[(index + 1) % steps.length][0])}>{index === steps.length - 1 ? 'Back to dashboard' : `Next: ${steps[(index + 1) % steps.length][1].replace(/^\d+\. /, '')}`}</Button>
     </div>

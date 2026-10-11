@@ -48,6 +48,7 @@ export function Dashboard() {
       <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <Card title="Which technology am I pursuing?">
           <a href={`#/projects/${current.id}`} className="text-lg font-semibold text-slate-900 hover:underline">{current.name}</a>
+          <div className="mt-1 text-sm font-medium text-slate-700">Technology: {b.tech?.name ?? 'Loading…'}</div>
           {b.tech?.is_sample && <div className="mt-1"><SampleBadge /></div>}
           <div className="mt-1 text-sm text-slate-600">{b.tech?.lab_name}{b.tech?.agency && ` · ${b.tech.agency}`}</div>
           {current.business_thesis ? <p className="mt-3 line-clamp-4 text-sm text-slate-700">{current.business_thesis}</p> : <p className="mt-3 text-sm text-slate-500">No business thesis yet.</p>}
