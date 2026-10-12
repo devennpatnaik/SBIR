@@ -175,14 +175,14 @@ Current funding/eligibility: not checked.
 
 ### DOE Title 17 financing
 Audience: founder. Instrument: Project debt / guarantee. Access: DOE financing office and underwriting.
-Project financing, not an interchangeable early-stage R&D grant. Check current office structure, authority, commercial readiness, repayment and project eligibility.
-Starting source: https://www.energy.gov/lpo
+Project financing, not an interchangeable early-stage R&D grant. DOE now publishes applicant resources through its Office of Energy Dominance Financing (EDF). Check current authority, commercial readiness, repayment and project eligibility.
+Starting source: https://www.energy.gov/edf/edf-applicant-resources
 Current funding/eligibility: not checked.
 
 ### Advanced Technology Vehicles Manufacturing (ATVM)
 Audience: founder. Instrument: Project debt / guarantee. Access: DOE financing office and underwriting.
-Project financing, not an interchangeable early-stage R&D grant. Check current office structure, authority, commercial readiness, repayment and project eligibility.
-Starting source: https://www.energy.gov/lpo
+Project financing, not an interchangeable early-stage R&D grant. DOE now publishes applicant resources through its Office of Energy Dominance Financing (EDF). Check current authority, commercial readiness, repayment and project eligibility.
+Starting source: https://www.energy.gov/edf/edf-applicant-resources
 Current funding/eligibility: not checked.
 
 ### ARPA-E

@@ -274,9 +274,9 @@ export const PROGRAM_REFERENCES:ProgramReference[]=[
     "name": "DOE Title 17 financing",
     "kind": "Project debt / guarantee",
     "access": "DOE financing office and underwriting",
-    "source": "https://www.energy.gov/lpo",
+    "source": "https://www.energy.gov/edf/edf-applicant-resources",
     "audience": "founder",
-    "note": "Project financing, not an interchangeable early-stage R&D grant. Check current office structure, authority, commercial readiness, repayment and project eligibility.",
+    "note": "Project financing, not an interchangeable early-stage R&D grant. DOE now publishes applicant resources through its Office of Energy Dominance Financing (EDF). Check current authority, commercial readiness, repayment and project eligibility.",
     "availability": "Not checked",
     "sourceLevel": "Agency or operator starting point"
   },
@@ -284,9 +284,9 @@ export const PROGRAM_REFERENCES:ProgramReference[]=[
     "name": "Advanced Technology Vehicles Manufacturing (ATVM)",
     "kind": "Project debt / guarantee",
     "access": "DOE financing office and underwriting",
-    "source": "https://www.energy.gov/lpo",
+    "source": "https://www.energy.gov/edf/edf-applicant-resources",
     "audience": "founder",
-    "note": "Project financing, not an interchangeable early-stage R&D grant. Check current office structure, authority, commercial readiness, repayment and project eligibility.",
+    "note": "Project financing, not an interchangeable early-stage R&D grant. DOE now publishes applicant resources through its Office of Energy Dominance Financing (EDF). Check current authority, commercial readiness, repayment and project eligibility.",
     "availability": "Not checked",
     "sourceLevel": "Agency or operator starting point"
   },

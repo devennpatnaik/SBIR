@@ -10,6 +10,7 @@ async function grants(path:string,body:unknown){
  const x=await r.json() as {errorcode:number;msg?:string;data:Record<string,unknown>};if(x.errorcode!==0)throw new Error(x.msg||'Grants.gov could not complete the request.');return x.data;
 }
 const app=new Hono<{Bindings:Env}>();
+app.onError((e,c)=>c.json({error:e instanceof Error?e.message:'Opportunity discovery is unavailable. Please retry or use the official portal.'},e instanceof DataError&&e.status<500?400:502));
 app.use('*',async(c,next)=>{try{if(!await appUser(c.env,c.req.raw))return c.json({error:'Sign in required.'},401);await next();}catch(e){return c.json({error:e instanceof Error?e.message:'Opportunity discovery unavailable.'},502);}});
 app.post('/search',async c=>{
  const b=await c.req.json();if(typeof b.keyword!=='string'||!b.keyword.trim()||b.keyword.length>250)return c.json({error:'Enter a search phrase (up to 250 characters).'},400);

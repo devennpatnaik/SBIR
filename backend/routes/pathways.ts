@@ -7,6 +7,7 @@ import { pathwayByKey } from '@project/pathways';
 const uuid=(x:unknown):x is string=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
 type Run={id:string;project_id:string;pathway_id:string;action:string;status:string;session_id:string|null};
 const app=new Hono<{Bindings:Env}>();
+app.onError((e,c)=>c.json({error:e instanceof DataError?e.message:'The pathway service could not complete this request. Your saved work is preserved; please retry.'},e instanceof DataError?(e.status===403?403:400):502));
 app.use('*',async(c,next)=>{try{if(!await appUser(c.env,c.req.raw))return c.json({error:'Sign in required.'},401);await next();}catch(e){return c.json({error:e instanceof Error?e.message:'Pathway request failed.'},e instanceof DataError&&e.status===404?404:400);}});
 app.post('/kickoff',async c=>{
  const b=await c.req.json();if(!uuid(b.requestKey)||!b.answers||typeof b.answers!=='object')return c.json({error:'Complete your starting questions.'},400);
