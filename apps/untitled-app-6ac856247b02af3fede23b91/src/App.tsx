@@ -80,9 +80,9 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
         <div className="menu-account"><span>{user.email}</span><button type="button" aria-label="Sign out" onClick={() => client.auth.signOut()}><LogOut size={16}/></button></div>
       </div></>}
       <main id="workspace" tabIndex={-1} className="workspace-main">
+        <DataErrorBanner />
+        <DemoGuide section={section} />
         <div className="page-content" key={section + (id ?? '')}>
-          <DataErrorBanner />
-          <DemoGuide section={section} />
           {section === 'dashboard' && <Dashboard />}
           {section === 'help' && <Help />}
           {section === 'discover' && <Discover />}
