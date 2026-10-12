@@ -1,13 +1,13 @@
 import { DemoLauncher } from '../components/Demo';
 import { useMemo, useRef, useState } from 'react';
-import { Download, Link2, PenLine, Star, Upload } from 'lucide-react';
-import { backend, insertRow, insertRows, nowIso, updateRow, useQuery, fmtDate } from '../lib/data';
+import { ArrowUpRight, Download, Link2, PenLine, Star, Upload, Waves, Layers, SlidersHorizontal, Search } from 'lucide-react';
+import { backend, insertRow, insertRows, nowIso, updateRow, useQuery } from '../lib/data';
 import { SOURCE_SITES, TECH_LICENSING_STATUS } from '../lib/constants';
 import { parseCsv, toCsv, download } from '../lib/csv';
 import { navigate } from '../lib/router';
 import type { Evaluation, Technology } from '../lib/types';
 import { summarize } from '../lib/scoring';
-import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Modal, Notice, PageHeader, SampleBadge, Select, SourceLink, Tabs, Textarea, useAsync } from '../components/ui';
+import { Badge, Button, Disclosure, displayName, displaySummary, Empty, ErrorNote, Field, Input, Modal, Notice, PageHeader, SampleBadge, Select, SourceLink, Tabs, Textarea, useAsync } from '../components/ui';
 import { TECH_FIELDS, TechForm, type TechDraft } from '../components/TechForm';
 
 type Extracted = {
@@ -71,75 +71,16 @@ export function Discover() {
 
   return (
     <div>
-      <PageHeader
-        title="Discover technologies"
-        subtitle="Collect candidate federal-lab technologies. The goal is not a big list — it is one technology with a credible path to a business."
-        actions={<>
-          <Button variant="primary" onClick={() => setAdding('url')}><Link2 className="size-4" />Add from URL</Button>
-          <Button onClick={() => setAdding('manual')}><PenLine className="size-4" />Enter manually</Button>
-          <Button onClick={() => setAdding('csv')}><Upload className="size-4" />Import CSV</Button>
-          <Button onClick={exportCsv} disabled={!techs.data.length}><Download className="size-4" />Export CSV</Button>
-        </>}
-      />
-
-      <Card className="mb-4" title="Where to find technologies">
-        <div className="grid gap-3 md:grid-cols-3">
-          {SOURCE_SITES.map(s => (
-            <div key={s.name} className="text-sm">
-              <a href={s.url} target="_blank" rel="noreferrer" className="font-medium text-blue-700 hover:underline">{s.name} ↗</a>
-              <p className="text-slate-600">{s.note}</p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-slate-500">These sites are not synced automatically. Browse them, copy a technology's page URL, and use <b>Add from URL</b>. TechLink and DOE LPS render pages in the browser, so the app may only read the page title; you can paste the page text to extract more.</p>
-      </Card>
-
-      <div className="mb-3 flex flex-wrap items-end gap-2">
-        <Input aria-label="Search technologies" placeholder="Search name, description, lab, applications…" value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
-        <Select aria-label="Filter by agency" value={agency} onChange={e => setAgency(e.target.value)} options={[['', 'All agencies'], ...agencies.map(a => [a, a] as [string, string])]} className="w-44" />
-        <Select aria-label="Filter by category" value={category} onChange={e => setCategory(e.target.value)} options={[['', 'All categories'], ...categories.map(a => [a, a] as [string, string])]} className="w-44" />
-        <Select aria-label="Filter by licensing status" value={lic} onChange={e => setLic(e.target.value)} options={[['', 'Any licensing status'], ...Object.entries(TECH_LICENSING_STATUS)]} className="w-56" />
-        <div className="ml-auto"><Tabs tabs={[['active', `All (${techs.data.filter(t => !t.archived).length})`], ['shortlist', `Shortlist (${techs.data.filter(t => t.shortlisted && !t.archived).length})`], ['archived', 'Archived']]} value={view} onChange={setView} /></div>
-      </div>
-      <ErrorNote error={techs.error} />
-
-      {!techs.loading && !techs.data.length ? (
-        <Empty title="No technologies yet" action={<div className="flex gap-2"><Button variant="primary" onClick={() => setAdding('url')}>Add from URL</Button><LoadSample /></div>}>
-          Start with a technology page URL from TechLink, DOE Lab Partnering Service, the FLC, or a lab's own site. You can also enter one manually or import a CSV. Use Demo company to explore a complete, clearly labeled business scenario.
-        </Empty>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr><th className="w-8 px-3 py-2" /><th className="px-3 py-2">Technology</th><th className="px-3 py-2">Lab / agency</th><th className="px-3 py-2">Category</th><th className="px-3 py-2">Licensing</th><th className="px-3 py-2">Score</th><th className="px-3 py-2">Reviewed</th></tr>
-            </thead>
-            <tbody>
-              {list.map(t => {
-                const s = summarize(evals.data.find(e => e.technology_id === t.id), t);
-                return (
-                  <tr key={t.id} className="cursor-pointer border-t border-slate-100 hover:bg-slate-50" onClick={() => navigate(`tech/${t.id}`)}>
-                    <td className="px-3 py-2" onClick={e => e.stopPropagation()}>
-                      <button type="button" aria-label={t.shortlisted ? `Remove ${t.name} from shortlist` : `Shortlist ${t.name}`} onClick={() => updateRow('technologies', t.id, { shortlisted: !t.shortlisted })}>
-                        <Star className={t.shortlisted ? 'size-4 fill-amber-400 text-amber-500' : 'size-4 text-slate-300 hover:text-amber-500'} />
-                      </button>
-                    </td>
-                    <td className="max-w-md px-3 py-2">
-                      <div className="flex items-center gap-2 font-medium text-slate-900">{t.name}{t.is_sample && <SampleBadge />}</div>
-                      <div className="line-clamp-1 text-xs text-slate-500">{t.description}</div>
-                    </td>
-                    <td className="px-3 py-2 text-xs">{t.lab_name || '—'}<div className="text-slate-500">{t.agency}</div></td>
-                    <td className="px-3 py-2 text-xs">{t.category || '—'}</td>
-                    <td className="px-3 py-2"><Badge tone={t.licensing_status === 'available_verified' ? 'green' : t.licensing_status === 'licensed' || t.licensing_status === 'not_available' ? 'red' : 'slate'}>{TECH_LICENSING_STATUS[t.licensing_status]?.split(' (')[0]}</Badge></td>
-                    <td className="px-3 py-2 text-xs">{s.overall == null ? <span className="text-slate-400">not scored</span> : <><b>{s.overall}</b>/100 <span className="text-slate-500">({s.scored}/10, {s.confidence} conf.)</span></>}</td>
-                    <td className="px-3 py-2 text-xs text-slate-500">{fmtDate(t.last_reviewed_at)}</td>
-                  </tr>
-                );
-              })}
-              {!list.length && <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-slate-500">No technologies match these filters.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <PageHeader title="Explore technologies." subtitle="A good business starts with a problem worth solving. Collect the ideas that interest you, then compare their potential."
+        actions={<Button variant="primary" onClick={() => setAdding('url')}><Link2 size={16}/>Add a technology</Button>} />
+      <div className="collection-toolbar"><div className="search-box"><Search size={18}/><Input aria-label="Search technologies" placeholder="Find an idea in your collection…" value={search} onChange={e=>setSearch(e.target.value)}/></div><Tabs tabs={[['active', `All ${techs.data.filter(t=>!t.archived).length}`],['shortlist','Saved'],['archived','Archived']]} value={view} onChange={setView}/></div>
+      <details className="collection-tools"><summary><SlidersHorizontal size={14}/>Filters & collection tools{(agency||category||lic)&&<Badge>Filtered</Badge>}</summary><div className="flex flex-wrap gap-3 pt-4"><Select aria-label="Filter by agency" value={agency} onChange={e=>setAgency(e.target.value)} options={[['','All agencies'],...agencies.map(a=>[a,a] as [string,string])]} className="w-52"/><Select aria-label="Filter by category" value={category} onChange={e=>setCategory(e.target.value)} options={[['','All categories'],...categories.map(a=>[a,a] as [string,string])]} className="w-52"/><Select aria-label="Filter by licensing status" value={lic} onChange={e=>setLic(e.target.value)} options={[['','Any licensing status'],...Object.entries(TECH_LICENSING_STATUS)]} className="w-56"/><Button onClick={()=>setAdding('manual')}><PenLine size={14}/>Enter manually</Button><Button onClick={()=>setAdding('csv')}><Upload size={14}/>Import CSV</Button><Button onClick={exportCsv} disabled={!techs.data.length}><Download size={14}/>Export CSV</Button></div></details>
+      <ErrorNote error={techs.error}/>
+      {techs.loading?<p role="status" className="py-12 text-sm text-slate-500">Opening your collection…</p>:!techs.data.length?<Empty title="Your collection starts here." action={<div className="flex flex-wrap gap-3"><Button variant="primary" onClick={()=>setAdding('url')}>Add from URL</Button><LoadSample/></div>}>Save a technology from a lab’s official page, or explore our sample company first.</Empty>:<div className="technology-grid">{list.map(t=>{const s=summarize(evals.data.find(e=>e.technology_id===t.id),t);return <article className="technology-card" key={t.id}>
+        <div className={`technology-art ${t.category.includes('Water')?'water':'material'}`}><div className="tech-orbit"/>{t.category.includes('Water')?<Waves size={56} strokeWidth={1}/>:<Layers size={56} strokeWidth={1}/>}<span>{t.category||'Lab technology'}</span><button type="button" className="save-tech" aria-label={t.shortlisted?`Remove ${t.name} from shortlist`:`Shortlist ${t.name}`} onClick={()=>updateRow('technologies',t.id,{shortlisted:!t.shortlisted})}><Star size={17} fill={t.shortlisted?'currentColor':'none'}/></button></div>
+        <div className="technology-body"><div className="flex items-center gap-2 text-xs text-slate-500">{t.is_sample&&<SampleBadge/>}<span>{displayName(t.lab_name)||'Laboratory not recorded'}</span></div><a className="technology-name" href={`#/tech/${t.id}`}>{displayName(t.name)}</a><p className="line-clamp-3">{displaySummary(t.description)||'Add a short description of the problem this technology could solve.'}</p><div className="technology-bottom"><span>{s.overall===null?'Not scored':`${s.overall}/100 · ${s.confidence} confidence`}</span><a aria-label={`View ${displayName(t.name)}`} href={`#/tech/${t.id}`}><ArrowUpRight size={20}/></a></div></div>
+      </article>;})}{!list.length&&<Empty title="No matching ideas." action={<Button onClick={()=>{setSearch('');setAgency('');setCategory('');setLic('');}}>Clear filters</Button>}>Try a different word or a broader filter.</Empty>}</div>}
+      <Disclosure title="Where can I find technologies?"><div className="source-guides">{SOURCE_SITES.map(site=><a key={site.name} href={site.url} target="_blank" rel="noreferrer"><strong>{site.name} ↗</strong><p>{site.note}</p></a>)}</div><p className="mt-5 text-xs text-slate-500">Browse official listings, then copy a technology URL into Add a technology. These sites are not automatically synced. If a page cannot be read, paste its text or enter details manually.</p></Disclosure>
 
       <Modal open={adding === 'url'} onClose={() => setAdding(null)} title="Add a technology from a URL" wide><AddFromUrl onDone={id => { setAdding(null); navigate(`tech/${id}`); }} /></Modal>
       <Modal open={adding === 'manual'} onClose={() => setAdding(null)} title="Enter a technology manually" wide>

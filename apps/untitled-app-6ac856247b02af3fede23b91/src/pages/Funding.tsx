@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { HelpSuggestions } from '../components/Help';
-import { Plus, Search } from 'lucide-react';
+import { ArrowUpRight, Plus, Search } from 'lucide-react';
 import { backend, daysUntil, fmtDate, insertRow, nowIso, updateRow, useQuery } from '../lib/data';
 import { FUNDING_SITES } from '../lib/constants';
 import { navigate, useActiveProjectId } from '../lib/router';
 import type { Opportunity, Project, ProjectOpportunity } from '../lib/types';
 import { OppForm, SbirSttrExplainer } from '../components/OppForm';
-import { Badge, Button, Card, Empty, ErrorNote, Input, Modal, Notice, PageHeader, SampleBadge, Select, SourceLink, Tabs, useAsync } from '../components/ui';
+import { Button, Card, displayName, Empty, ErrorNote, Input, Modal, Notice, PageHeader, SampleBadge, Select, SourceLink, Tabs, useAsync } from '../components/ui';
 
 type SbirTopic = { topic_title?: string; topic_number?: string; topic_description?: string; sbir_topic_link?: string; branch?: string };
 type SbirSolicitation = {
@@ -30,35 +30,19 @@ export function Funding() {
 
   return (
     <div>
-      <PageHeader title="Funding opportunities" subtitle="Save real SBIR/STTR topics from official sources, record eligibility and deadlines, and connect them to your project."
+      <PageHeader title="Find the right funding." subtitle="A promising match is a starting point. Save opportunities, check the rules, and choose where to focus."
         actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus className="size-4" />Add opportunity</Button>} />
       <HelpSuggestions projectId={project?.id} stage="propose" title="Free help writing your proposal" />
-      <Tabs tabs={[['saved', `Saved (${opps.data.length})`], ['compare', 'Compare'], ['search', 'Search SBIR.gov'], ['guide', 'How to research manually']]} value={tab} onChange={setTab} />
+      <Tabs tabs={[['saved', `Saved (${opps.data.length})`], ['compare', 'Compare'], ['search', 'Search SBIR.gov'], ['guide', 'Research guide']]} value={tab} onChange={setTab} />
       <div className="mt-4">
         {tab === 'saved' && (
           <>
-            <div className="mb-3 flex items-center gap-2"><Select aria-label="Filter relevance" value={rel} onChange={e => setRel(e.target.value)} options={{ active: 'Hide irrelevant', relevant: 'Relevant', maybe: 'Maybe', unreviewed: 'Unreviewed', irrelevant: 'Irrelevant', all: 'All' }} className="w-44" />
-              {project && <span className="text-sm text-slate-500">Linking to project: <b>{project.name}</b></span>}</div>
+            <div className="mb-6 flex flex-wrap items-center gap-4"><Select aria-label="Filter relevance" value={rel} onChange={e => setRel(e.target.value)} options={{ active: 'Hide irrelevant', relevant: 'Relevant', maybe: 'Maybe', unreviewed: 'Unreviewed', irrelevant: 'Irrelevant', all: 'All' }} className="w-44" />
+              {project && <span className="text-sm text-slate-500">For <b>{displayName(project.name)}</b></span>}</div>
             {!opps.loading && !opps.data.length ? (
               <Empty title="No funding opportunities saved" action={<div className="flex gap-2"><Button variant="primary" onClick={() => setAdding(true)}>Add from an official page</Button><Button onClick={() => setTab('guide')}>How to find topics</Button></div>}>Find a topic on an official agency site (DoD DSIP, NIH, NSF, DOE, NASA…) and save it with its URL. The app never invents solicitations or deadlines.</Empty>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Topic</th><th className="px-3 py-2">Agency</th><th className="px-3 py-2">Program / phase</th><th className="px-3 py-2">Deadline</th><th className="px-3 py-2">Relevance</th><th className="px-3 py-2">Project</th></tr></thead>
-                  <tbody>{list.map(o => {
-                    const l = linkOf(o.id); const d = daysUntil(o.close_date);
-                    return (
-                      <tr key={o.id} className="border-t border-slate-100 align-top hover:bg-slate-50">
-                        <td className="max-w-sm px-3 py-2"><a href={`#/funding/${o.id}`} className="font-medium hover:underline">{o.topic_number && `${o.topic_number}: `}{o.topic_title}</a>{o.is_sample && <SampleBadge />}<div><SourceLink url={o.source_url} /></div></td>
-                        <td className="px-3 py-2 text-xs">{o.agency}<div className="text-slate-500">{o.branch}</div></td>
-                        <td className="px-3 py-2 text-xs"><Badge tone={o.program === 'STTR' ? 'purple' : 'blue'}>{o.program}</Badge> {o.phase}</td>
-                        <td className="px-3 py-2 text-xs">{o.close_date ? <>{fmtDate(o.close_date)} {d !== null && d < 0 ? <Badge tone="red">closed</Badge> : <Badge tone={o.deadline_verified ? 'green' : 'amber'}>{o.deadline_verified ? 'verified' : 'unverified'}</Badge>}</> : <span className="text-slate-400">not recorded</span>}</td>
-                        <td className="px-3 py-2"><Select aria-label={`Relevance of ${o.topic_title}`} value={o.relevance} onChange={e => updateRow('opportunities', o.id, { relevance: e.target.value })} options={{ unreviewed: 'Unreviewed', relevant: 'Relevant', maybe: 'Maybe', irrelevant: 'Irrelevant' }} className="w-32 py-1 text-xs" /></td>
-                        <td className="px-3 py-2">{!project ? <span className="text-xs text-slate-400">no project</span> : l ? <Badge tone={l.status === 'pursuing' ? 'green' : l.status === 'rejected' ? 'red' : 'slate'}>{l.status}</Badge> : <Button size="sm" onClick={() => insertRow('project_opportunities', { project_id: project.id, opportunity_id: o.id })}>Link to project</Button>}</td>
-                      </tr>);
-                  })}</tbody>
-                </table>
-              </div>
+              <div className="funding-grid">{list.map(o=>{const l=linkOf(o.id);const d=daysUntil(o.close_date);return <article key={o.id} className="funding-card"><div className="flex items-center justify-between gap-3"><span className="eyebrow !mb-0">{o.program} · {o.phase}</span>{o.is_sample&&<SampleBadge/>}</div><a href={`#/funding/${o.id}`} className="editorial funding-name">{displayName(o.topic_title)}</a><p className="text-xs text-slate-500">{displayName(o.agency)}</p><div className="funding-facts"><div><span>Potential funding</span><strong>{o.award_amount||'Check the solicitation'}</strong></div><div><span>Closing date</span><strong>{o.close_date?fmtDate(o.close_date):'Not recorded'}</strong><small>{d!==null&&d<0?'Closed':o.deadline_verified?'Verified against source':'Needs verification'}</small></div></div><div className="flex items-center justify-between gap-3"><span className="text-xs text-slate-500">{l?l.status.replaceAll('_',' '):'Not linked to this project'}</span><a className="text-sm font-medium" href={`#/funding/${o.id}`}>Take a look <ArrowUpRight className="inline ml-1" size={16}/></a></div><details className="mt-5 border-t border-slate-100 pt-3"><summary className="cursor-pointer text-xs text-slate-500">Source & tracking</summary><div className="mt-3 flex flex-wrap items-center gap-2"><SourceLink url={o.source_url}/><Select aria-label={`Relevance of ${o.topic_title}`} value={o.relevance} onChange={e=>updateRow('opportunities',o.id,{relevance:e.target.value})} options={{unreviewed:'Unreviewed',relevant:'Relevant',maybe:'Maybe',irrelevant:'Irrelevant'}} className="w-36"/>{project&&!l&&<Button size="sm" onClick={()=>insertRow('project_opportunities',{project_id:project.id,opportunity_id:o.id})}>Link to project</Button>}</div></details></article>;})}{!list.length&&<Empty title="Nothing matches this filter."/>}</div>
             )}
           </>
         )}

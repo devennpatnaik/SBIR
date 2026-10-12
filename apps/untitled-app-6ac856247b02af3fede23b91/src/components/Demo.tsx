@@ -17,8 +17,8 @@ export function DemoLauncher({ welcome = false }: { welcome?: boolean }) {
     setActiveProject(result.project_id); invalidate(); setOpen(false); navigate('dashboard');
   });
   return <>
-    {welcome ? <Card className="mb-4 border-blue-200" title="Try a complete company first">
-      <p className="mb-3 text-sm text-slate-600">Explore HarborTrace Instruments, a fictional wastewater-sensor startup. Compare three technologies, review a practice proposal, and see how licensing, customer research and finances connect.</p>
+    {welcome ? <Card className="demo-welcome" title="Take a look around.">
+      <p className="mb-3 text-sm text-slate-600">Meet HarborTrace, a fictional sensor startup. Explore a complete project before you start your own.</p>
       <Button variant="primary" onClick={() => setOpen(true)}><FlaskConical className="size-4" />Explore demo company</Button>
       <p className="mt-2 text-xs text-slate-500">Private to your account. Editable, clearly labeled, and removable. Nothing is sent or submitted.</p>
     </Card> : <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50"><FlaskConical className="size-4" />Demo company</button>}
@@ -65,17 +65,8 @@ export function DemoGuide({ section }: { section: string }) {
   ];
   const index = steps.findIndex(s => s[0].split('/')[0] === section);
   const current = steps[index < 0 ? 0 : index];
-  return <section aria-label="Demo guide" className="mb-4 rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-950">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <strong>[SAMPLE] HarborTrace Instruments</strong>
-      <button type="button" aria-expanded={expanded} className="text-xs underline" onClick={() => setExpanded(!expanded)}>{expanded ? 'Hide walkthrough' : 'Show walkthrough'}</button>
-    </div>
-    <p className="mt-1 text-xs">Fictional training data, not verified evidence. No real license, customer commitment, application or award. All demo dates are illustrative.</p>
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <span className="w-full min-w-0 sm:w-auto sm:flex-1">{current[2]}</span>
-      {index > 0 && <Button size="sm" onClick={() => navigate(steps[index - 1][0])}>Back</Button>}
-      <Button size="sm" onClick={() => navigate(steps[(index + 1) % steps.length][0])}>{index === steps.length - 1 ? 'Back to dashboard' : `Next: ${steps[(index + 1) % steps.length][1].replace(/^\d+\. /, '')}`}</Button>
-    </div>
-    {expanded && <nav aria-label="Demo walkthrough" className="mt-3 flex flex-wrap gap-2">{steps.map(([path,label]) => <a className="rounded border border-violet-200 bg-white px-2 py-1 text-xs hover:underline" key={path} href={`#/${path}`}>{label}</a>)}</nav>}
+  return <section aria-label="Demo guide">
+    <div className="demo-strip"><span>Sample workspace · Fictional data. Nothing is sent or submitted.</span><button type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? 'Close walkthrough' : 'Take a guided tour'}</button></div>
+    {expanded && <div className="demo-tour"><div className="flex flex-wrap items-center justify-between gap-4"><p className="max-w-xl text-sm">{current[2]}</p><div className="flex gap-2">{index > 0 && <Button size="sm" onClick={() => navigate(steps[index - 1][0])}>Back</Button>}<Button size="sm" onClick={() => navigate(steps[(index + 1) % steps.length][0])}>{index === steps.length - 1 ? 'Back to today' : `Next: ${steps[(index + 1) % steps.length][1].replace(/^\d+\. /, '')}`}</Button></div></div><nav aria-label="Demo walkthrough">{steps.map(([path,label]) => <a key={path} href={`#/${path}`}>{label}</a>)}</nav><p className="mt-4 text-xs text-slate-500">No real license, award, customer commitment or application. Demo dates are illustrative.</p></div>}
   </section>;
 }

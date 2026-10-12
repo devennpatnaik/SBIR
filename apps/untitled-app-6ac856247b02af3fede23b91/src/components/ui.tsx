@@ -1,3 +1,4 @@
+import { displayName } from '../lib/presentation';
 import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { reportWriteError } from '../lib/data';
@@ -10,8 +11,8 @@ export function Button({ variant = 'secondary', size = 'md', busy, className, ch
       type="button"
       disabled={disabled || busy}
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-        size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-2 text-sm',
+        'ui-button inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        size === 'sm' ? 'px-3.5 py-2 text-xs' : 'px-5 py-3 text-sm',
         variant === 'primary' && 'bg-blue-700 text-white hover:bg-blue-800',
         variant === 'secondary' && 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
         variant === 'ghost' && 'text-slate-600 hover:bg-slate-100',
@@ -34,27 +35,27 @@ export function Button({ variant = 'secondary', size = 'md', busy, className, ch
 
 export function Card({ className, children, title, actions }: { className?: string; children: ReactNode; title?: ReactNode; actions?: ReactNode }) {
   return (
-    <section className={cn('min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm', className)}>
+    <section className={cn('ui-card min-w-0 rounded-3xl bg-white', className)}>
       {(title || actions) && (
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-6 pt-6">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
           <div className="flex items-center gap-2">{actions}</div>
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className="p-6">{children}</div>
     </section>
   );
 }
 
 const badgeTones = {
-  slate: 'bg-slate-100 text-slate-700', blue: 'bg-blue-50 text-blue-800 ring-1 ring-blue-200', green: 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200',
-  amber: 'bg-amber-50 text-amber-800 ring-1 ring-amber-200', red: 'bg-red-50 text-red-700 ring-1 ring-red-200', purple: 'bg-violet-50 text-violet-800 ring-1 ring-violet-200',
+  slate: 'bg-slate-100 text-slate-700', blue: 'bg-blue-50 text-blue-800', green: 'bg-emerald-50 text-emerald-800',
+  amber: 'bg-amber-50 text-amber-800', red: 'bg-red-50 text-red-700', purple: 'bg-violet-50 text-violet-800',
 };
 export function Badge({ tone = 'slate', children, className, title }: { tone?: keyof typeof badgeTones; children: ReactNode; className?: string; title?: string }) {
-  return <span title={title} className={cn('inline-flex items-center gap-1 max-w-full whitespace-normal break-words rounded px-1.5 py-0.5 text-xs font-medium', badgeTones[tone], className)}>{children}</span>;
+  return <span title={title} className={cn('inline-flex items-center gap-1 max-w-full whitespace-normal break-words rounded-full px-2.5 py-1 text-[11px] font-medium', badgeTones[tone], className)}>{children}</span>;
 }
 export function SampleBadge() {
-  return <Badge tone="purple" title="Demonstration data — not a real record">SAMPLE DATA</Badge>;
+  return <Badge tone="purple" title="Demonstration data — not a real record">Sample</Badge>;
 }
 
 export function Field({ label, hint, children, className }: { label: string; hint?: string; children: ReactNode; className?: string }) {
@@ -66,7 +67,7 @@ export function Field({ label, hint, children, className }: { label: string; hin
     </label>
   );
 }
-const inputCls = 'w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600';
+const inputCls = 'ui-input w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600';
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(inputCls, props.className)} />;
 }
@@ -106,13 +107,13 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 pt-12" onMouseDown={onClose}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" tabIndex={-1} aria-label={title} className={cn('w-full rounded-lg bg-white shadow-xl', wide ? 'max-w-4xl' : 'max-w-xl')} onMouseDown={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/30 backdrop-blur-sm p-4 pt-12" onMouseDown={onClose}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" tabIndex={-1} aria-label={title} className={cn('ui-modal w-full rounded-3xl bg-white shadow-xl', wide ? 'max-w-4xl' : 'max-w-xl')} onMouseDown={e => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
           <h2 className="text-base font-semibold">{title}</h2>
           <button type="button" aria-label="Close" onClick={onClose} className="rounded p-1 text-slate-500 hover:bg-slate-100"><X className="size-4" /></button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
@@ -130,10 +131,10 @@ export function Empty({ title, children, action }: { title: string; children?: R
 
 export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: [T, string][]; value: T; onChange: (v: T) => void }) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
+    <div className="ui-tabs flex gap-1 overflow-x-auto" role="tablist">
       {tabs.map(([k, label]) => (
         <button key={k} type="button" role="tab" aria-selected={value === k} onClick={() => onChange(k)}
-          className={cn('whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium', value === k ? 'border-blue-700 text-blue-800' : 'border-transparent text-slate-600 hover:text-slate-900')}>
+          className={cn('whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium', value === k ? 'bg-white text-blue-800 shadow-sm' : 'text-slate-500 hover:text-slate-900')}>
           {label}
         </button>
       ))}
@@ -154,10 +155,10 @@ export function SourceLink({ url, label }: { url: string; label?: string }) {
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="page-heading mb-8 flex flex-wrap items-center justify-between gap-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-1 max-w-3xl text-sm text-slate-600">{subtitle}</p>}
+        <h1 className="editorial text-slate-900">{displayName(title)}</h1>
+        {subtitle && <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -210,4 +211,9 @@ export function useAsync() {
     try { return await fn(); } catch (e) { reportWriteError(e); setError(e instanceof Error ? e.message : String(e)); return undefined; } finally { setBusy(false); }
   };
   return { busy, error, run, setError };
+}
+
+export { displayName, displaySummary } from '../lib/presentation';
+export function Disclosure({ title, children, open = false }: { title: string; children: ReactNode; open?: boolean }) {
+  return <details className="disclosure" open={open || undefined}><summary>{title}<span aria-hidden="true">+</span></summary><div className="disclosure-body">{children}</div></details>;
 }

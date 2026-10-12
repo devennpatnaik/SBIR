@@ -146,6 +146,7 @@ export function HelpSuggestions({ projectId, stage, limit = 3, title }: { projec
   const show = fits.slice(0, limit);
   if (!show.length) return null;
   return (
+    <details className="help-suggestion"><summary><LifeBuoy size={15}/><span>{title ?? 'A little help for this step'}</span><span className="ml-auto">{fits.length} suggestions +</span></summary><div className="pt-4">
     <Card className="mb-4" title={<span className="flex items-center gap-1.5"><LifeBuoy className="size-4 text-emerald-700" />{title ?? `Free help for ${STAGE_LABEL[st].toLowerCase()}`}</span>}
       actions={<a href={`#/help?stage=${st}`} className="text-xs text-blue-700 hover:underline">See all {fits.length > limit ? `${fits.length} matches` : 'programs'} →</a>}>
       {!h.profileSet && <p className="mb-2 text-xs text-slate-500">Matches improve when you <a className="text-blue-700 hover:underline" href="#/help">answer 3 quick questions</a>.</p>}
@@ -163,6 +164,6 @@ export function HelpSuggestions({ projectId, stage, limit = 3, title }: { projec
           </li>
         ))}
       </ul>
-    </Card>
+    </Card></div></details>
   );
 }

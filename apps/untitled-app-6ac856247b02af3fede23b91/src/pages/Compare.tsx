@@ -7,7 +7,7 @@ import { saveSettings, useSettings } from '../lib/settings';
 import type { Evaluation, Project, Technology } from '../lib/types';
 import { ConfidenceBadge, ScoreEditor } from '../components/Scoring';
 import { SelectTechButton } from '../components/SelectTech';
-import { Button, Card, Empty, Input, Modal, PageHeader, SampleBadge, useAsync } from '../components/ui';
+import { Button, Card, Disclosure, displayName, Empty, Input, Modal, PageHeader, SampleBadge, useAsync } from '../components/ui';
 import { cn } from '../lib/utils';
 
 export function Compare() {
@@ -33,18 +33,20 @@ export function Compare() {
 
   return (
     <div>
-      <PageHeader title="Compare technologies" subtitle="Score each candidate 1–5 on ten dimensions with a rationale and evidence. Shortlisted technologies are shown by default."
+      <PageHeader title="Which idea fits best?" subtitle="Compare the possibilities, not just the scores. Evidence and uncertainty matter as much as the ranking."
         actions={<Button onClick={() => setWeightsOpen(true)}>Adjust weights</Button>} />
 
       <div className="mb-3 flex flex-wrap gap-2" aria-label="Technologies to compare">
         {techs.data.map(t => (
-          <label key={t.id} className={cn('flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs', ids.includes(t.id) ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-300 bg-white')}>
+          <label key={t.id} className={cn('flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-xs', ids.includes(t.id) ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-300 bg-white')}>
             <input type="checkbox" checked={ids.includes(t.id)} onChange={() => setPicked(ids.includes(t.id) ? ids.filter(x => x !== t.id) : [...ids, t.id])} />
-            {t.name.length > 40 ? t.name.slice(0, 40) + '…' : t.name}
+            {displayName(t.name).length > 40 ? displayName(t.name).slice(0,40)+'…' : displayName(t.name)}
           </label>
         ))}
       </div>
 
+      {!!cols.length && <div className="compare-summaries">{ranked.map((t,i)=><article key={t.id} className={`compare-summary ${i===0?'leading':''}`}><div className="eyebrow">{i===0?'HIGHEST CURRENT SCORE':`OPTION ${i+1}`}</div><h2 className="editorial">{displayName(t.name)}</h2><div className="comparison-score">{sums[t.id]?.overall ?? '—'}<span>/ 100</span></div><p className="text-xs text-slate-500">{sums[t.id]?.scored}/10 dimensions · {sums[t.id]?.confidence} confidence{t.is_sample?' · Sample':''}</p><p className="mt-5 text-sm leading-relaxed text-slate-600">{sums[t.id]?.risks[0] || 'Review the evidence before deciding.'}</p><div className="mt-auto flex flex-wrap gap-2 pt-6"><Button size="sm" onClick={()=>setScoring(t.id)}>Review scores</Button><SelectTechButton size="sm" tech={t} evaluation={evalOf(t.id)} project={projects.data.find(p=>p.technology_id===t.id)}/></div></article>)}</div>}
+      <Disclosure title="Compare all 10 dimensions and the evidence">
       {!cols.length ? <Empty title="Pick technologies to compare above" /> : (
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full min-w-[720px] text-sm">
@@ -99,6 +101,7 @@ export function Compare() {
       )}
       <p className="mt-3 text-xs text-slate-500">Overall = weighted average of scored dimensions, rescaled to 0–100. Unscored dimensions are excluded (and lower confidence). A high score is not a verified investment opportunity.</p>
 
+      </Disclosure>
       <Modal open={!!scoringTech} onClose={() => setScoring(null)} title={`Score: ${scoringTech?.name ?? ''}`} wide>
         {scoringTech && <ScoreEditor tech={scoringTech} evaluation={evalOf(scoringTech.id)} weights={settings.weights} />}
       </Modal>

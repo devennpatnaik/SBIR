@@ -4,7 +4,7 @@ import { FileUp, Trash2 } from 'lucide-react';
 import { deleteRow, fmtDate, insertRow, updateRow, useQuery } from '../lib/data';
 import { uploadFile, uploadUrl } from '../uploads';
 import type { Doc } from '../lib/types';
-import { Badge, Button, ErrorNote, Field, Input, Modal, Select, SourceLink, Textarea, useAsync } from './ui';
+import { Badge, Button, displayName, displaySummary, ErrorNote, Field, Input, Modal, Select, SourceLink, Textarea, useAsync } from './ui';
 
 export const DOC_KINDS: Record<string, string> = {
   note: 'Research note', research: 'Market / competitor research', interview: 'Interview notes', correspondence: 'Correspondence', technical_evidence: 'Technical evidence',
@@ -35,13 +35,13 @@ export function DocList({ scope, compact, kindFilter }: { scope: Scope; compact?
       </div>
       <ErrorNote error={error} />
       {!q.data.length ? <p className="text-sm text-slate-500">{compact ? 'No notes or files attached.' : 'No documents yet.'}</p> : (
-        <ul className="divide-y divide-slate-100 rounded-md border border-slate-200 bg-white">
+        <ul className="document-list divide-y divide-slate-100">
           {q.data.map(d => (
-            <li key={d.id} className="flex items-start justify-between gap-2 px-3 py-2 text-sm">
+            <li key={d.id} className="flex items-start justify-between gap-5 py-5 text-sm">
               <button type="button" className="min-w-0 text-left" onClick={() => d.upload_id ? void run(async () => { const url = await uploadUrl(d.upload_id!); window.open(url, '_blank', 'noopener'); }) : setOpen(d)}>
-                <div className="font-medium hover:underline">{d.title}</div>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500"><Badge>{DOC_KINDS[d.kind] ?? d.kind}</Badge>{d.is_ai_generated && <Badge tone="amber">AI-generated — not verified</Badge>}{fmtDate(d.created_at)}{d.source_url && <SourceLink url={d.source_url} />}</div>
-                {!compact && d.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-600">{d.body}</p>}
+                <div className="font-medium hover:underline">{displayName(d.title)}</div>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500"><Badge>{DOC_KINDS[d.kind] ?? d.kind}</Badge>{d.is_ai_generated && <Badge tone="amber">AI draft</Badge>}{fmtDate(d.created_at)}{d.source_url && <SourceLink url={d.source_url} />}</div>
+                {!compact && d.body && <p className="mt-0.5 line-clamp-2 text-xs text-slate-600">{displaySummary(d.body)}</p>}
               </button>
               <Button size="sm" variant="ghost" aria-label={`Delete ${d.title}`} onClick={() => { if (confirm(`Delete "${d.title}"?`)) void run(() => deleteRow('documents', d.id)); }}><Trash2 className="size-3.5" /></Button>
             </li>

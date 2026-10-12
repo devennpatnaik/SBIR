@@ -10,7 +10,7 @@ import { navigate } from '../lib/router';
 import type { Opportunity, Proposal, ProposalSection, Question } from '../lib/types';
 import { DocList } from '../components/DocList';
 import { ProjectPicker, QuestionList, TaskList } from '../components/ProjectParts';
-import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Modal, Notice, PageHeader, Select, SourceLink, Textarea, useAsync } from '../components/ui';
+import { Badge, Button, Card, Disclosure, displayName, Empty, ErrorNote, Field, Input, Modal, Notice, PageHeader, Select, SourceLink, Textarea, useAsync } from '../components/ui';
 
 const PSTATUS: Record<string, string> = { planning: 'Planning', drafting: 'Drafting', internal_review: 'Internal review', ready_to_submit: 'Ready to submit', submitted_confirmed: 'Submitted (you confirmed)', withdrawn: 'Withdrawn' };
 const SSTATUS: Record<string, string> = { not_started: 'Not started', drafting: 'Drafting', needs_evidence: 'Needs evidence', complete: 'Complete' };
@@ -73,20 +73,23 @@ function ProposalWorkspace({ id }: { id: string }) {
   return (
     <div>
       <button type="button" onClick={() => navigate('proposals')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />All proposals</button>
-      <PageHeader title={p.title} subtitle={o && <span className="flex flex-wrap items-center gap-2">{o.agency} {o.branch} · {o.solicitation_number}<SourceLink url={o.source_url} label="Solicitation" /><a className="text-xs text-blue-700 hover:underline" href={`#/funding/${o.id}`}>Opportunity record</a></span>}
+      <PageHeader title={p.title} subtitle={o && <span className="flex flex-wrap items-center gap-2">{displayName(o.agency)} {o.branch} · {o.solicitation_number}<SourceLink url={o.source_url} label="Solicitation" /><a className="text-xs text-blue-700 hover:underline" href={`#/funding/${o.id}`}>Opportunity record</a></span>}
         actions={<>
           <Button disabled={b.loading} onClick={() => downloadMarkdown(p.title, proposalMarkdown(p, o, secs))}>Download saved draft</Button>
           <Select aria-label="Proposal status" value={p.status} onChange={e => e.target.value === 'submitted_confirmed' ? setSubmitOpen(true) : void updateRow('proposals', p.id, { status: e.target.value })} options={PSTATUS} className="w-56" />
         </>} />
-      <Notice tone="slate">Drafts here are working material, not validated evidence or a completed application. Use the official solicitation as the authority for every requirement, page limit and format.</Notice>
+      <Notice tone="slate">Working draft. Confirm requirements, evidence and format against the official solicitation before submitting.</Notice>
 
-      <div className="my-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="proposal-summary"><strong>{active.length} sections</strong><span>{complete.length} ready</span><span>{needsEv.length} need evidence</span><span>{unconfirmed.length} requirements to confirm</span></div>
+      <Disclosure title={`Readiness review · ${elig.length} open eligibility question${elig.length!==1?'s':''}`}>
+      <div className="proposal-stats">
         <Stat label="Complete" value={`${complete.length}/${active.length}`} tone="green" />
         <Stat label="Incomplete" value={String(active.length - complete.length)} />
         <Stat label="Missing evidence" value={String(needsEv.length)} tone={needsEv.length ? 'amber' : undefined} />
         <Stat label="Not confirmed vs solicitation" value={String(unconfirmed.length)} tone={unconfirmed.length ? 'amber' : undefined} />
         <Stat label="Open eligibility questions" value={String(elig.length)} tone={elig.length ? 'red' : undefined} />
       </div>
+      </Disclosure>
       <div className="mb-4 text-sm">Deadline: <b>{fmtDate(o?.close_date)}</b> {o?.close_date && (o.deadline_verified ? <Badge tone="green">verified</Badge> : <Badge tone="amber">unverified — confirm on the official page</Badge>)} {d !== null && d >= 0 && <span className="text-slate-500">({d} days)</span>}</div>
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -119,13 +122,11 @@ function SectionCard({ s, projectId }: { s: ProposalSection; projectId: string }
   const dim = s.required_status === 'not_required';
   return (
     <div className={`rounded-lg border bg-white ${dim ? 'border-slate-100 opacity-60' : 'border-slate-200'}`}>
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-4">
         <button type="button" onClick={() => updateRow('proposal_sections', s.id, { status: s.status === 'complete' ? 'drafting' : 'complete', updated_at: nowIso() })} aria-label={`Toggle complete: ${s.title}`}>
           <CheckCircle2 className={`size-5 ${s.status === 'complete' ? 'text-emerald-600' : 'text-slate-300 hover:text-slate-500'}`} />
         </button>
-        <button type="button" className="min-w-0 flex-1 basis-[80%] text-left text-sm font-medium sm:basis-0" onClick={() => setOpen(!open)}>{s.title}</button>
-        <Badge tone="slate">{s.kind}</Badge>
-        <Badge tone={s.required_status === 'confirmed_required' ? 'blue' : s.required_status === 'confirm_in_solicitation' ? 'amber' : 'slate'}>{REQ[s.required_status]}</Badge>
+        <button type="button" className="min-w-0 flex-1 basis-[80%] text-left text-sm font-medium sm:basis-0" onClick={() => setOpen(!open)}>{displayName(s.title)}</button>
         <Badge tone={s.status === 'complete' ? 'green' : s.status === 'needs_evidence' ? 'red' : 'slate'}>{SSTATUS[s.status]}</Badge>
       </div>
       {open && (
