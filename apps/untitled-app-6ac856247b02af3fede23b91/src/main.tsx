@@ -55,3 +55,5 @@ createRoot(document.getElementById('root')!).render(
     </PageErrorBoundary>
   </StrictMode>,
 );
+
+if(import.meta.env.PROD && 'serviceWorker' in navigator)void navigator.serviceWorker.register('/sw.js').catch(()=>console.warn('Home-screen support is unavailable in this browser.'));

@@ -20,7 +20,8 @@ export function Proposals({ id }: { id?: string }) {
   if (id) return <ProposalWorkspace id={id} />;
   return (
     <div>
-      <PageHeader title="Proposal workspace" subtitle="One workspace per solicitation you pursue. The solicitation is the authority for structure and requirements." />
+      <PageHeader title="Applications & proposals." subtitle="Prepare for the route you are actually pursuing. The current notice or counterparty sets the requirements." />
+      <p className="mb-6 text-sm text-slate-600">License applications, CRADA work plans, I-Corps materials and commercial packets live in your <a href="#/pathways" className="underline">pathway plans</a>. Funding applications below use instrument-specific starter checklists.</p>
       <HelpSuggestions projectId={getActiveProject()} stage="propose" title="Free help writing your proposal" />
       <ProjectPicker>{pid => <ProposalList projectId={pid} />}</ProjectPicker>
     </div>

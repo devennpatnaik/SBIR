@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "hono": "4",
-    "jose": "6.2.3"
+    "jose": "6.2.3",
+    "@project/pathways": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260921.1",

@@ -70,9 +70,9 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
   if (p.licensing_pathway === 'undecided' && b.licensing.filter(l => l.status === 'answered').length >= 3) add({ title: 'Choose a licensing pathway', why: 'You have enough answers to compare an evaluation license, option, license, or CRADA.', link: 'licensing?tab=pathway', area: 'licensing', urgency: 'soon' });
 
   const done = (b.interviews ?? []).length;
-  if (done < 5) add({ title: `Hold customer-discovery interviews (${done}/5 logged)`, why: 'Customer demand is the most important evidence for both the business and an SBIR commercialization section.', link: 'roadmap?tab=interviews', area: 'validation', urgency: done ? 'soon' : 'now' });
+  if (done < 5) add({ title: `Hold customer-discovery interviews (${done}/5 logged)`, why: 'Real conversations help test who has the problem and whether the idea is useful.', link: 'roadmap?tab=interviews', area: 'validation', urgency: done ? 'soon' : 'now' });
 
-  if (!b.links.length) add({ title: 'Find and save candidate SBIR/STTR topics', why: 'No funding opportunities linked. Search official agency topic lists and save the ones that fit.', link: 'funding', area: 'funding', urgency: 'soon' });
+  if (!b.links.length) add({ title: 'Explore suitable funding and revenue routes', why: 'No opportunities are linked yet. Consider grants, contracts, pilots or investment only if the project needs them.', link: 'funding', area: 'funding', urgency: 'soon' });
   for (const o of b.opps.filter(o => pursued.has(o.id))) {
     if (o.close_date && !o.deadline_verified) add({ title: `Verify the deadline for ${o.topic_number || o.topic_title}`, why: 'The deadline is not confirmed against a current official source.', link: `funding/${o.id}`, area: 'funding', urgency: 'soon' });
   }

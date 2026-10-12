@@ -1,18 +1,19 @@
+import { OPPORTUNITY_PROGRAMS } from '@project/pathways';
 import { useState } from 'react';
 import type { Opportunity } from '../lib/types';
 import { Button, ErrorNote, Field, Input, Select, Textarea } from './ui';
 
 export const OPP_FIELDS: { key: keyof Opportunity; label: string; multiline?: boolean; type?: string; hint?: string }[] = [
-  { key: 'topic_title', label: 'Topic title' },
-  { key: 'source_url', label: 'Official source URL', hint: 'The agency topic or solicitation page.' },
+  { key: 'topic_title', label: 'Opportunity title' },
+  { key: 'source_url', label: 'Official source URL', hint: 'The original agency, program, lender or counterparty source.' },
   { key: 'agency', label: 'Agency' },
   { key: 'branch', label: 'Component / branch', hint: 'e.g. Navy, NIH NCI, DOE Office of Science' },
   { key: 'solicitation_title', label: 'Solicitation title' },
   { key: 'solicitation_number', label: 'Solicitation number' },
   { key: 'topic_number', label: 'Topic number' },
-  { key: 'phase', label: 'Phase', hint: 'Phase I, Phase II, Direct to Phase II, Fast Track…' },
+  { key: 'phase', label: 'Phase', hint: 'If this opportunity uses phases; otherwise leave blank.' },
   { key: 'award_type', label: 'Award type', hint: 'Contract, grant, cooperative agreement' },
-  { key: 'award_amount', label: 'Award size (as stated)' },
+  { key: 'award_amount', label: 'Amount / financing terms (as stated)' },
   { key: 'duration', label: 'Project duration (as stated)' },
   { key: 'open_date', label: 'Opens', type: 'date' },
   { key: 'close_date', label: 'Closes (deadline)', type: 'date' },
@@ -27,7 +28,7 @@ export const OPP_FIELDS: { key: keyof Opportunity; label: string; multiline?: bo
 ];
 
 export function OppForm({ initial, onSubmit, submitLabel, onCancel }: { initial: Partial<Opportunity>; onSubmit: (o: Partial<Opportunity>) => Promise<void>; submitLabel: string; onCancel?: () => void }) {
-  const [d, setD] = useState<Partial<Opportunity>>({ program: 'SBIR', ...initial });
+  const [d, setD] = useState<Partial<Opportunity>>({ program: 'Other', ...initial });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
@@ -38,7 +39,7 @@ export function OppForm({ initial, onSubmit, submitLabel, onCancel }: { initial:
       setBusy(true); setError(null);
       try { await onSubmit({ ...d, open_date: d.open_date || null, close_date: d.close_date || null }); } catch (er) { setError(er instanceof Error ? er.message : String(er)); } finally { setBusy(false); }
     }}>
-      <Field label="Program"><Select aria-label="Program" value={d.program} onChange={e => setD({ ...d, program: e.target.value })} options={{ SBIR: 'SBIR', STTR: 'STTR', 'SBIR/STTR': 'SBIR/STTR (either)', Other: 'Other' }} /></Field>
+      <Field label="Program"><Select aria-label="Program" value={d.program} onChange={e => setD({ ...d, program: e.target.value })} options={OPPORTUNITY_PROGRAMS.map(x=>[x,x] as [string,string])} /></Field>
       {OPP_FIELDS.map(f => (
         <Field key={f.key} label={f.label} hint={f.hint} className={f.multiline || f.key === 'topic_title' || f.key === 'source_url' ? 'md:col-span-2' : ''}>
           {f.multiline ? <Textarea aria-label={f.label} value={String(d[f.key] ?? '')} onChange={e => setD({ ...d, [f.key]: e.target.value })} />

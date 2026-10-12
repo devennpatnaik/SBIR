@@ -118,7 +118,7 @@ export function DeadlinesAndBlockers({ bundle }: { bundle: Bundle }) {
   );
 }
 
-export function TaskList({ projectId, tasks, area, milestones, proposalId, defaultCategory }: { projectId: string; tasks: Task[]; area?: string; milestones?: boolean; proposalId?: string; defaultCategory?: string }) {
+export function TaskList({ projectId, tasks, area, milestones, proposalId, defaultCategory, pathwayId }: { projectId: string; tasks: Task[]; area?: string; milestones?: boolean; proposalId?: string; defaultCategory?: string; pathwayId?: string }) {
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
   const [due, setDue] = useState('');
@@ -132,7 +132,7 @@ export function TaskList({ projectId, tasks, area, milestones, proposalId, defau
   const titleOf = (id: string | null) => tasks.find(t => t.id === id)?.title;
 
   const add = () => run(async () => {
-    await insertRow('tasks', { project_id: projectId, title: title.trim(), due_date: due || null, area: milestones ? 'commercialization' : taskArea, kind: milestones ? 'milestone' : 'task', roadmap_category: milestones ? cat : '', proposal_id: proposalId ?? null });
+    await insertRow('tasks', { project_id: projectId, pathway_id: pathwayId ?? null, title: title.trim(), due_date: due || null, area: milestones ? 'commercialization' : taskArea, kind: milestones ? 'milestone' : 'task', roadmap_category: milestones ? cat : '', proposal_id: proposalId ?? null });
     setTitle(''); setDue('');
   });
 
@@ -215,7 +215,7 @@ function TaskEditor({ t, all, onClose }: { t: Task; all: Task[]; onClose: () => 
 }
 
 const QKIND: Record<string, string> = { question: 'Open question', risk: 'Risk', eligibility: 'Eligibility question', assumption: 'Assumption' };
-export function QuestionList({ projectId, questions, kind, opportunityId, area, title }: { projectId: string; questions: Question[]; kind?: string; opportunityId?: string; area?: string; title?: string }) {
+export function QuestionList({ projectId, questions, kind, opportunityId, area, title, pathwayId }: { projectId: string; questions: Question[]; kind?: string; opportunityId?: string; area?: string; title?: string; pathwayId?: string }) {
   const [text, setText] = useState('');
   const [k, setK] = useState(kind ?? 'question');
   const [adding, setAdding] = useState(false);
@@ -225,7 +225,7 @@ export function QuestionList({ projectId, questions, kind, opportunityId, area, 
     <div className="space-y-3">
       {title && <h4 className="text-sm font-semibold">{title}</h4>}
       <Button size="sm" onClick={()=>setAdding(!adding)}>{adding?'Close new question':'+ Add a question'}</Button>
-      {adding &&       <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); if (text.trim()) void run(async () => { await insertRow('questions', { project_id: projectId, opportunity_id: opportunityId ?? null, kind: k, text: text.trim(), area: area ?? 'general' }); setText(''); }); }}>
+      {adding &&       <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); if (text.trim()) void run(async () => { await insertRow('questions', { project_id: projectId, pathway_id: pathwayId ?? null, opportunity_id: opportunityId ?? null, kind: k, text: text.trim(), area: area ?? 'general' }); setText(''); }); }}>
         <Input aria-label={`New ${QKIND[k]?.toLowerCase() ?? 'question'}`} placeholder={`Add ${QKIND[k]?.toLowerCase() ?? 'question'}…`} value={text} onChange={e => setText(e.target.value)} className="min-w-64 flex-1" />
         {!kind && <Select aria-label="Question type" value={k} onChange={e => setK(e.target.value)} options={QKIND} className="w-48" />}
         <Button type="submit" busy={busy} disabled={!text.trim()}>Add</Button>

@@ -1,3 +1,4 @@
+import { SimplePlan } from './SimplePlan';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { DemoLauncher } from '../components/Demo';
 import { useBundle } from '../lib/bundle';
@@ -20,9 +21,10 @@ export function Dashboard() {
   if (projects.error) return <ErrorNote error={projects.error}/>;
   if (!current) return <div>
     <div className="home-heading"><div><p className="eyebrow">A SPACE FOR WHAT COMES NEXT</p><h1 className="editorial">Good ideas start<br/>with curiosity.</h1></div><p>Find a technology worth pursuing. Make a plan to license it, fund it, and bring it into the world.</p></div>
-    <div className="welcome-grid"><section className="welcome-start"><p className="eyebrow" style={{color:'#cedab9'}}>YOUR FIRST STEP</p><h2 className="editorial">Find your starting point.</h2><p>Save a technology from a federal laboratory. We’ll help you compare your options and work out what to do next.</p><Button className="!bg-[#edf0d2] !text-[#294f3d]" onClick={() => navigate('discover')}>Explore technologies <ArrowRight size={16}/></Button></section><DemoLauncher welcome/></div>
+    <div className="welcome-grid"><section className="welcome-start"><p className="eyebrow" style={{color:'#cedab9'}}>YOUR FIRST STEP</p><h2 className="editorial">Find your starting point.</h2><p>Tell us what interests you. Three simple questions are enough to make a starting plan.</p><Button className="!bg-[#edf0d2] !text-[#294f3d]" onClick={() => navigate('start')}>Let’s make a plan <ArrowRight size={16}/></Button></section><DemoLauncher welcome/></div>
     <div className="journey"><span className="journey-label">A simple path</span>{['Explore','License','Fund','Build'].map((s,i)=><a key={s} href={`#/${['discover','licensing','funding','roadmap'][i]}`}><span>{i+1}</span>{s}</a>)}</div>
   </div>;
+  if(current.intake_key)return <SimplePlan projectId={current.id}/>;
   const { actions, deadlines, blockers } = analyze(b);
   const next = actions[0];
   const idx = statusIndex(current.status);const phase=idx<2?0:idx<5?1:idx<9?2:3;

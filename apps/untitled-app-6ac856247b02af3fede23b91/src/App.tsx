@@ -1,3 +1,7 @@
+import { Install } from './components/Install';
+import { QuickStart, Welcome, GUEST_START } from './pages/QuickStart';
+import { SimplePlan } from './pages/SimplePlan';
+import { Pathways } from './pages/Pathways';
 import { useEffect, useState } from 'react';
 import { Menu, X, ArrowUpRight, LogOut, Sparkles } from 'lucide-react';
 import { client, useSession } from './client';
@@ -20,14 +24,16 @@ import { Documents } from './pages/Documents';
 import { Help } from './pages/Help';
 import { AssistantDrawer } from './components/Assistant';
 
-const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'compare', label: 'Compare' }, { key: 'funding', label: 'Funding' }];
-const WORKSPACE = [{ key: 'projects', label: 'My project' }, { key: 'licensing', label: 'Licensing' }, { key: 'proposals', label: 'Proposal' }, { key: 'roadmap', label: 'Roadmap' }, { key: 'documents', label: 'Library' }];
+const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'compare', label: 'Compare' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
+const WORKSPACE = [{ key: 'projects', label: 'My project' }, { key: 'licensing', label: 'Licensing' }, { key: 'proposals', label: 'Applications' }, { key: 'roadmap', label: 'Roadmap' }, { key: 'documents', label: 'Library' }];
 const SECTION_OF: Record<string, string> = { tech: 'discover', funding: 'funding' };
 
 export function App() {
   const { data: session, isPending } = useSession();
+  const entryRoute=useRoute();
+  useEffect(()=>{if(session&&['signin','signup'].includes(entryRoute[0]??''))navigate(sessionStorage.getItem(GUEST_START)?'start':'dashboard');},[session?.user.id,entryRoute[0]]);
   if (isPending) return <p role="status" className="p-8 text-sm text-slate-500">Opening your workspace…</p>;
-  if (!session) return <SignIn />;
+  if (!session) return entryRoute[0]==='start'?<QuickStart/>:['signin','signup'].includes(entryRoute[0]??'')?<SignIn key={entryRoute[0]} initialMode={entryRoute[0]==='signup'?'signUp':'signIn'}/>:<Welcome/>;
   setStorageUser(session.user.id);
   return <Workspace key={session.user.id} user={session.user} />;
 }
@@ -36,6 +42,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
   const route = useRoute();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(()=>{const open=()=>setAssistantOpen(true);window.addEventListener('ltm-workflow-chat',open);return()=>window.removeEventListener('ltm-workflow-chat',open);},[]);
   const [activeId, setActive] = useActiveProjectId();
   const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
   useEffect(() => {
@@ -50,10 +57,12 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
   useEffect(() => { if(menuOpen) document.querySelector<HTMLAnchorElement>('#workspace-menu a')?.focus(); }, [menuOpen]);
   const [section = 'dashboard', id] = route;
   const active = SECTION_OF[section] ?? section;
+  const simple=!!projects.data.find(p=>p.id===activeId)?.intake_key;
 
-  const group = EXPLORE.some(n => n.key === active) ? 'explore' : WORKSPACE.some(n => n.key === active) ? 'workspace' : 'today';
-  const subnav = group === 'explore' ? EXPLORE : group === 'workspace' ? WORKSPACE : [];
-  const projectLink = activeId ? `projects/${activeId}` : 'projects';
+  const group = section==='plan'?'workspace':EXPLORE.some(n => n.key === active) ? 'explore' : WORKSPACE.some(n => n.key === active) ? 'workspace' : 'today';
+  const subnav = ['start','plan'].includes(section) ? [] : group === 'explore' ? EXPLORE : group === 'workspace' ? WORKSPACE : [];
+  const fullProjectLink=activeId?`projects/${activeId}`:'projects';
+  const projectLink = simple&&activeId?`plan/${activeId}`:activeId ? `projects/${activeId}` : 'projects';
   return (
     <div className="app-shell">
       <a className="skip-link" href="#workspace" onClick={e=>{e.preventDefault();document.getElementById('workspace')?.focus();}}>Skip to content</a>
@@ -63,7 +72,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           <nav className="primary-nav" aria-label="Main">
             <a href="#/dashboard" aria-current={group === 'today' && active !== 'help' ? 'page' : undefined}>Today</a>
             <a href="#/discover" aria-current={group === 'explore' ? 'page' : undefined}>Explore</a>
-            <a href={`#/${projectLink}`} aria-current={group === 'workspace' ? 'page' : undefined}>Workspace</a>
+            <a href={`#/${projectLink}`} aria-current={group === 'workspace'||section==='plan' ? 'page' : undefined}>{simple?'My plan':'Workspace'}</a>
           </nav>
           <div className="header-actions">
             <button type="button" onClick={() => setAssistantOpen(true)} className="ask-button" aria-label="Research assistant"><Sparkles size={16} /><span>Ask a guide</span></button>
@@ -74,8 +83,12 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
       </header>
       {menuOpen && <><button className="menu-backdrop" type="button" aria-label="Close navigation overlay" onClick={() => setMenuOpen(false)}/><div id="workspace-menu" className="workspace-menu">
         <div className="eyebrow">Your space</div>
+        <a href="#/start">Start an idea <ArrowUpRight size={16}/></a>
+        <a href="#/pathways">Explore all routes <ArrowUpRight size={16}/></a>
+        <a href={`#/${fullProjectLink}`}>Full workspace <ArrowUpRight size={16}/></a>
         <a href="#/projects">All projects <ArrowUpRight size={16}/></a>
         <a href="#/help">Free help & programs <ArrowUpRight size={16}/></a>
+        <Install/>
         <DemoLauncher />
         <div className="menu-account"><span>{user.email}</span><button type="button" aria-label="Sign out" onClick={() => client.auth.signOut()}><LogOut size={16}/></button></div>
       </div></>}
@@ -84,10 +97,13 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
         <DemoGuide section={section} />
         <div className="page-content" key={section + (id ?? '')}>
           {section === 'dashboard' && <Dashboard />}
+          {section === 'start' && <QuickStart userId={user.id}/>}
+          {section === 'plan' && id && <SimplePlan projectId={id}/>}
           {section === 'help' && <Help />}
           {section === 'discover' && <Discover />}
           {section === 'tech' && id && <TechnologyDetail id={id} />}
           {section === 'compare' && <Compare />}
+          {section === 'pathways' && <Pathways id={id}/>}
           {section === 'projects' && !id && <Projects />}
           {section === 'projects' && id && <ProjectWorkspace id={id} />}
           {section === 'licensing' && <Licensing />}
@@ -96,7 +112,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           {section === 'proposals' && <Proposals id={id} />}
           {section === 'roadmap' && <Roadmap />}
           {section === 'documents' && <Documents />}
-          {!['dashboard', 'discover', 'tech', 'compare', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
+          {!['start','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
             <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate('dashboard')}>Go to dashboard</button></p>
           )}
         </div>
@@ -128,8 +144,8 @@ function friendlyAuthError(message: string, mode: 'signIn' | 'signUp'): string {
   return message || (mode === 'signUp' ? 'Could not create the account.' : 'Sign in failed.');
 }
 
-function SignIn() {
-  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+function SignIn({initialMode='signIn'}:{initialMode?:'signIn'|'signUp'}) {
+  const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -161,7 +177,7 @@ function SignIn() {
   return (
     <main className="auth-page"><div className="auth-story"><a href="#" className="wordmark"><span className="brand-mark">↗</span>lab to market.</a><div><p className="eyebrow">FROM RESEARCH TO REAL LIFE</p><h1>Your next idea<br/>starts here.</h1><p>A quieter space to explore lab technologies, plan your business, and take the next step.</p></div><span>Explore. Make a plan. Move forward.</span></div>
       <div className="auth-form">
-        <div className="mb-8"><p className="eyebrow">YOUR PRIVATE WORKSPACE</p><h2 className="editorial text-4xl">{signUp ? 'Make room for your idea.' : 'Welcome back.'}</h2><p className="mt-3 text-sm text-slate-500">{signUp ? 'Start small. You can explore a complete demo first.' : 'Pick up where you left off.'}</p></div>
+        <div className="mb-8"><p className="eyebrow">YOUR PRIVATE WORKSPACE</p><h2 className="editorial text-4xl">{signUp ? 'Make room for your idea.' : 'Welcome back.'}</h2><p className="mt-3 text-sm text-slate-500">{signUp ? 'Your starting idea will be here after you sign up.' : 'Pick up where you left off.'}</p></div>
         <form noValidate onSubmit={e => { e.preventDefault(); void submit(e.currentTarget); }} className="flex flex-col gap-5">
 
           <label className="flex flex-col gap-1 text-sm">Email

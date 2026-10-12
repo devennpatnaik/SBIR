@@ -10,7 +10,7 @@ export const DOC_KINDS: Record<string, string> = {
   note: 'Research note', research: 'Market / competitor research', interview: 'Interview notes', correspondence: 'Correspondence', technical_evidence: 'Technical evidence',
   solicitation: 'Solicitation document', legal: 'Agreement / legal', source_text: 'Original source text', ai_summary: 'AI-generated summary', file: 'File',
 };
-type Scope = { project_id?: string | null; technology_id?: string | null; opportunity_id?: string | null; proposal_section_id?: string | null };
+type Scope = { pathway_id?: string | null; project_id?: string | null; technology_id?: string | null; opportunity_id?: string | null; proposal_section_id?: string | null };
 
 export function DocList({ scope, compact, kindFilter }: { scope: Scope; compact?: boolean; kindFilter?: string }) {
   const entries = Object.entries(scope).filter(([, v]) => v) as [string, string][];

@@ -1,3 +1,4 @@
+import { packetSections } from '@project/pathways';
 import { client } from '../client';
 import { LICENSING_TOPICS, PROPOSAL_TEMPLATE, STARTER_TASKS } from './constants';
 import { insertRow, insertRows, invalidate, nowIso, updateRow } from './data';
@@ -55,7 +56,8 @@ export async function createProposal(project: Project, opp: Opportunity): Promis
   const pid = proposal.id;
   const docs = opp.required_documents.split('\n').map(s => s.replace(/^[-*•\d.)\s]+/, '').trim()).filter(Boolean);
   const fromSolicitation = docs.map((d, i) => ({ proposal_id: pid, title: d, kind: 'document', required_status: 'confirmed_required', solicitation_reference: 'Listed in the saved solicitation record', sort: i }));
-  const template = PROPOSAL_TEMPLATE.map((t, i) => {
+  const checklist = opp.program.includes('SBIR')||opp.program==='STTR'?PROPOSAL_TEMPLATE:packetSections(opp.program).map(title=>({title,kind:'section',guidance:'Use the current notice or counterparty instructions. Separate verified facts, assumptions, missing evidence and negotiated terms. This starter section is not a confirmed requirement.'}));
+  const template = checklist.map((t, i) => {
     const partner = t.title.startsWith('Research partners');
     return {
       proposal_id: pid, title: t.title, kind: t.kind, sort: 100 + i,

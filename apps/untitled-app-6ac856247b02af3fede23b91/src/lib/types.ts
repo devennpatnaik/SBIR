@@ -15,6 +15,7 @@ export type Lab = {
   agreement_types_offered: string; notes: string; source_url: string; verified_at: string | null;
 };
 export type Project = {
+  intake_key?: string | null; kickoff_answers?: Record<string,unknown>;
   id: string; technology_id: string; lab_id: string | null; name: string; status: string; application_summary: string;
   business_thesis: string; target_customer: string; problem: string; licensing_status: string; licensing_pathway: string;
   licensing_pathway_notes: string; risks: string; archived: boolean; created_at: string; updated_at: string;

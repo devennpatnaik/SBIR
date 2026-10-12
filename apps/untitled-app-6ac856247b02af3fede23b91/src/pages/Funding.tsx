@@ -1,3 +1,5 @@
+import { ProgramDirectory } from '../components/ProgramDirectory';
+import { GrantsSearch } from '../components/GrantsSearch';
 import { useMemo, useState } from 'react';
 import { HelpSuggestions } from '../components/Help';
 import { ArrowUpRight, Plus, Search } from 'lucide-react';
@@ -21,7 +23,7 @@ export function Funding() {
   const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
   const [activeId] = useActiveProjectId();
   const project = projects.data.find(p => p.id === activeId) ?? projects.data[0];
-  const [tab, setTab] = useState<'saved' | 'compare' | 'search' | 'guide'>('saved');
+  const [tab, setTab] = useState<'saved' | 'compare' | 'grants' | 'search' | 'guide'>('saved');
   const [adding, setAdding] = useState(false);
   const [rel, setRel] = useState('all');
 
@@ -30,17 +32,19 @@ export function Funding() {
 
   return (
     <div>
-      <PageHeader title="Find the right funding." subtitle="A promising match is a starting point. Save opportunities, check the rules, and choose where to focus."
+      <PageHeader title="Find funding. Earn revenue." subtitle="Explore grants, contracts, prizes and other opportunities. Check who pays whom and what the actual terms require."
         actions={<Button variant="primary" onClick={() => setAdding(true)}><Plus className="size-4" />Add opportunity</Button>} />
-      <HelpSuggestions projectId={project?.id} stage="propose" title="Free help writing your proposal" />
-      <Tabs tabs={[['saved', `Saved (${opps.data.length})`], ['compare', 'Compare'], ['search', 'Search SBIR.gov'], ['guide', 'Research guide']]} value={tab} onChange={setTab} />
+      <p className="mb-6 text-xs text-slate-500">Looking for a license, CRADA, university partnership or I-Corps? <a href="#/pathways" className="underline">Explore all pathways</a>. Those are not interchangeable cash awards.</p>
+      <HelpSuggestions projectId={project?.id} stage="propose" title="Find preparation support" />
+      <Tabs tabs={[['saved', `Saved (${opps.data.length})`], ['compare', 'Compare'], ['grants','Search Grants.gov'], ['search', 'SBIR / STTR search'], ['guide', 'Research guide']]} value={tab} onChange={setTab} />
       <div className="mt-4">
+        {tab === 'grants' && <GrantsSearch onSaved={id=>navigate(`funding/${id}`)}/>}
         {tab === 'saved' && (
           <>
             <div className="mb-6 flex flex-wrap items-center gap-4"><Select aria-label="Filter relevance" value={rel} onChange={e => setRel(e.target.value)} options={{ active: 'Hide irrelevant', relevant: 'Relevant', maybe: 'Maybe', unreviewed: 'Unreviewed', irrelevant: 'Irrelevant', all: 'All' }} className="w-44" />
               {project && <span className="text-sm text-slate-500">For <b>{displayName(project.name)}</b></span>}</div>
             {!opps.loading && !opps.data.length ? (
-              <Empty title="No funding opportunities saved" action={<div className="flex gap-2"><Button variant="primary" onClick={() => setAdding(true)}>Add from an official page</Button><Button onClick={() => setTab('guide')}>How to find topics</Button></div>}>Find a topic on an official agency site (DoD DSIP, NIH, NSF, DOE, NASA…) and save it with its URL. The app never invents solicitations or deadlines.</Empty>
+              <Empty title="No funding opportunities saved" action={<div className="flex gap-2"><Button variant="primary" onClick={() => setAdding(true)}>Add from an official page</Button><Button onClick={() => setTab('guide')}>How to find topics</Button></div>}>Search Grants.gov or official agency and counterparty sources, then save the actual opportunity with its source. The app never invents solicitations or deadlines.</Empty>
             ) : (
               <div className="funding-grid">{list.map(o=>{const l=linkOf(o.id);const d=daysUntil(o.close_date);return <article key={o.id} className="funding-card"><div className="flex items-center justify-between gap-3"><span className="eyebrow !mb-0">{o.program} · {o.phase}</span>{o.is_sample&&<SampleBadge/>}</div><a href={`#/funding/${o.id}`} className="editorial funding-name">{displayName(o.topic_title)}</a><p className="text-xs text-slate-500">{displayName(o.agency)}</p><div className="funding-facts"><div><span>Potential funding</span><strong>{o.award_amount||'Check the solicitation'}</strong></div><div><span>Closing date</span><strong>{o.close_date?fmtDate(o.close_date):'Not recorded'}</strong><small>{d!==null&&d<0?'Closed':o.deadline_verified?'Verified against source':'Needs verification'}</small></div></div><div className="flex items-center justify-between gap-3"><span className="text-xs text-slate-500">{l?l.status.replaceAll('_',' '):'Not linked to this project'}</span><a className="text-sm font-medium" href={`#/funding/${o.id}`}>Take a look <ArrowUpRight className="inline ml-1" size={16}/></a></div><details className="mt-5 border-t border-slate-100 pt-3"><summary className="cursor-pointer text-xs text-slate-500">Source & tracking</summary><div className="mt-3 flex flex-wrap items-center gap-2"><SourceLink url={o.source_url}/><Select aria-label={`Relevance of ${o.topic_title}`} value={o.relevance} onChange={e=>updateRow('opportunities',o.id,{relevance:e.target.value})} options={{unreviewed:'Unreviewed',relevant:'Relevant',maybe:'Maybe',irrelevant:'Irrelevant'}} className="w-36"/>{project&&!l&&<Button size="sm" onClick={()=>insertRow('project_opportunities',{project_id:project.id,opportunity_id:o.id})}>Link to project</Button>}</div></details></article>;})}{!list.length&&<Empty title="Nothing matches this filter."/>}</div>
             )}
@@ -106,7 +110,7 @@ function SbirSearch({ onSaved }: { onSaved: (id: string) => void }) {
       <p className="text-xs text-slate-500">Queries the official SBIR.gov public API live through the app's server. Results are saved only when you press Save; deadlines are imported as unverified.</p>
       <ErrorNote error={error} />
       {res && !res.available && (
-        <Notice>The SBIR.gov API is not available right now ({res.message}). SBIR.gov controls access to that API, so search may stay unavailable. Use the <b>How to research manually</b> tab: find the topic on the agency site, then press <b>Add opportunity</b>.</Notice>
+        <Notice>The SBIR.gov API is not available right now ({res.message}). SBIR.gov controls access to that API, so search may stay unavailable. Use the <b>Research guide</b> tab: find the topic on the agency site, then press <b>Add opportunity</b>.</Notice>
       )}
       {res?.available && !res.results?.length && <Empty title="No open solicitations matched">Try a broader keyword, or check agency sites directly — SBIR.gov does not list every agency topic in real time.</Empty>}
       {res?.available && res.results?.map((s, i) => (
@@ -130,6 +134,7 @@ function SbirSearch({ onSaved }: { onSaved: (id: string) => void }) {
 function ManualGuide() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      <div className="lg:col-span-2"><ProgramDirectory/></div>
       <Card title="Manual research process">
         <ol className="list-decimal space-y-2 pl-5 text-sm">
           <li>Write down 5–10 keywords describing what your product does and who funds work like it (e.g. Navy, NIH NIBIB, DOE EERE).</li>
