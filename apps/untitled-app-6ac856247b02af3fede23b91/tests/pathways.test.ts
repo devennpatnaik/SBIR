@@ -6,3 +6,11 @@ test('debt and fund packets do not silently use Phase I templates',()=>{expect(p
 test('program map distinguishes access and does not assert open availability',()=>{expect(PROGRAM_REFERENCES.length).toBe(59);expect(new Set(PROGRAM_REFERENCES.map(x=>x.name)).size).toBe(59);for(const p of PROGRAM_REFERENCES){expect(p.availability).toBe('Not checked');expect(p.access.length).toBeGreaterThan(8);expect(p.source.startsWith('https://')).toBe(true);}expect(PROGRAM_REFERENCES.find(x=>x.name==='RBIC')!.note).toContain('non-leveraged');expect(PROGRAM_REFERENCES.find(x=>x.name==='GovTribe')!.note).toContain('Commercial');});
 test('grant import preserves provenance and leaves deadline unverified',()=>{const d=normalizeGrant({id:123,opportunityTitle:'Clean water',opportunityNumber:'W-1',agencyDetails:{agencyName:'Example agency'},synopsis:{fundingInstruments:[{id:'CA',description:'Cooperative agreement'}],responseDateStr:'2027-03-02T00:00:00Z',synopsisDesc:'<p>Research &amp; tests</p>',applicantTypes:[{description:'Small businesses'}]}});expect(d.program).toBe('Cooperative agreement');expect(d.deadline_verified).toBe(false);expect(d.close_date).toBe('2027-03-02');expect(d.source_text).toContain('fundingInstruments');expect(d.technical_objective).toBe('Research & tests');expect(d.external_id).toBe('123');});
 test('unparseable and impossible dates stay unknown',()=>{expect(sourceDate('next spring')).toBeNull();expect(sourceDate('2026-02-30')).toBeNull();expect(sourceDate(null)).toBeNull();});
+
+import {suggestedNextStep} from '../src/lib/plan';
+test('human next-step card retains complete qualifiers and has a safe fallback',()=>{
+ expect(suggestedNextStep('## One useful next step\n\nAsk one operator, but do not assume a sale.\n\n## Sources\nLink')).toBe('Ask one operator, but do not assume a sale.');
+ expect(suggestedNextStep('## One small next step\nCheck the current rules first.')).toBe('Check the current rules first.');
+ expect(suggestedNextStep('No action heading')).toBeNull();
+ expect(suggestedNextStep('## Your next step\n'+ 'x'.repeat(901))).toBeNull();
+});
