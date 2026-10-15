@@ -6,6 +6,7 @@ import { sbirRoutes } from './routes/sbir';
 import { dataRoutes } from './routes/data';
 import { bourneRoutes } from './lib/bourne';
 import { demoRoutes } from './routes/demo';
+import { actionRoutes } from './lib/actions';
 
 const app = new Hono<{ Bindings: Env }>();
 const apiCors = cors({ origin: origin => origin, allowHeaders: ['Authorization', 'Content-Type'], allowMethods: ['GET', 'POST', 'OPTIONS'] });
@@ -24,6 +25,8 @@ app.get('/live', c => c.json({ message: 'Live updates are not enabled for this a
 app.route('/extract', extractRoutes);
 app.route('/sbir', sbirRoutes);
 app.route('/data', dataRoutes);
+app.use('/actions/*', cors({ origin: origin => origin }));
+app.route('/actions', actionRoutes);
 
 export { Live } from './lib/live';
 export default app;

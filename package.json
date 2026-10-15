@@ -17,7 +17,9 @@
     "eve": "0.54.3",
     "hono": "4",
     "jose": "6.2.3",
-    "zod": "4.5.4"
+    "zod": "4.5.4",
+    "@project/database": "workspace:*",
+    "@project/ontology": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260921.1",

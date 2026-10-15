@@ -1,0 +1,13 @@
+{
+  "name": "@project/ontology",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./*": "./*.ts"
+  },
+  "dependencies": {
+    "@project/database": "workspace:*",
+    "zod": "4.5.4"
+  }
+}

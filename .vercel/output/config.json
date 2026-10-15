@@ -1,0 +1,52 @@
+{
+  "version": 3,
+  "routes": [
+    {
+      "destination": {
+        "service": "eve-assistant",
+        "type": "service"
+      },
+      "src": "^/assistant/eve/v1/(.*)$"
+    },
+    {
+      "destination": {
+        "service": "eve-assistant",
+        "type": "service"
+      },
+      "src": "^/assistant/?$"
+    },
+    {
+      "handle": "filesystem"
+    }
+  ],
+  "services": {
+    "eve-assistant": {
+      "buildCommand": "cd '../../../agents/assistant' && export EVE_INTERNAL_BUILD_OUTPUT_DIRECTORY='../../.eve/vercel-services/eve-assistant/.vercel/output' && export EVE_INTERNAL_HOST_BUILD_OUTPUT_DIRECTORY='../../.vercel/output' && export EVE_PUBLIC_ROUTE_PREFIX='/assistant' && export EVE_INTERNAL_AGENT_WORKSPACE_MEMBER=1 && node '../../node_modules/.bun/eve@0.54.3+33e75dff224d38ab/node_modules/eve/bin/eve.js' build",
+      "framework": "eve",
+      "root": ".eve/vercel-services/eve-assistant",
+      "routes": [
+        {
+          "src": "^/assistant/?$",
+          "transforms": [
+            {
+              "args": "/",
+              "op": "set",
+              "type": "request.path"
+            }
+          ]
+        },
+        {
+          "src": "^/assistant/eve/v1/(.*)$",
+          "transforms": [
+            {
+              "args": "/eve/v1/$1",
+              "op": "set",
+              "type": "request.path"
+            }
+          ]
+        }
+      ],
+      "routePrefix": "/assistant"
+    }
+  }
+}

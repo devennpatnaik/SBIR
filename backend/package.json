@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "hono": "4",
-    "jose": "6.2.3"
+    "jose": "6.2.3",
+    "@project/ontology": "workspace:*",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260921.1",
