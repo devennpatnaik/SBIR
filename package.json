@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",
-    "eve": "0.54.3",
+    "eve": "0.78.0",
+    "ai": "7.0.137",
     "hono": "4",
     "jose": "6.2.3",
     "zod": "4.5.4"

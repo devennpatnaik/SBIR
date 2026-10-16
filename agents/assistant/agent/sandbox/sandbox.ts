@@ -1,4 +1,5 @@
-import { defaultBackend, defineSandbox } from "eve/sandbox";
+import { defineSandbox } from "eve/sandbox";
+import { VercelSandbox } from "eve/sandbox/vercel";
 
 const snapshotId = process.env.BOURNE_SANDBOX_SNAPSHOT_ID;
 
@@ -11,10 +12,6 @@ const snapshotId = process.env.BOURNE_SANDBOX_SNAPSHOT_ID;
  * bootstrap makes eve key its template on the snapshot, so a new snapshot
  * rebuilds the template.
  */
-export default defineSandbox({
-  backend: defaultBackend({
-    vercel: snapshotId ? { source: { type: "snapshot", snapshotId } } : {},
-  }),
-  revalidationKey: () => snapshotId ?? "",
-  async bootstrap() {},
-});
+export const environment = VercelSandbox.environment(snapshotId ? { source: { type: "snapshot", snapshotId } } : {});
+
+export default defineSandbox(() => environment.open());
