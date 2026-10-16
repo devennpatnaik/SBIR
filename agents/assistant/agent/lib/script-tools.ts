@@ -5,7 +5,8 @@ import type {
   DynamicSentinel,
   McpClientConnectionDefinition,
 } from "eve/connections";
-import type { RuntimeSandboxSession, SandboxNetworkPolicy } from "eve/sandbox";
+import type { SandboxNetworkPolicy } from "eve/sandbox";
+import type { VercelSandboxSession } from "eve/sandbox/vercel";
 import type { ToolContext } from "eve/tools";
 
 /** What one `agent/connections/<slug>.ts` module exports by default. */
@@ -43,7 +44,7 @@ async function resolveConnections(
   const add = (name: string, definition: DynamicConnectionDefinition): void => {
     if (isMcp(definition)) connections[name] = definition;
   };
-  const resolveContext: DynamicResolveContext = { session: ctx.session, channel: {}, messages: [] };
+  const resolveContext: DynamicResolveContext = { session: ctx.session, channel: {}, messages: [], model: null };
 
   for (const [slug, module] of Object.entries(modules)) {
     if (!isDynamic(module)) {
@@ -94,7 +95,7 @@ async function connectionHeaders(
  * the URLs alone. Every other host stays reachable as before.
  */
 export async function exposeScriptTools(
-  sandbox: RuntimeSandboxSession,
+  sandbox: VercelSandboxSession,
   ctx: ToolContext,
   modules: Readonly<Record<string, ConnectionModule>>,
 ): Promise<Record<string, string>> {

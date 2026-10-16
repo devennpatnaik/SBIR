@@ -3,6 +3,7 @@ import { actions } from "@project/ontology";
 import { z } from "zod";
 
 import { readBourneTurn, signAgentToken } from "../lib/bourne";
+import { environment } from "../sandbox/sandbox";
 
 const inputSchema = z.object({
   action: z.string().describe("Name of the action."),
@@ -33,7 +34,7 @@ export default defineTool({
     let input = providedInput ?? {};
 
     if (inputFile !== undefined) {
-      const sandbox = await ctx.getSandbox();
+      const sandbox = await ctx.getSandbox(environment);
       let fileContent: string | null;
 
       try {

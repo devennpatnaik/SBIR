@@ -1,9 +1,11 @@
-import { defineTool } from "eve/tools";
-import { BASH_INPUT_SCHEMA, bash } from "eve/tools/bash";
+import { defineTool, type ToolContext } from "eve/tools";
+import type { SandboxRunOptions, SandboxSpawnOptions } from "eve/sandbox";
+import { bash, type BashToolInput, type BashToolOutput } from "eve/tools/bash";
 import { z } from "zod";
 
 import bourne from "../connections/bourne";
 import { exposeScriptTools } from "../lib/script-tools";
+import { environment } from "../sandbox/sandbox";
 
 /** The agent's connections, by the slug of their module under `../connections`. */
 const connections = { bourne };
@@ -15,9 +17,12 @@ const bourneLabel = z
   })
   .describe("What the user sees instead of the command.");
 
-const inputSchema = BASH_INPUT_SCHEMA.extend({
+const inputSchema = z.object({
+  command: z.string().describe("The shell command to execute."),
   __bourne_label: bourneLabel,
 });
+
+const executeBash = bash.execute as (input: BashToolInput, ctx: ToolContext) => Promise<BashToolOutput>;
 
 export default defineTool({
   ...bash,
@@ -29,18 +34,29 @@ export default defineTool({
    * calls their tools as this turn's user, with credentials brokered at the
    * sandbox firewall rather than handed to the command.
    */
-  execute({ __bourne_label: _, ...input }: z.infer<typeof inputSchema>, ctx) {
-    return bash.execute(input, {
-      ...ctx,
-      getSandbox: async () => {
-        const sandbox = await ctx.getSandbox();
-        const env = await exposeScriptTools(sandbox, ctx, connections);
+  async execute({ __bourne_label: _, ...input }: z.infer<typeof inputSchema>, ctx) {
+    const sandbox = await ctx.getSandbox(environment);
+    const env = await exposeScriptTools(sandbox, ctx, connections);
+    const connectedSandbox = new Proxy(sandbox, {
+      get(target, property) {
+        if (property === "run") {
+          return (options: SandboxRunOptions) =>
+            target.run({ ...options, env: { ...env, ...options.env } });
+        }
+        if (property === "spawn") {
+          return (options: SandboxSpawnOptions) =>
+            target.spawn({ ...options, env: { ...env, ...options.env } });
+        }
 
-        return {
-          ...sandbox,
-          run: (options) => sandbox.run({ ...options, env: { ...env, ...options.env } }),
-        };
+        const value = Reflect.get(target, property, target);
+
+        return typeof value === "function" ? value.bind(target) : value;
       },
+    });
+
+    return executeBash(input, {
+      ...ctx,
+      getSandbox: async () => connectedSandbox,
     });
   },
 });
