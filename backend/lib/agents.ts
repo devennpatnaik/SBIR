@@ -39,6 +39,9 @@ const postToRuntime = async (
   body: object,
 ) => {
   const { BOURNE_RUNTIME_URL } = env as { BOURNE_RUNTIME_URL: string };
+  if (!BOURNE_RUNTIME_URL) {
+    throw new Error('Research assistant is not configured on this self-hosted deployment.');
+  }
   const headers = {
     Authorization: request.headers.get('Authorization') ?? '',
     'Content-Type': 'application/json',

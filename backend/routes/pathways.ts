@@ -21,6 +21,10 @@ app.post('/run',async c=>{
  const b=await c.req.json();if(!uuid(b.pathwayId)||!uuid(b.requestKey)||!['research','draft','review'].includes(b.action))return c.json({error:'Invalid workflow request.'},400);
  const result=await userData<{id:string;created:boolean}>(c.env,c.req.raw,'rpc/start_pathway_workflow','POST',{target_pathway:b.pathwayId,requested_action:b.action,idempotency_key:b.requestKey});
  if(!result.created)return c.json(result);
+ if(!c.env.BOURNE_RUNTIME_URL){
+  await userData(c.env,c.req.raw,`workflow_runs?id=eq.${result.id}&status=eq.running`,'PATCH',{status:'failed',error:'Research assistant is not configured on this self-hosted deployment. Pathway plans still work; agent research/draft/review jobs need a separate assistant runtime.',updated_at:new Date().toISOString(),completed_at:new Date().toISOString()});
+  return c.json({...result,assistantUnavailable:true});
+ }
  const work=(async()=>{
   try{
    const rows=await userData<Run[]>(c.env,c.req.raw,`workflow_runs?id=eq.${result.id}`);const run=rows[0];if(!run)throw new Error('Workflow not found.');
@@ -31,20 +35,23 @@ app.post('/run',async c=>{
    if(!turn)throw new Error('The agent session was already busy. Retry this action.');
   }catch(e){await userData(c.env,c.req.raw,`workflow_runs?id=eq.${result.id}&status=eq.running`,'PATCH',{status:'failed',error:e instanceof Error?e.message:'Could not start the action.',updated_at:new Date().toISOString()});}
  })();
- c.executionCtx.waitUntil(work);await work;return c.json(result);
+ // Cloudflare Workers expose waitUntil; Bun/Node self-host just awaits.
+ const ctx=(c as {executionCtx?:{waitUntil?:(p:Promise<unknown>)=>void}}).executionCtx;
+ if(ctx?.waitUntil)ctx.waitUntil(work);else await work;
+ return c.json(result);
 });
 app.post('/runs/:id/cancel',async c=>{
  const id=c.req.param('id');if(!uuid(id))return c.json({error:'Invalid run.'},400);
  const rows=await userData<Run[]>(c.env,c.req.raw,`workflow_runs?id=eq.${id}`);const run=rows[0];if(!run)return c.json({error:'Run not found.'},404);
  const stopped=await userData<Run[]>(c.env,c.req.raw,`workflow_runs?id=eq.${id}&status=eq.running`,'PATCH',{status:'canceled',updated_at:new Date().toISOString(),completed_at:new Date().toISOString()});
- if(stopped.length&&run.session_id)await fetch(`${c.env.BOURNE_RUNTIME_URL}/agent-sessions/${encodeURIComponent(run.session_id)}/cancel`,{method:'POST',headers:{Authorization:c.req.header('Authorization')!}}).catch(()=>null);
+ if(stopped.length&&run.session_id&&c.env.BOURNE_RUNTIME_URL)await fetch(`${c.env.BOURNE_RUNTIME_URL}/agent-sessions/${encodeURIComponent(run.session_id)}/cancel`,{method:'POST',headers:{Authorization:c.req.header('Authorization')!}}).catch(()=>null);
  return c.json({stopped:stopped.length>0});
 });
 /** Polling also reconciles an agent that terminated without saving a result. */
 app.get('/runs/:id',async c=>{
  const id=c.req.param('id');if(!uuid(id))return c.json({error:'Invalid run.'},400);
  const rows=await userData<Run[]>(c.env,c.req.raw,`workflow_runs?id=eq.${id}`);const run=rows[0];if(!run)return c.json({error:'Run not found.'},404);
- if(run.status==='running'&&run.session_id){
+ if(run.status==='running'&&run.session_id&&c.env.BOURNE_RUNTIME_URL){
   const res=await fetch(`${c.env.BOURNE_RUNTIME_URL}/agent-sessions/${encodeURIComponent(run.session_id)}`,{headers:{Authorization:c.req.header('Authorization')!}});
   if(res.ok){const snapshot=await res.json() as {turns?:{terminal?:{finishReason?:string}|null}[]};const last=snapshot.turns?.at(-1);
    if(last?.terminal){await userData(c.env,c.req.raw,`workflow_runs?id=eq.${id}&status=eq.running`,'PATCH',{status:'failed',error:'The agent stopped without completing a saved result. Open its conversation for details, or retry.',updated_at:new Date().toISOString()});}

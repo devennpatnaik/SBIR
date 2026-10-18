@@ -1,0 +1,11 @@
+FROM oven/bun:1.4.3-alpine
+WORKDIR /app
+COPY package.json bun.lock bunfig.toml ./
+COPY packages ./packages
+COPY backend ./backend
+COPY tsconfig.agent.json ./
+RUN bun install --minimum-release-age=0 --frozen-lockfile || bun install --minimum-release-age=0
+WORKDIR /app/backend
+ENV PORT=8787
+EXPOSE 8787
+CMD ["bun", "run", "./selfhost/server.ts"]

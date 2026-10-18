@@ -11,9 +11,12 @@ import { dataRoutes } from './routes/data';
 import { bourneRoutes } from './lib/bourne';
 import { demoRoutes } from './routes/demo';
 import { actionRoutes } from './lib/actions';
+import { localAuthRoutes } from './routes/local-auth';
 
 const app = new Hono<{ Bindings: Env }>();
 const apiCors = cors({ origin: origin => origin, allowHeaders: ['Authorization', 'Content-Type'], allowMethods: ['GET', 'POST', 'OPTIONS'] });
+app.use('/auth/*', apiCors);
+app.route('/auth', localAuthRoutes);
 app.use('/pathways/*', apiCors);
 app.route('/pathways', pathwayRoutes);
 app.use('/grants/*', apiCors);
@@ -32,7 +35,11 @@ app.use('/sbir/*', apiCors);
 app.use('/data/*', cors({ origin: origin => origin, allowMethods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], exposeHeaders: ['Content-Range', 'Preference-Applied'], maxAge: 600 }));
 app.use('/bourne/*', cors({ origin: origin => origin, allowMethods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'] }));
 app.route('/bourne', bourneRoutes);
-app.get('/health', c => c.json({ ok: true }));
+app.get('/health', c => c.json({
+  ok: true,
+  authMode: c.env.AUTH_MODE || 'unknown',
+  assistant: c.env.BOURNE_RUNTIME_URL ? 'configured' : 'unavailable',
+}));
 app.get('/live', c => c.json({ message: 'Live updates are not enabled for this app.' }, 501));
 app.route('/extract', extractRoutes);
 app.route('/sbir', sbirRoutes);

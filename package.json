@@ -14,15 +14,16 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",
-    "eve": "0.78.0",
-    "ai": "7.0.137",
-    "hono": "4",
-    "jose": "6.2.3",
-    "zod": "4.5.4",
     "@project/database": "workspace:*",
     "@project/learning": "workspace:*",
     "@project/ontology": "workspace:*",
-    "@project/pathways": "workspace:*"
+    "@project/pathways": "workspace:*",
+    "ai": "7.0.137",
+    "eve": "0.78.0",
+    "hono": "4",
+    "jose": "6.2.3",
+    "postgres": "3.4.9",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260921.1",

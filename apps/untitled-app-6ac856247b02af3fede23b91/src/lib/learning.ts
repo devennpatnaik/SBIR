@@ -1,10 +1,9 @@
 import { authHeaders } from '../runtime';
+import { apiBase } from './apiBase';
 import type { CohortInsights, InvestigationOutcome, OutcomeAnswers } from '@project/learning';
 
 async function learningApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const base = import.meta.env.VITE_BOURNE_BACKEND_URL;
-  if (!base) throw new Error('The backend URL is not configured for this environment.');
-  const r = await fetch(`${base}${path}`, {
+  const r = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: { ...(await authHeaders()), 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });

@@ -1,15 +1,13 @@
 import { client } from './client';
+import { apiBase } from './lib/apiBase';
 
 export function runtimeUrl(path: string): string {
-  const base = import.meta.env.VITE_BOURNE_BACKEND_URL;
-  if (!base) throw new Error('Uploads, artifacts and agents work only in a built app');
-  return `${base}/bourne${path}`;
+  // Legacy Bourne assistant/uploads/artifacts path — 501 on self-host.
+  return `${apiBase()}/bourne${path}`;
 }
 
 export function dataUrl(path: string): string {
-  const base = import.meta.env.VITE_BOURNE_BACKEND_URL;
-  if (!base) throw new Error('App data works only in a built app');
-  return `${base}${path}`;
+  return `${apiBase()}${path}`;
 }
 
 export async function authHeaders(): Promise<Record<string, string>> {

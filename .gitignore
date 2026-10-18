@@ -1,8 +1,30 @@
+# Dependencies & builds
 node_modules/
 dist/
+.output/
+.eve/
+*.tsbuildinfo
+
+# Secrets & local env (never commit)
 .env
 .env.*
-.eve/
-.output/
+!.env.example
+!**/.env.example
+deploy/selfhost/.env
+
+# Bourne / platform local state
+.vercel/
+*.pem
+*.key
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Prisma generated local schema (platform-owned in Bourne; unused for compose SQL)
 prisma/schema.prisma
-*.tsbuildinfo
+
+# Test / coverage
+coverage/

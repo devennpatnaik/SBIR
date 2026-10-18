@@ -8,12 +8,13 @@
     "build": "bun build ./index.ts --format=esm --target=browser --conditions=workerd,worker --outfile=dist/backend.mjs"
   },
   "dependencies": {
-    "hono": "4",
-    "jose": "6.2.3",
-    "zod": "4.5.4",
     "@project/learning": "workspace:*",
     "@project/ontology": "workspace:*",
-    "@project/pathways": "workspace:*"
+    "@project/pathways": "workspace:*",
+    "hono": "4",
+    "jose": "6.2.3",
+    "postgres": "3.4.9",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260921.1",

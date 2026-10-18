@@ -1,0 +1,86 @@
+# Lab to Market — Bourne-free local/prod stack
+# Usage: cp .env.example .env && docker compose up --build
+#
+# Services reach each other via host.docker.internal + published ports so the
+# stack still works when Docker bridge hairpin/forwarding is broken (some VMs).
+# On Docker Desktop (Mac/Windows) host.docker.internal is built-in; on Linux
+# Compose injects it via extra_hosts host-gateway.
+name: lab-to-market
+
+x-host-gateway: &host-gateway
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ltm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-labtomarket}
+      POSTGRES_DB: ${POSTGRES_DB:-labtomarket}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init/00-bootstrap.sql:/docker-entrypoint-initdb.d/00-bootstrap.sql:ro
+      - ./init/01-apply-migrations.sh:/docker-entrypoint-initdb.d/01-apply-migrations.sh:ro
+      - ../../prisma/migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ltm} -d ${POSTGRES_DB:-labtomarket}"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  postgrest:
+    <<: *host-gateway
+    image: postgrest/postgrest:v12.2.8
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:authenticator@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-labtomarket}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-dev-change-me-use-at-least-32-chars!!}
+      PGRST_DB_EXTRA_SEARCH_PATH: public
+    ports:
+      - "${POSTGREST_PORT:-3001}:3000"
+
+  api:
+    <<: *host-gateway
+    build:
+      context: ../..
+      dockerfile: deploy/selfhost/Dockerfile.api
+    depends_on:
+      db:
+        condition: service_healthy
+      postgrest:
+        condition: service_started
+    environment:
+      AUTH_MODE: local
+      JWT_SECRET: ${JWT_SECRET:-dev-change-me-use-at-least-32-chars!!}
+      DATABASE_URL: postgres://${POSTGRES_USER:-ltm}:${POSTGRES_PASSWORD:-labtomarket}@host.docker.internal:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-labtomarket}
+      NEON_DATA_API_URL: http://host.docker.internal:${POSTGREST_PORT:-3001}
+      PORT: "8787"
+      # Bourne intentionally unset — assistant/runtime stubs activate.
+      BOURNE_RUNTIME_URL: ""
+      BOURNE_PROJECT_ID: ""
+      BOURNE_BUILD_ID: ""
+    ports:
+      - "${API_PORT:-8787}:8787"
+
+  web:
+    <<: *host-gateway
+    build:
+      context: ../..
+      dockerfile: deploy/selfhost/Dockerfile.web
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_AUTH_MODE: local
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { client } from '../client';
 import { authHeaders } from '../runtime';
+import { apiBase } from './apiBase';
 
 /** Every successful write bumps this version; every query hook re-runs when it changes. */
 let version = 0;
@@ -113,9 +114,7 @@ export async function deleteRow(table: string, id: string): Promise<void> {
 
 /** Calls the project backend as the signed-in user. */
 export async function backend<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const base = import.meta.env.VITE_BOURNE_BACKEND_URL;
-  if (!base) throw new Error('The backend URL is not configured for this environment.');
-  const res = await fetch(`${base}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: { ...(await authHeaders()), 'Content-Type': 'application/json', ...(init.headers ?? {}) },
   });
