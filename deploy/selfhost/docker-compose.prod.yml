@@ -1,0 +1,24 @@
+# Prod-like overlays. Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Or: ./lab-to-market prod
+#
+# Put TLS termination in front (Caddy, nginx, Traefik, or a cloud LB).
+# Set a strong JWT_SECRET and OPENAI_API_KEY or ANTHROPIC_API_KEY in .env.
+# NODE_ENV=production refuses placeholder JWT secrets.
+# Prefer binding only the web port publicly; leave Postgres/PostgREST on a private network.
+
+services:
+  api:
+    environment:
+      NODE_ENV: production
+      ASSISTANT_DEV_FALLBACK: "0"
+
+  db:
+    # Still published for local ops; remove the ports: block in your own override for internet-facing hosts.
+    restart: always
+
+  postgrest:
+    restart: always
+
+  web:
+    restart: always

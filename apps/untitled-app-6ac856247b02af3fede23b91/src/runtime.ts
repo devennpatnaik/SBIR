@@ -2,7 +2,11 @@ import { client } from './client';
 import { apiBase } from './lib/apiBase';
 
 export function runtimeUrl(path: string): string {
-  // Legacy Bourne assistant/uploads/artifacts path — 501 on self-host.
+  // Self-host file/artifact API (replaces Bourne runtime uploads).
+  if (path.startsWith('/uploads') || path.startsWith('/artifacts')) {
+    return `${apiBase()}/files${path}`;
+  }
+  // Legacy Bourne path — 501 when unset.
   return `${apiBase()}/bourne${path}`;
 }
 

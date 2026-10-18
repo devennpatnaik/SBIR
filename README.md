@@ -4,6 +4,14 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 
 **Canonical remote:** Deven’s private GitHub repository (Bourne git hosting is abandoned).
 
+## One command
+
+```bash
+./lab-to-market up
+```
+
+Opens **http://localhost:8080**. Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in `deploy/selfhost/.env` for the research guide and pathway research/draft/review. Without a key, set `ASSISTANT_DEV_FALLBACK=1` for offline stubs.
+
 ## Quick start (Docker Compose — no Bourne account)
 
 ```bash

@@ -25,8 +25,9 @@ import { Roadmap } from './pages/Roadmap';
 import { Documents } from './pages/Documents';
 import { Help } from './pages/Help';
 import { AssistantDrawer } from './components/Assistant';
+import { Insights } from './pages/Insights';
 
-const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'patents', label: 'Patents worldwide' }, { key: 'compare', label: 'Compare' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
+const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'patents', label: 'Patents worldwide' }, { key: 'compare', label: 'Compare' }, { key: 'insights', label: 'What we learned' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
 const WORKSPACE = [{ key: 'projects', label: 'My project' }, { key: 'licensing', label: 'Licensing' }, { key: 'proposals', label: 'Applications' }, { key: 'roadmap', label: 'Roadmap' }, { key: 'documents', label: 'Library' }];
 const SECTION_OF: Record<string, string> = { tech: 'discover', funding: 'funding' };
 
@@ -110,6 +111,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           {section === 'discover' && <Discover />}
           {section === 'tech' && id && <TechnologyDetail id={id} />}
           {section === 'compare' && <Compare />}
+          {section === 'insights' && <Insights />}
           {section === 'pathways' && <Pathways id={id}/>}
           {section === 'projects' && !id && <Projects />}
           {section === 'projects' && id && <ProjectWorkspace id={id} />}
@@ -119,7 +121,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           {section === 'proposals' && <Proposals id={id} />}
           {section === 'roadmap' && <Roadmap />}
           {section === 'documents' && <Documents />}
-          {!['start','sbir-path','patents','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
+          {!['start','sbir-path','patents','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'insights', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
             <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate('dashboard')}>Go to dashboard</button></p>
           )}
         </div>

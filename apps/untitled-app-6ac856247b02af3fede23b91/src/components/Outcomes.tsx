@@ -80,7 +80,8 @@ export function OutcomesForm({ technologyId, projectId, isSample, compact }: Pro
           <p className="eyebrow">LAYER 4 · WHAT HAPPENED</p>
           <h2 className="editorial text-2xl">Record the real outcome.</h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-            Five questions. Answer only what you know. Over time, this evidence improves recommendations for technologies like this one.
+            Five questions. Answer only what you know. When enough similar cases exist, Compare nudges rankings — sample data never joins that pool.
+            See <a className="text-blue-700 underline" href="#/insights">What we learned</a>.
           </p>
         </>
       )}

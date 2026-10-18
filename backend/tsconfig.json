@@ -13,7 +13,8 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "types": [
-      "@cloudflare/workers-types"
+      "@cloudflare/workers-types",
+      "node"
     ],
     "noEmit": true
   },
