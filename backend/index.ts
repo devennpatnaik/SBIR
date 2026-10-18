@@ -1,5 +1,6 @@
 import { pathwayRoutes } from './routes/pathways';
 import { grantsRoutes } from './routes/grants';
+import { patentRoutes } from './routes/patents';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from './lib/env';
@@ -15,6 +16,8 @@ app.use('/pathways/*', apiCors);
 app.route('/pathways', pathwayRoutes);
 app.use('/grants/*', apiCors);
 app.route('/grants', grantsRoutes);
+app.use('/patents/*', apiCors);
+app.route('/patents', patentRoutes);
 app.use('/demo', apiCors);
 app.use('/demo/*', apiCors);
 app.route('/demo', demoRoutes);

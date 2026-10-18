@@ -4,6 +4,7 @@ export type Technology = {
   maturity: string; ip_info: string; patent_numbers: string; licensing_status: string; licensing_status_source: string;
   sbir_relevance: string; open_questions: string; source_text: string; source_fetched_at: string | null; shortlisted: boolean;
   archived: boolean; is_sample: boolean; last_reviewed_at: string | null; created_at: string; updated_at: string;
+  origin_kind?: string; patent_key?: string; patent_status?: string; patent_expires?: string | null; patent_assignee?: string; patent_country?: string;
 };
 export type ScoreEntry = { score: number | null; rationale: string; evidence: string; confidence: 'low' | 'medium' | 'high' };
 export type Evaluation = {

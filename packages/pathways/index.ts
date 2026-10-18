@@ -712,6 +712,167 @@ export const PATHWAYS: Pathway[] = [
     "checked_on": "2026-10-11"
   },
   {
+    "key": "patent_license",
+    "name": "License or buy a patent",
+    "category": "IP rights",
+    "money": "You usually pay the patent owner: an option fee, then license fees and royalties, or a purchase price if they assign the patent to you. A patent that has expired or lapsed can generally be used without a license, but other live patents may still cover your product.",
+    "summary": "Find patents from companies, universities or independent inventors that are not yet in products, anywhere in the world, and approach the owner.",
+    "boundary": "A patent record shows who filed and whether it appears to be in force. It does not show whether anyone is selling a product, whether the owner will license, or that you are free to operate. Patents are territorial. Confirm the current owner in the official assignment record, and get a patent attorney's opinion before relying on any patent. General information, not legal advice.",
+    "area": "licensing",
+    "checks": [
+      "Who owns this patent today, according to the official assignment record?",
+      "Is it in force in the countries where you would sell, and when does it expire?",
+      "Is it already used in a product or licensed to someone, and is the owner open to a conversation?"
+    ],
+    "steps": [
+      {
+        "title": "Confirm the owner and status",
+        "description": "Check the official patent office record and the assignment record. The original applicant is not always the current owner, and status shown on search sites can be out of date."
+      },
+      {
+        "title": "Understand what it really covers",
+        "description": "Read the claims, not just the abstract, and note which countries it is filed in. A plain-English summary is a starting point, not a legal opinion."
+      },
+      {
+        "title": "Look for signs it's already in use",
+        "description": "Search for products, press releases, licenses and the owner's current business. Unknown is a fine answer; just don't assume it is unused."
+      },
+      {
+        "title": "Prepare a respectful approach",
+        "description": "Draft a short note to the owner or their licensing contact: who you are, what you want to build and what you're asking for. Nothing is sent for you."
+      },
+      {
+        "title": "Negotiate an option or evaluation first",
+        "description": "An option or evaluation license lets you test the market before committing to full royalties. Record real terms only once they are offered in writing."
+      },
+      {
+        "title": "Get a freedom-to-operate review",
+        "description": "Before you invest seriously, ask a patent attorney whether other patents could block your product, even if you license this one."
+      }
+    ],
+    "sections": [
+      "Patent identification and status",
+      "What the claims cover (plain English, not a legal opinion)",
+      "Current owner and contact",
+      "Evidence of commercial use",
+      "What we would ask for",
+      "Risks and open questions"
+    ],
+    "sources": [
+      {
+        "label": "USPTO Patent Public Search",
+        "url": "https://ppubs.uspto.gov/pubwebapp/"
+      },
+      {
+        "label": "USPTO Assignment Center (ownership records)",
+        "url": "https://assignmentcenter.uspto.gov/search/patent"
+      },
+      {
+        "label": "WIPO PATENTSCOPE (international filings)",
+        "url": "https://patentscope.wipo.int/search/en/search.jsf"
+      },
+      {
+        "label": "EPO Espacenet (worldwide patents)",
+        "url": "https://worldwide.espacenet.com/"
+      },
+      {
+        "label": "USPTO: maintaining a patent (fees and expiry)",
+        "url": "https://www.uspto.gov/patents/maintain"
+      },
+      {
+        "label": "USPTO: technology transfer",
+        "url": "https://www.uspto.gov/ip-policy/patent-policy/technology-transfer"
+      }
+    ],
+    "inquiry": "I came across your patent and I am exploring whether to bring a product based on it to market. Would you be open to discussing an option or license, and who would be the right person to speak with?",
+    "checked_on": "2026-10-18"
+  },
+  {
+    "key": "sbir_track",
+    "name": "Your SBIR path",
+    "category": "SBIR / STTR",
+    "money": "A federal agency pays your small business to do research and development, through a competitive grant or contract. You keep ownership of your company; the government takes no equity. Phase I tests whether the idea works, Phase II builds and demonstrates it, and Phase III is follow-on work paid with money outside the SBIR set-aside. Awards are competitive and never guaranteed.",
+    "summary": "Get paid by a federal agency to develop technology, step by step, starting from government research or your own idea.",
+    "boundary": "SBIR and STTR were reauthorized through September 30, 2031 (Public Law 119-83, signed April 13, 2026) after a six-month lapse. Agencies are reopening solicitations on their own schedules, and starting in fiscal year 2027 agencies must cap how many proposals one company can submit. Topics, award amounts, eligibility details and deadlines come only from the current official solicitation.",
+    "area": "funding",
+    "checks": [
+      "Which agency and topic fit this work, and is that solicitation open right now?",
+      "Will this be SBIR (your company leads) or STTR (a formal research-institution partner), and who is the partner?",
+      "Does the company meet the current SBA size, ownership and principal-investigator rules? You confirm this yourself; the app never assumes it."
+    ],
+    "steps": [
+      {
+        "title": "Pick the research you'll build on",
+        "description": "Choose a federal lab invention, a university technology or your own idea. SBIR pays for your company's R&D. It does not require a lab invention, but building on proven government research can strengthen your proposal."
+      },
+      {
+        "title": "Ask the lab about rights and partnership",
+        "description": "Contact the lab's technology-transfer office about an evaluation license, a commercial license or a CRADA. For STTR, ask whether the lab or a university will be your research partner. A license usually costs you fees or royalties; the lab does not pay you."
+      },
+      {
+        "title": "Check that your company can apply",
+        "description": "SBIR goes to for-profit U.S. small businesses, generally 500 employees or fewer including affiliates, that meet SBA ownership rules. For SBIR, the principal investigator is normally employed primarily by the company. STTR needs a formal research-institution partner and set work shares. Confirm every rule in the current SBA directive and the solicitation."
+      },
+      {
+        "title": "Register your company early",
+        "description": "Register in SAM.gov for a Unique Entity ID, then in the SBA company registry on SBIR.gov, then in the agency's own submission portal. Registrations can take weeks, so start before you find the perfect topic."
+      },
+      {
+        "title": "Find a topic that fits",
+        "description": "Match your work to an open topic, or to an open-topic solicitation where the agency offers one. Some agencies ask for a short pitch first. Save the official solicitation with its real deadline."
+      },
+      {
+        "title": "Write and submit your Phase I proposal",
+        "description": "Prepare the technical approach, commercialization plan, budget and letters of support in the solicitation's required format. You review and submit it yourself. This app never submits on your behalf."
+      },
+      {
+        "title": "Plan for Phase II and customers",
+        "description": "While Phase I runs, line up evidence and customer interest for Phase II and a path to revenue or Phase III work. Record real outcomes only."
+      }
+    ],
+    "sections": [
+      "Technical problem and innovation",
+      "Phase I objectives and work plan",
+      "Commercialization plan",
+      "Team and facilities",
+      "Lab or partner relationship and IP rights",
+      "Budget outline",
+      "Eligibility and registrations (self-confirmed)"
+    ],
+    "sources": [
+      {
+        "label": "SBIR.gov (SBA)",
+        "url": "https://www.sbir.gov/about"
+      },
+      {
+        "label": "Public Law 119-83 (SBIR/STTR reauthorization)",
+        "url": "https://www.congress.gov/119/plaws/publ83/PLAW-119publ83.pdf"
+      },
+      {
+        "label": "13 CFR 121.702 (SBIR/STTR size and ownership)",
+        "url": "https://www.ecfr.gov/current/title-13/section-121.702"
+      },
+      {
+        "label": "SAM.gov entity registration",
+        "url": "https://sam.gov/"
+      },
+      {
+        "label": "Department of War SBIR/STTR portal",
+        "url": "https://www.dodsbirsttr.mil/submissions/login"
+      },
+      {
+        "label": "NSF America's Seed Fund",
+        "url": "https://seedfund.nsf.gov/"
+      },
+      {
+        "label": "USPTO: technology transfer",
+        "url": "https://www.uspto.gov/ip-policy/patent-policy/technology-transfer"
+      }
+    ],
+    "inquiry": "We are considering an SBIR or STTR proposal built on this technology. Could you tell us whether it is available for an evaluation or commercial license, what the process and typical terms look like, and whether your lab can serve as an STTR research partner?",
+    "checked_on": "2026-10-18"
+  },
+  {
     "key": "getting_started",
     "name": "Your first plan",
     "category": "Getting started",

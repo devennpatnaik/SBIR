@@ -266,3 +266,84 @@ aside[aria-label="Research assistant"]>header{padding:24px;}aside[aria-label="Re
 @media(max-width:640px){.start-welcome{padding:22px}.start-welcome .wordmark{font-size:18px}.start-welcome section{padding:45px 0}.start-welcome section>p:not(.eyebrow){font-size:15px}.start-welcome footer{font-size:11px}.quick-start{padding:15px 5px 35px}body>#root>.quick-start{padding:25px 23px 50px}.start-dots{margin-bottom:35px}.quick-start h1{font-size:36px;letter-spacing:-1px}.start-hint{font-size:14px;margin:18px 0 23px}.start-choice{padding:17px;min-height:86px;gap:15px}.start-controls>button{min-height:46px}.simple-plan>h1{font-size:42px}.simple-next,.simple-plan-result{padding:26px}.simple-next h2{font-size:29px}.simple-research{padding:25px;gap:14px}.simple-plan-result h1,.simple-plan-result h2,.simple-plan-result h3{font-size:25px}.simple-plan-result p,.simple-plan-result li{font-size:14px}.simple-plan-idea{font-size:14px}}
 
 .next-suggestion{font-size:14px;line-height:1.9;color:#d0ddc2;margin:18px 0 25px}.next-suggestion a{text-decoration:underline;overflow-wrap:anywhere}
+
+/* Two doors on the welcome page */
+.welcome-doors{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:10px auto 22px;text-align:left;max-width:720px}
+.welcome-door{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:26px;border:1px solid #dce3d1;border-radius:24px;background:#fff;color:#5b7847;transition:border-color .15s,transform .15s}
+.welcome-door:hover{border-color:#6d8a58;transform:translateY(-2px)}
+.welcome-door.sbir{background:#244e3b;color:#c4d4af;border-color:#244e3b}
+.welcome-door .eyebrow{margin:6px 0 0}
+.welcome-door strong{font-family:'Newsreader',Georgia,serif;font-weight:400;font-size:24px;line-height:1.2;color:#2f4a28}
+.welcome-door.sbir strong{color:#fff}
+.welcome-door small{font-size:13px;line-height:1.7;color:#76836b}
+.welcome-door.sbir small{color:#d0ddc2}
+.door-go{display:inline-flex;align-items:center;gap:8px;margin-top:auto;padding-top:8px;font-size:13px;font-weight:500}
+.welcome-door.sbir .door-go{color:#e7eece}
+.welcome-learn,.start-learn{display:inline-block;font-size:13px;text-decoration:underline;color:#4f6e3e;margin-top:6px}
+.start-learn{margin-top:22px}
+.start-path-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#4f6e3e;background:#eef2e3;border-radius:20px;padding:6px 12px;margin:-20px 0 22px}
+.start-path-chip button{margin-left:6px;text-decoration:underline;color:#6d7f60}
+/* SBIR explainer */
+.sbir-path{max-width:820px;margin:0 auto}
+.sbir-path.standalone{padding:30px 6vw 60px;background:#f8f9f1;max-width:none}
+.sbir-path.standalone>*:not(.sbir-top){max-width:820px;margin-left:auto;margin-right:auto}
+.sbir-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:50px;font-size:13px}
+.sbir-path>h1{font-size:clamp(40px,5.4vw,64px);line-height:1.06;letter-spacing:-1.6px}
+.sbir-lede{font-size:16px;line-height:1.85;color:#647359;max-width:620px;margin:24px 0 30px}
+.sbir-cta{display:flex;flex-wrap:wrap;align-items:center;gap:20px;font-size:13px}
+.sbir-cta a{text-decoration:underline;color:#4f6e3e;display:inline-flex;align-items:center;gap:6px}
+.sbir-cta.end{margin:45px 0 10px}
+.sbir-phases{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:50px 0}
+.sbir-phases article{padding:24px;border-radius:22px;background:#eaf0de;color:#58744a}
+.sbir-phases span{display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin:14px 0 6px}
+.sbir-phases h2{font-family:'Newsreader',Georgia,serif;font-size:23px;line-height:1.25;color:#2f4a28}
+.sbir-phases p{font-size:13px;line-height:1.7;color:#6b795e;margin-top:8px}
+.sbir-steps h2,.sbir-facts h2{font-size:32px;line-height:1.2;margin:4px 0 20px}
+.sbir-steps ol{display:flex;flex-direction:column}
+.sbir-steps li{display:flex;gap:18px;padding:18px 0;border-top:1px solid #e3e9d9}
+.sbir-steps li>span{min-width:32px;height:32px;border-radius:50%;background:#244e3b;color:#fff;display:grid;place-items:center;font-size:12px}
+.sbir-steps h3{font-size:15px;font-weight:500;color:#2f4a28}
+.sbir-steps p{font-size:13px;line-height:1.75;color:#6b795e;margin-top:6px}
+.sbir-facts{margin:45px 0;padding:30px;background:#fff;border:1px solid #e0e7d4;border-radius:24px}
+.sbir-facts li{display:flex;gap:12px;font-size:13px;line-height:1.8;color:#5f6f54;padding:8px 0}
+.sbir-facts li>svg{flex-shrink:0;margin-top:5px;color:#5b7847}
+.sbir-facts strong{color:#2f4a28;font-weight:500}
+.sbir-sources ul{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.sbir-sources a{font-size:13px;text-decoration:underline;color:#426947}
+.sbir-sources>p:last-child{font-size:11px;color:#88947b}
+.sbir-progress{margin:-10px 0 30px}
+.sbir-progress>div{display:flex;gap:5px;margin-bottom:10px}
+.sbir-progress>div>span{flex:1;height:5px;border-radius:4px;background:#dfe5d5}
+.sbir-progress>div>span.done{background:#567848}
+.sbir-progress>div>span.current{background:#a9bf8f}
+.sbir-progress p{font-size:13px;color:#5f6f54}
+.sbir-progress a{text-decoration:underline;color:#4f6e3e}
+/* Patents */
+.patents-page{max-width:880px;margin:0 auto}
+.patents-page>h1{font-size:clamp(38px,5vw,58px);line-height:1.07;letter-spacing:-1.4px}
+.patents-lede{font-size:15px;line-height:1.8;color:#647359;max-width:620px;margin:20px 0 28px}
+.patents-search{display:flex;gap:12px;align-items:stretch}
+.patents-search .search-box{flex:1}
+.patents-filters{margin:14px 0 24px;font-size:13px;color:#5f6f54}
+.patents-filters summary{cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.patents-filters>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-top:14px}
+.patents-busy{padding:20px 24px;border-radius:18px;background:#fbf4e4;color:#7a5a1d;font-size:13px;line-height:1.7;margin-bottom:20px}
+.patents-busy ul{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px}
+.patents-busy a{text-decoration:underline}
+.patents-count{font-size:12px;color:#7a856f;margin:6px 0 16px}
+.patent-list{display:flex;flex-direction:column;gap:14px}
+.patent-card{padding:24px;border:1px solid #e0e7d4;border-radius:22px;background:#fff}
+.patent-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:11px;color:#7a856f;letter-spacing:.5px}
+.patent-card h2{font-family:'Newsreader',Georgia,serif;font-size:22px;line-height:1.3;color:#2f4a28;margin:10px 0 6px}
+.patent-owner{font-size:12px;color:#5f6f54}
+.patent-snippet{font-size:13px;line-height:1.75;color:#6b795e;margin:10px 0}
+.patent-dates{font-size:11px;color:#88947b}
+.patent-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:16px;font-size:13px}
+.patent-actions>a{display:inline-flex;align-items:center;gap:4px;text-decoration:underline;color:#426947}
+.patent-saved{display:inline-flex;align-items:center;gap:6px;color:#3f6b3a;font-weight:500}
+.patents-pager{display:flex;gap:10px;justify-content:center;margin:22px 0}
+.patents-also{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:#6b795e;margin:16px 0 26px}
+.patents-also a{text-decoration:underline}
+.patents-sbir{font-size:13px;color:#5f6f54;margin:22px 0}
+.patents-sbir a{text-decoration:underline}
+@media(max-width:640px){.welcome-doors{grid-template-columns:1fr}.welcome-door{padding:22px}.welcome-door strong{font-size:22px}.sbir-phases{grid-template-columns:1fr}.sbir-path.standalone{padding:22px 22px 50px}.sbir-path>h1{font-size:40px}.sbir-facts{padding:22px}.patents-search{flex-direction:column}.patents-filters>div{grid-template-columns:1fr}.patents-page>h1{font-size:38px}.patent-card{padding:20px}}

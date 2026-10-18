@@ -1558,7 +1558,12 @@ export type Database = {
           name: string
           open_questions: string
           origin_kind: string
+          patent_assignee: string
+          patent_country: string
+          patent_expires: string | null
+          patent_key: string
           patent_numbers: string
+          patent_status: string
           sbir_relevance: string
           shortlisted: boolean
           source_fetched_at: string | null
@@ -1591,7 +1596,12 @@ export type Database = {
           name: string
           open_questions?: string
           origin_kind?: string
+          patent_assignee?: string
+          patent_country?: string
+          patent_expires?: string | null
+          patent_key?: string
           patent_numbers?: string
+          patent_status?: string
           sbir_relevance?: string
           shortlisted?: boolean
           source_fetched_at?: string | null
@@ -1624,7 +1634,12 @@ export type Database = {
           name?: string
           open_questions?: string
           origin_kind?: string
+          patent_assignee?: string
+          patent_country?: string
+          patent_expires?: string | null
+          patent_key?: string
           patent_numbers?: string
+          patent_status?: string
           sbir_relevance?: string
           shortlisted?: boolean
           source_fetched_at?: string | null

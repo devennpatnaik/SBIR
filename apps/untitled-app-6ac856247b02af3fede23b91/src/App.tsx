@@ -1,3 +1,5 @@
+import { SbirPath } from './pages/SbirPath';
+import { Patents } from './pages/Patents';
 import { Install } from './components/Install';
 import { QuickStart, Welcome, GUEST_START } from './pages/QuickStart';
 import { SimplePlan } from './pages/SimplePlan';
@@ -24,7 +26,7 @@ import { Documents } from './pages/Documents';
 import { Help } from './pages/Help';
 import { AssistantDrawer } from './components/Assistant';
 
-const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'compare', label: 'Compare' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
+const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'patents', label: 'Patents worldwide' }, { key: 'compare', label: 'Compare' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
 const WORKSPACE = [{ key: 'projects', label: 'My project' }, { key: 'licensing', label: 'Licensing' }, { key: 'proposals', label: 'Applications' }, { key: 'roadmap', label: 'Roadmap' }, { key: 'documents', label: 'Library' }];
 const SECTION_OF: Record<string, string> = { tech: 'discover', funding: 'funding' };
 
@@ -33,7 +35,8 @@ export function App() {
   const entryRoute=useRoute();
   useEffect(()=>{if(session&&['signin','signup'].includes(entryRoute[0]??''))navigate(sessionStorage.getItem(GUEST_START)?'start':'dashboard');},[session?.user.id,entryRoute[0]]);
   if (isPending) return <p role="status" className="p-8 text-sm text-slate-500">Opening your workspace…</p>;
-  if (!session) return entryRoute[0]==='start'?<QuickStart/>:['signin','signup'].includes(entryRoute[0]??'')?<SignIn key={entryRoute[0]} initialMode={entryRoute[0]==='signup'?'signUp':'signIn'}/>:<Welcome/>;
+  const preset=entryRoute[0]==='start'&&(entryRoute[1]==='sbir'||entryRoute[1]==='explore')?entryRoute[1]:undefined;
+  if (!session) return entryRoute[0]==='start'?<QuickStart key={preset??''} preset={preset}/>:entryRoute[0]==='sbir-path'?<SbirPath signedIn={false}/>:['signin','signup'].includes(entryRoute[0]??'')?<SignIn key={entryRoute[0]} initialMode={entryRoute[0]==='signup'?'signUp':'signIn'}/>:<Welcome/>;
   setStorageUser(session.user.id);
   return <Workspace key={session.user.id} user={session.user} />;
 }
@@ -60,7 +63,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
   const simple=!!projects.data.find(p=>p.id===activeId)?.intake_key;
 
   const group = section==='plan'?'workspace':EXPLORE.some(n => n.key === active) ? 'explore' : WORKSPACE.some(n => n.key === active) ? 'workspace' : 'today';
-  const subnav = ['start','plan'].includes(section) ? [] : group === 'explore' ? EXPLORE : group === 'workspace' ? WORKSPACE : [];
+  const subnav = ['start','plan','sbir-path'].includes(section) ? [] : group === 'explore' ? EXPLORE : group === 'workspace' ? WORKSPACE : [];
   const fullProjectLink=activeId?`projects/${activeId}`:'projects';
   const projectLink = simple&&activeId?`plan/${activeId}`:activeId ? `projects/${activeId}` : 'projects';
   return (
@@ -84,6 +87,8 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
       {menuOpen && <><button className="menu-backdrop" type="button" aria-label="Close navigation overlay" onClick={() => setMenuOpen(false)}/><div id="workspace-menu" className="workspace-menu">
         <div className="eyebrow">Your space</div>
         <a href="#/start">Start an idea <ArrowUpRight size={16}/></a>
+        <a href="#/sbir-path">The SBIR path <ArrowUpRight size={16}/></a>
+        <a href="#/patents">Search patents worldwide <ArrowUpRight size={16}/></a>
         <a href="#/pathways">Explore all routes <ArrowUpRight size={16}/></a>
         <a href={`#/${fullProjectLink}`}>Full workspace <ArrowUpRight size={16}/></a>
         <a href="#/projects">All projects <ArrowUpRight size={16}/></a>
@@ -97,7 +102,9 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
         <DemoGuide section={section} />
         <div className="page-content" key={section + (id ?? '')}>
           {section === 'dashboard' && <Dashboard />}
-          {section === 'start' && <QuickStart userId={user.id}/>}
+          {section === 'start' && <QuickStart key={id??''} userId={user.id} preset={id==='sbir'||id==='explore'?id:undefined}/>}
+          {section === 'sbir-path' && <SbirPath signedIn/>}
+          {section === 'patents' && <Patents />}
           {section === 'plan' && id && <SimplePlan projectId={id}/>}
           {section === 'help' && <Help />}
           {section === 'discover' && <Discover />}
@@ -112,7 +119,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           {section === 'proposals' && <Proposals id={id} />}
           {section === 'roadmap' && <Roadmap />}
           {section === 'documents' && <Documents />}
-          {!['start','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
+          {!['start','sbir-path','patents','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
             <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate('dashboard')}>Go to dashboard</button></p>
           )}
         </div>
