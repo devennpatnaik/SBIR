@@ -4,8 +4,6 @@ import { runLocalPathwayJob } from '../lib/pathway-jobs';
 import { DataError, userData } from '../lib/user-data';
 import type { Env } from '../lib/env';
 import { pathwayByKey } from '@project/pathways';
-import { llmStatus } from '../lib/llm';
-
 const uuid = (x: unknown): x is string =>
   typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
 
@@ -69,18 +67,7 @@ app.post('/run', async c => {
   );
   if (!result.created) return c.json(result);
 
-  const canLocal = llmStatus(c.env).configured || c.env.ASSISTANT_DEV_FALLBACK === '1';
-  if (!canLocal && !c.env.BOURNE_RUNTIME_URL) {
-    await userData(c.env, c.req.raw, `workflow_runs?id=eq.${result.id}&status=eq.running`, 'PATCH', {
-      status: 'failed',
-      error:
-        'No language-model API key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY (or ASSISTANT_DEV_FALLBACK=1 for offline stubs). Pathway plans still work.',
-      updated_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    });
-    return c.json({ ...result, assistantUnavailable: true });
-  }
-
+  // Always run locally: offline templates when no API key; live LLM when configured.
   const work = runLocalPathwayJob(c.env, c.req.raw, result.id);
   const ctx = (c as { executionCtx?: { waitUntil?: (p: Promise<unknown>) => void } }).executionCtx;
   if (ctx?.waitUntil) ctx.waitUntil(work);

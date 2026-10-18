@@ -14,7 +14,8 @@ export type AssistantStatus = {
   configured: boolean;
   provider: string | null;
   model: string;
-  fallback: boolean;
+  fallback?: boolean;
+  offline?: boolean;
   message: string;
 };
 

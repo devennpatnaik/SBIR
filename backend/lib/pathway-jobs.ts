@@ -1,5 +1,6 @@
 import { appUser } from './auth';
-import { completeChat, llmStatus, missingKeyMessage } from './llm';
+import { completeChat, useOfflineAssistant } from './llm';
+import { offlinePathwayDocument } from './offline-guide';
 import { saveDocumentArtifact } from './storage';
 import { userData } from './user-data';
 import type { Env } from './env';
@@ -35,9 +36,6 @@ const ACTION_KIND: Record<string, string> = {
 
 export async function runLocalPathwayJob(env: Env, request: Request, runId: string): Promise<void> {
   try {
-    if (!llmStatus(env).configured && env.ASSISTANT_DEV_FALLBACK !== '1') {
-      throw new Error(missingKeyMessage());
-    }
     const rows = await userData<Run[]>(env, request, `workflow_runs?id=eq.${runId}`);
     const run = rows[0];
     if (!run || run.status !== 'running') return;
@@ -54,30 +52,45 @@ export async function runLocalPathwayJob(env: Env, request: Request, runId: stri
     const project = projects[0];
     if (!project) throw new Error('Project not found.');
 
-    const prompt = [
-      `You are preparing a ${run.action} package for a commercialization pathway.`,
-      `Pathway key: ${pathway.pathway_key}`,
-      `Project: ${project.name}`,
-      `Thesis: ${project.business_thesis || '(none)'}`,
-      `Problem: ${project.problem || '(none)'}`,
-      `Kickoff answers JSON: ${JSON.stringify(project.kickoff_answers ?? {})}`,
-      '',
-      run.action === 'research'
-        ? 'Write a research brief: what to verify, official sources to check, gaps, and the single next action. Label claims.'
-        : run.action === 'draft'
-          ? 'Write a practical draft the founder can edit (outreach outline, checklist, or application notes). No invented deadlines or award amounts.'
-          : 'Review the pathway plan for risks, missing evidence, and sequencing. Be candid. No submissions.',
-      'Output Markdown only. Start with a short title line.',
-    ].join('\n');
+    let content: string;
+    let sessionId: string;
 
-    const content = await completeChat(env, [
-      {
-        role: 'system',
-        content:
-          'You help inventors commercialize technology. Be accurate, practical, and never invent official awards or legal conclusions.',
-      },
-      { role: 'user', content: prompt },
-    ], { maxTokens: 2500 });
+    if (useOfflineAssistant(env)) {
+      content = offlinePathwayDocument({
+        action: run.action,
+        pathwayKey: pathway.pathway_key,
+        projectName: project.name,
+        thesis: project.business_thesis || '',
+        problem: project.problem || '',
+        kickoff: project.kickoff_answers,
+      });
+      sessionId = 'offline-template';
+    } else {
+      const prompt = [
+        `You are preparing a ${run.action} package for a commercialization pathway.`,
+        `Pathway key: ${pathway.pathway_key}`,
+        `Project: ${project.name}`,
+        `Thesis: ${project.business_thesis || '(none)'}`,
+        `Problem: ${project.problem || '(none)'}`,
+        `Kickoff answers JSON: ${JSON.stringify(project.kickoff_answers ?? {})}`,
+        '',
+        run.action === 'research'
+          ? 'Write a research brief: what to verify, official sources to check, gaps, and the single next action. Label claims.'
+          : run.action === 'draft'
+            ? 'Write a practical draft the founder can edit. No invented deadlines or award amounts.'
+            : 'Review the pathway plan for risks, missing evidence, and sequencing. Be candid.',
+        'Output Markdown only.',
+      ].join('\n');
+      content = await completeChat(env, [
+        {
+          role: 'system',
+          content:
+            'You help inventors commercialize technology. Be accurate, practical, and never invent official awards or legal conclusions.',
+        },
+        { role: 'user', content: prompt },
+      ], { maxTokens: 2500 });
+      sessionId = 'local-llm';
+    }
 
     if (!content.trim()) throw new Error('The assistant returned an empty result.');
 
@@ -110,7 +123,7 @@ export async function runLocalPathwayJob(env: Env, request: Request, runId: stri
       error: '',
       updated_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),
-      session_id: 'local-llm',
+      session_id: sessionId,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Pathway job failed.';

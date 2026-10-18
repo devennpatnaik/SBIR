@@ -4,6 +4,17 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 
 **Canonical remote:** Deven’s private GitHub repository (Bourne git hosting is abandoned).
 
+## Works without an API key
+
+```bash
+./lab-to-market doctor
+./lab-to-market up
+```
+
+Ask a guide returns structured SBIR / licensing / diligence checklists offline. Pathway research/draft/review writes Markdown from your saved fields. Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` later for a live model.
+
+CI: `bun scripts/smoke-offline.ts` and `.github/workflows/ci.yml`.
+
 ## One command
 
 ```bash

@@ -60,10 +60,8 @@ export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onCl
           <div className="text-sm font-semibold">Your guide</div>
           <div className="text-xs text-slate-500">
             {chat.assistant?.configured
-              ? `Ready · ${chat.assistant.provider}${chat.assistant.model ? ` · ${chat.assistant.model}` : ''}`
-              : chat.assistant?.fallback
-                ? 'Dev fallback (no API key)'
-                : 'Needs OPENAI_API_KEY or ANTHROPIC_API_KEY'}
+              ? `Live model · ${chat.assistant.provider}${chat.assistant.model ? ` · ${chat.assistant.model}` : ''}`
+              : 'Offline guide · works without an API key'}
           </div>
         </div>
         <div className="flex gap-1">
@@ -77,9 +75,10 @@ export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onCl
             <p className="text-sm text-slate-600">
               Ask about the technology, licensing, funding, or your next step. Answers should label facts as <b>verified</b>, <b>sourced</b>, <b>estimate</b>, or <b>hypothesis</b>.
             </p>
-            {!chat.assistant?.configured && !chat.assistant?.fallback && (
-              <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
-                {chat.assistant?.message || 'Set OPENAI_API_KEY or ANTHROPIC_API_KEY on the API, then restart Compose.'}
+            {!chat.assistant?.configured && (
+              <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700" role="status">
+                Offline mode: you’ll get structured SBIR, licensing, diligence, and next-step checklists.
+                Add <code>OPENAI_API_KEY</code> or <code>ANTHROPIC_API_KEY</code> later for a live model.
               </p>
             )}
             {PROMPTS.map(p => (

@@ -1,10 +1,6 @@
 import { client } from './client';
 import { authHeaders, dataUrl, readJson } from './runtime';
 
-/**
- * One row of bourne_uploads. user_id is null for a file the app itself provides;
- * organization_id is the organization the uploader was acting in, null for a personal file.
- */
 export type Upload = {
   id: string;
   user_id: string | null;
@@ -15,17 +11,19 @@ export type Upload = {
   created_at: string;
 };
 
-/** Lists the uploads the app's policies let the signed-in user read, newest first. */
+/** Prefer API list (works even when PostgREST insert grants are limited). */
 export async function listUploads(): Promise<Upload[]> {
-  const { data, error } = await client
-    .from('bourne_uploads')
-    .select()
-    .order('created_at', { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Upload[];
+  try {
+    const response = await fetch(dataUrl('/files/uploads'), { headers: await authHeaders() });
+    const body = await readJson<{ uploads: Upload[] }>(response);
+    return body.uploads ?? [];
+  } catch {
+    const { data, error } = await client.from('bourne_uploads').select().order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Upload[];
+  }
 }
 
-/** Stores a file the signed-in user picked and returns its bourne_uploads row. */
 export async function uploadFile(file: File): Promise<Upload> {
   const body = new FormData();
   body.append('file', file);
@@ -33,7 +31,6 @@ export async function uploadFile(file: File): Promise<Upload> {
   return readJson<Upload>(response);
 }
 
-/** Resolves a blob URL serving the upload's bytes (auth-aware). */
 export async function uploadUrl(id: string): Promise<string> {
   const response = await fetch(dataUrl(`/files/uploads/${id}/download`), { headers: await authHeaders() });
   if (!response.ok) throw new Error('Could not open the upload.');
@@ -41,7 +38,6 @@ export async function uploadUrl(id: string): Promise<string> {
   return URL.createObjectURL(blob);
 }
 
-/** Deletes an upload the app's policies let the signed-in user delete. */
 export async function deleteUpload(id: string): Promise<void> {
   const response = await fetch(dataUrl(`/files/uploads/${id}`), { method: 'DELETE', headers: await authHeaders() });
   await readJson<unknown>(response);

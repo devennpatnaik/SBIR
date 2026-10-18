@@ -67,8 +67,9 @@ app.get('/health', c => {
   return c.json({
     ok: true,
     authMode: c.env.AUTH_MODE || 'unknown',
-    assistant: llm.configured ? llm.provider : c.env.ASSISTANT_DEV_FALLBACK === '1' ? 'dev-fallback' : 'unavailable',
+    assistant: llm.offline ? 'offline-guide' : llm.provider,
     model: llm.model || null,
+    offline: llm.offline,
   });
 });
 app.get('/live', c => c.json({ message: 'Live updates are not enabled for this app.' }, 501));

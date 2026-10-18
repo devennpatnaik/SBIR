@@ -19,21 +19,17 @@ app.get('/status', async c => {
     configured: status.configured,
     provider: status.provider,
     model: status.model,
-    fallback: c.env.ASSISTANT_DEV_FALLBACK === '1',
+    offline: status.offline,
+    fallback: status.offline,
     message: status.configured
-      ? 'Assistant ready.'
-      : missingKeyMessage() + (c.env.ASSISTANT_DEV_FALLBACK === '1' ? ' Dev fallback is on.' : ''),
+      ? 'Live model ready.'
+      : 'Offline guide active — structured checklists without an API key. ' + missingKeyMessage(),
   });
 });
 
 app.use('/chat', rateLimit(30, 60_000));
 app.post('/chat', async c => {
   if (!(await appUser(c.env, c.req.raw))) return c.json({ error: 'Sign in required.' }, 401);
-
-  const status = llmStatus(c.env);
-  if (!status.configured && c.env.ASSISTANT_DEV_FALLBACK !== '1') {
-    return c.json({ error: missingKeyMessage(), code: 'llm_unconfigured' }, 503);
-  }
 
   const body = await c.req.json().catch(() => null) as {
     messages?: { role?: string; content?: string }[];

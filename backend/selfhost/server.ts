@@ -24,7 +24,7 @@ await ensureDirs(env).catch(err => console.warn('[selfhost] data dir', err));
 
 const llm = llmStatus(env);
 console.log(
-  `[selfhost] listening on :${port} auth=${env.AUTH_MODE} data=${env.NEON_DATA_API_URL} assistant=${llm.configured ? llm.provider : env.ASSISTANT_DEV_FALLBACK === '1' ? 'dev-fallback' : 'off'}`,
+  `[selfhost] listening on :${port} auth=${env.AUTH_MODE} data=${env.NEON_DATA_API_URL} assistant=${llm.offline ? 'offline-guide' : llm.provider}`,
 );
 
 Bun.serve({

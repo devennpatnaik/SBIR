@@ -64,7 +64,18 @@ export function Insights() {
           </dl>
           <p className="text-xs text-slate-500">
             How evidence feeds quality: positive lab response, license availability, DD pass, awards, and strong customer interest each add a small bounded boost; negatives subtract. Your own scores remain the base — this only adjusts ranking when the cohort is large enough.
+            Demo / sample technologies never enter these counts.
           </p>
+          {insights.sampleSize === 0 && (
+            <div className="rounded-lg border border-dashed border-amber-300 bg-amber-50/60 px-4 py-3 text-sm text-amber-950">
+              <p className="font-medium">Example (SAMPLE — not live cohort data)</p>
+              <p className="mt-1 text-xs leading-relaxed">
+                In a fictional set of 12 water-sensor investigations: lab replies ~60% when known, licenses available ~40%,
+                technical DD pass ~55%, SBIR awards ~25% of decided cases, strong customer interest ~30%.
+                Use the Demo company to practice Compare and What happened; those outcomes stay labeled sample and do not pollute this pool.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

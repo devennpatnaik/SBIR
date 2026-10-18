@@ -1,31 +1,37 @@
 import type { Env } from './env';
+import { offlineGuideReply } from './offline-guide';
 
 export type LlmMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
-export type LlmProvider = 'openai' | 'anthropic' | null;
+export type LlmProvider = 'openai' | 'anthropic' | 'offline' | null;
 
-export function llmStatus(env: Env): { configured: boolean; provider: LlmProvider; model: string } {
-  if (env.OPENAI_API_KEY) {
-    return { configured: true, provider: 'openai', model: env.OPENAI_MODEL || 'gpt-4o-mini' };
+export function llmStatus(env: Env): { configured: boolean; provider: LlmProvider; model: string; offline: boolean } {
+  const forceOffline = env.ASSISTANT_DEV_FALLBACK === '1';
+  if (!forceOffline && env.OPENAI_API_KEY) {
+    return { configured: true, provider: 'openai', model: env.OPENAI_MODEL || 'gpt-4o-mini', offline: false };
   }
-  if (env.ANTHROPIC_API_KEY) {
-    return { configured: true, provider: 'anthropic', model: env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514' };
+  if (!forceOffline && env.ANTHROPIC_API_KEY) {
+    return { configured: true, provider: 'anthropic', model: env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514', offline: false };
   }
-  return { configured: false, provider: null, model: '' };
+  // No key (or forced fallback): offline guide is first-class and always available.
+  return { configured: false, provider: 'offline', model: 'offline-guide', offline: true };
 }
 
 export function missingKeyMessage(): string {
-  return 'No language-model API key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in the API environment (.env / Compose), then restart the API.';
+  return 'No language-model API key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in the API environment (.env / Compose), then restart the API. Offline structured guidance remains available.';
 }
 
-/** Non-streaming completion for pathway jobs and mock/dev. */
+/** True when we should use templates / offline guide instead of a cloud model. */
+export function useOfflineAssistant(env: Env): boolean {
+  return llmStatus(env).offline;
+}
+
+/** Non-streaming completion for pathway jobs and chat. */
 export async function completeChat(env: Env, messages: LlmMessage[], opts?: { maxTokens?: number }): Promise<string> {
   const status = llmStatus(env);
-  if (!status.configured) {
-    if (env.ASSISTANT_DEV_FALLBACK === '1') {
-      return devFallbackReply(messages);
-    }
-    throw new Error(missingKeyMessage());
+  if (status.offline) {
+    const last = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
+    return offlineGuideReply(last);
   }
   if (status.provider === 'openai') return openaiComplete(env, messages, opts?.maxTokens ?? 2048);
   return anthropicComplete(env, messages, opts?.maxTokens ?? 2048);
@@ -39,34 +45,18 @@ export async function streamChat(
   signal?: AbortSignal,
 ): Promise<string> {
   const status = llmStatus(env);
-  if (!status.configured) {
-    if (env.ASSISTANT_DEV_FALLBACK === '1') {
-      const text = devFallbackReply(messages);
-      for (const chunk of text.match(/.{1,24}/g) ?? [text]) {
-        if (signal?.aborted) break;
-        onDelta(chunk);
-        await new Promise(r => setTimeout(r, 12));
-      }
-      return text;
+  if (status.offline) {
+    const last = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
+    const text = offlineGuideReply(last);
+    for (const chunk of text.match(/.{1,48}/g) ?? [text]) {
+      if (signal?.aborted) break;
+      onDelta(chunk);
+      await new Promise(r => setTimeout(r, 4));
     }
-    throw new Error(missingKeyMessage());
+    return text;
   }
   if (status.provider === 'openai') return openaiStream(env, messages, onDelta, signal);
   return anthropicStream(env, messages, onDelta, signal);
-}
-
-function devFallbackReply(messages: LlmMessage[]): string {
-  const last = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
-  const clipped = last.replace(/^\[App context:[^\]]*\]\s*/i, '').slice(0, 280);
-  return [
-    '**(Dev fallback — no API key)**',
-    '',
-    'I can guide commercialization steps once `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` is set on the API.',
-    '',
-    clipped ? `You asked about: ${clipped}` : 'Ask about licensing, SBIR/STTR, patents, or your next step.',
-    '',
-    'Facts should be labeled **verified**, **sourced**, **estimate**, or **hypothesis**. Nothing here is submitted on your behalf.',
-  ].join('\n');
 }
 
 async function openaiComplete(env: Env, messages: LlmMessage[], maxTokens: number): Promise<string> {
@@ -138,7 +128,7 @@ async function openaiStream(
           onDelta(piece);
         }
       } catch {
-        /* ignore partial frames */
+        /* ignore */
       }
     }
   }

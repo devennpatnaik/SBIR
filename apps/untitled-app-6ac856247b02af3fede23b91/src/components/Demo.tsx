@@ -56,12 +56,13 @@ export function DemoGuide({ section }: { section: string }) {
     ['dashboard', '1. Dashboard', 'See the company, stage, next action, dates and blockers.'],
     ['discover', '2. Technologies', 'Open the three fictional candidates and inspect what is known versus assumed.'],
     ['compare', '3. Compare', 'Review all ten scores and the reasons for selecting the ammonia cartridge. Low confidence is intentional.'],
-    [`projects/${d.project_id}`, '4. Company project', 'Read the business thesis. Try editing it; your changes are saved to your private demo.'],
-    ['licensing', '5. Licensing', 'Review unanswered IP questions, the proposed evaluation pathway and the unsent inquiry.'],
-    ['funding', '6. Funding', 'Compare the pursued water-monitoring exercise with the rejected infrastructure example. Dates are fictional.'],
-    [`proposals/${d.proposal_id}`, '7. Proposal', 'Read the 12-section practice draft. Missing evidence and unconfirmed requirements remain visible.'],
-    ['roadmap', '8. Roadmap', 'Inspect all 12 milestone categories and the five simulated interviews, including a negative response.'],
-    ['documents', '9. Documents', 'Read the company brief, budget, runway, unit economics, test plan and risk register.'],
+    ['insights', '4. What we learned', 'See anonymized cohort counts. Demo outcomes are sample-flagged and never pollute live learning.'],
+    [`projects/${d.project_id}`, '5. Company project', 'Read the business thesis. Try editing it; your changes are saved to your private demo.'],
+    ['licensing', '6. Licensing', 'Review unanswered IP questions, the proposed evaluation pathway and the unsent inquiry.'],
+    ['funding', '7. Funding', 'Compare the pursued water-monitoring exercise with the rejected infrastructure example. Dates are fictional.'],
+    [`proposals/${d.proposal_id}`, '8. Proposal', 'Read the 12-section practice draft. Missing evidence and unconfirmed requirements remain visible.'],
+    ['roadmap', '9. Roadmap', 'Inspect all 12 milestone categories and the five simulated interviews, including a negative response.'],
+    ['documents', '10. Documents & uploads', 'Read sample docs and try uploading a binary file to the library.'],
   ];
   const index = steps.findIndex(s => s[0].split('/')[0] === section);
   const current = steps[index < 0 ? 0 : index];

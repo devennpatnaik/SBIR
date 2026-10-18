@@ -3,17 +3,19 @@ import { useQuery } from '../lib/data';
 import type { Doc } from '../lib/types';
 import { DOC_KINDS, DocList } from '../components/DocList';
 import { ProjectPicker } from '../components/ProjectParts';
+import { UploadsPanel } from '../components/Uploads';
 import { Badge, Card, PageHeader, Select } from '../components/ui';
 
 export function Documents() {
   const [kind, setKind] = useState('');
   return (
     <div>
-      <PageHeader title="A home for your thinking." subtitle="Notes, evidence and working drafts. Keep what you learn close to the project it belongs to." />
+      <PageHeader title="A home for your thinking." subtitle="Notes, evidence, working drafts, and uploaded files. Keep what you learn close to the project it belongs to." />
       <ProjectPicker>{pid => (
         <div className="space-y-4">
           <div className="flex items-center gap-2"><Select aria-label="Filter document type" value={kind} onChange={e => setKind(e.target.value)} options={[['', 'All types'], ...Object.entries(DOC_KINDS)]} className="w-64" /></div>
           <Card title="Project documents"><DocList scope={{ project_id: pid }} kindFilter={kind || undefined} /></Card>
+          <Card title="Uploaded files"><UploadsPanel /></Card>
           <TechnologySources projectId={pid} />
         </div>
       )}</ProjectPicker>

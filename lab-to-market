@@ -1,34 +1,122 @@
 #!/usr/bin/env bash
 # One-command Lab to Market (Docker Compose).
-# Usage:
-#   ./lab-to-market            # up --build (detached)
-#   ./lab-to-market up         # same
-#   ./lab-to-market down
-#   ./lab-to-market logs
-#   ./lab-to-market prod       # prod-like overlay
+#
+#   ./lab-to-market              # up --build (detached)
+#   ./lab-to-market up
+#   ./lab-to-market doctor       # env + docker checks (no keys required)
+#   ./lab-to-market reset-demo   # wipe DB volume and recreate (destructive)
+#   ./lab-to-market package      # write release tarball under dist/
+#   ./lab-to-market prod|down|logs|ps
+#
+# Works fully offline for core product + structured guide (no LLM key).
+# Optional: OPENAI_API_KEY or ANTHROPIC_API_KEY for live model answers.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_DIR="$ROOT/deploy/selfhost"
 cd "$COMPOSE_DIR"
 
-if [[ ! -f .env ]]; then
-  cp .env.example .env
-  echo "Created deploy/selfhost/.env from .env.example — set JWT_SECRET (and an LLM key) before sharing."
-fi
+ensure_env() {
+  if [[ ! -f .env ]]; then
+    cp .env.example .env
+    echo "Created deploy/selfhost/.env from .env.example"
+  fi
+  # shellcheck disable=SC1091
+  set -a; source .env 2>/dev/null || true; set +a
+}
+
+doctor() {
+  ensure_env
+  echo "== Lab to Market doctor =="
+  local ok=1
+  if command -v docker >/dev/null 2>&1; then
+    echo "OK  docker: $(docker --version | head -1)"
+  else
+    echo "ERR docker not found"; ok=0
+  fi
+  if docker compose version >/dev/null 2>&1; then
+    echo "OK  docker compose: $(docker compose version | head -1)"
+  else
+    echo "ERR docker compose plugin missing"; ok=0
+  fi
+  local secret="${JWT_SECRET:-}"
+  if [[ ${#secret} -ge 32 ]]; then
+    echo "OK  JWT_SECRET length ${#secret}"
+  else
+    echo "WARN JWT_SECRET missing or shorter than 32 chars — set before sharing"
+  fi
+  if [[ -n "${OPENAI_API_KEY:-}" || -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo "OK  LLM API key present (live model path)"
+  else
+    echo "OK  no LLM key — offline guide + pathway templates will be used"
+  fi
+  if curl -sf "http://127.0.0.1:${API_PORT:-8787}/health" >/tmp/ltm-health.json 2>/dev/null; then
+    echo "OK  API health: $(cat /tmp/ltm-health.json)"
+  else
+    echo "INFO API not running yet (start with ./lab-to-market up)"
+  fi
+  echo ""
+  echo "Native .app / .exe: not shipped. This script + Docker Compose is the distributable."
+  [[ $ok -eq 1 ]] || exit 1
+}
+
+package_release() {
+  ensure_env
+  local out="$ROOT/dist"
+  mkdir -p "$out"
+  local stamp
+  stamp="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo local)"
+  local name="lab-to-market-${stamp}.tar.gz"
+  tar -czf "$out/$name" \
+    -C "$ROOT" \
+    --exclude=node_modules \
+    --exclude=.git \
+    --exclude=dist \
+    --exclude='deploy/selfhost/.env' \
+    --exclude='**/.env' \
+    lab-to-market README.md .env.example LAYER4.md SNAPSHOT.txt \
+    deploy apps backend packages prisma scripts package.json bun.lock bunfig.toml \
+    .github 2>/dev/null || \
+  tar -czf "$out/$name" \
+    -C "$ROOT" \
+    --exclude=node_modules \
+    --exclude=.git \
+    --exclude=dist \
+    --exclude='deploy/selfhost/.env' \
+    lab-to-market README.md .env.example \
+    deploy apps backend packages prisma scripts package.json bun.lock bunfig.toml .github
+  echo "Wrote $out/$name"
+  echo "Install: tar -xzf $name && cd lab-to-market-* 2>/dev/null; ./lab-to-market doctor && ./lab-to-market up"
+}
 
 cmd="${1:-up}"
 shift || true
 
 case "$cmd" in
+  doctor)
+    doctor
+    ;;
   up|start)
+    ensure_env
     docker compose up -d --build "$@"
     echo ""
     echo "Lab to Market → http://localhost:${WEB_PORT:-8080}"
     echo "API health     → http://localhost:${API_PORT:-8787}/health"
+    echo "Offline guide works without an LLM key. Optional: set OPENAI_API_KEY or ANTHROPIC_API_KEY in deploy/selfhost/.env"
     ;;
   prod)
+    ensure_env
     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build "$@"
     echo "Prod-like stack is up. Put TLS/reverse-proxy in front of the web port."
+    ;;
+  reset-demo|reset)
+    ensure_env
+    echo "This deletes the Postgres volume (all local accounts/data)."
+    docker compose down -v
+    docker compose up -d --build
+    echo "Fresh stack at http://localhost:${WEB_PORT:-8080} — create an account, then Demo company."
+    ;;
+  package)
+    package_release
     ;;
   down|stop)
     docker compose down "$@"
@@ -41,7 +129,7 @@ case "$cmd" in
     ;;
   *)
     echo "Unknown command: $cmd" >&2
-    echo "Usage: ./lab-to-market [up|prod|down|logs|ps]" >&2
+    echo "Usage: ./lab-to-market [up|doctor|reset-demo|package|prod|down|logs|ps]" >&2
     exit 1
     ;;
 esac
