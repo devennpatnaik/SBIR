@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HelpSuggestions } from '../components/Help';
 import { getActiveProject } from '../lib/router';
-import { Copy, Mail, Trash2 } from 'lucide-react';
+import { ArrowUpRight, Copy, Mail, Trash2 } from 'lucide-react';
 import { useBundle, type Bundle } from '../lib/bundle';
 import { AGREEMENT_STATUS, GLOSSARY, PATHWAYS, PROJECT_LICENSING_STATUS } from '../lib/constants';
 import { deleteRow, fmtDate, insertRow, nowIso, updateRow } from '../lib/data';
@@ -11,14 +11,14 @@ import { hashParam, setHashParam } from '../lib/router';
 import { saveSettings, useSettings } from '../lib/settings';
 import type { Communication, LicensingItem } from '../lib/types';
 import { ProjectPicker, TaskList } from '../components/ProjectParts';
-import { Badge, Button, Card, Empty, ErrorNote, Field, InlineText, Input, Modal, Notice, PageHeader, Select, SourceLink, Tabs, Textarea, useAsync } from '../components/ui';
+import { Badge, Button, Card, displayName, Empty, ErrorNote, Field, InlineText, Input, Modal, Notice, PageHeader, Select, SourceLink, Tabs, Textarea, useAsync } from '../components/ui';
 
-type Tab = 'office' | 'research' | 'pathway' | 'outreach' | 'terms';
+type Tab = 'overview' | 'office' | 'research' | 'pathway' | 'outreach' | 'terms';
 
 export function Licensing() {
   return (
     <div>
-      <PageHeader title="Licensing" subtitle="Find the lab's technology-transfer office, answer the key IP questions, choose an agreement pathway, and track every contact. The app never sends email or makes commitments for you." />
+      <PageHeader title="Start with permission." subtitle="Find the right person at the lab. Understand the rights you need before you build." />
       <HelpSuggestions projectId={getActiveProject()} stage="license" title="Free licensing help" />
       <ProjectPicker>{id => <LicensingFor id={id} />}</ProjectPicker>
     </div>
@@ -27,16 +27,22 @@ export function Licensing() {
 
 function LicensingFor({ id }: { id: string }) {
   const b = useBundle(id);
-  const tab = (hashParam('tab') as Tab) || 'office';
+  const tab = (hashParam('tab') as Tab) || 'overview';
   if (b.loading || !b.project) return <p className="text-sm text-slate-500">Loading…</p>;
   const answered = b.licensing.filter(l => l.status === 'answered').length;
   return (
     <div>
-      <Notice tone="slate">General information, not legal advice. Licensing terms are set by each lab; consider an attorney before signing any agreement.</Notice>
+      <p className="mb-5 text-xs text-slate-500">General information, not legal advice. Confirm terms with the lab before signing.</p>
       <div className="mt-4">
-        <Tabs tabs={[['office', 'Tech-transfer office'], ['research', `IP & licensing questions (${answered}/${b.licensing.length})`], ['pathway', 'Pathway & agreements'], ['outreach', `Outreach & correspondence (${b.comms.length})`], ['terms', 'Plain-English terms']]} value={tab} onChange={v => setHashParam('tab', v)} />
+        <Tabs tabs={[['overview', 'Overview'], ['office', 'People'], ['research', `IP questions (${answered}/${b.licensing.length})`], ['pathway', 'Agreements'], ['outreach', `Conversations (${b.comms.length})`], ['terms', 'Terms explained']]} value={tab} onChange={v => setHashParam('tab', v)} />
       </div>
       <div className="mt-4">
+        {tab === 'overview' && <div className="licensing-overview"><div className="licensing-intro"><p className="eyebrow">A CONVERSATION BEFORE A COMMITMENT</p><h2 className="editorial">Know what you can build on.</h2><p>Research the rights, ask the lab, and choose an appropriate agreement. Your current status is <strong>{PROJECT_LICENSING_STATUS[b.project.licensing_status].toLowerCase()}</strong>.</p><span className="text-xs text-slate-500">{displayName(b.lab?.name || 'No laboratory linked yet')}</span></div><div className="licensing-choices">{[
+          ['research','01','Understand the IP',`${b.licensing.length-answered} questions still to explore. Start with ownership and patent status.`],
+          ['office','02','Find your person',`${b.contacts.length} contacts saved. Reach the lab’s technology-transfer team.`],
+          ['pathway','03','Choose a pathway','Compare evaluation rights, options and commercial licenses.'],
+          ['outreach','04','Start a conversation',`${b.comms.length} notes and drafts. You decide what to send.`]
+        ].map(([key,n,title,note])=><button key={key} type="button" onClick={()=>setHashParam('tab',key)}><span className="eyebrow">{n}</span><div><h3>{title}</h3><p>{note}</p></div><ArrowUpRight size={19}/></button>)}</div></div>}
         {tab === 'office' && <Office b={b} />}
         {tab === 'research' && <Research b={b} />}
         {tab === 'pathway' && <Pathway b={b} />}

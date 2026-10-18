@@ -14,7 +14,7 @@ const PROMPTS = [
   'What is the single most important next action on my project, and why?',
   'Summarize the technology in plain English and explain any technical terms.',
   'Identify potential customer segments and competing products, with sources.',
-  'Find official SBIR/STTR topics that could fit this technology.',
+  'Compare the licensing, collaboration, customer-discovery, funding and revenue pathways that could fit my project.',
   'List the biggest risks and the missing information I should collect.',
   'Improve my licensing outreach email draft.',
 ];
@@ -37,13 +37,14 @@ export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onCl
     await chat.send(`${ctx}\n${msg.trim()}`);
   };
 
+  useEffect(()=>{const load=(event:Event)=>{const id=(event as CustomEvent<{sessionId:string}>).detail?.sessionId;if(id)void chat.loadSession(id);};window.addEventListener('ltm-workflow-chat',load);return()=>window.removeEventListener('ltm-workflow-chat',load);},[chat.loadSession]);
   if (!open) return null;
   return (
     <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl" aria-label="Research assistant">
       <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <div>
-          <div className="text-sm font-semibold">Research assistant</div>
-          <div className="text-xs text-slate-500">Works on your project data. Asks before changing anything.</div>
+          <div className="text-sm font-semibold">Your guide</div>
+          <div className="text-xs text-slate-500">Talk it through. Nothing is sent or signed for you.</div>
         </div>
         <div className="flex gap-1">
           <button type="button" aria-label="New chat" title="New chat" onClick={() => chat.newChat()} className="rounded p-1.5 text-slate-500 hover:bg-slate-100"><Plus className="size-4" /></button>
@@ -59,7 +60,7 @@ export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onCl
         )}
         {chat.messages.map(m => (
           <div key={m.id} className={m.role === 'user' ? 'ml-8 rounded-lg bg-blue-50 px-3 py-2 text-sm' : 'text-sm'}>
-            {m.role === 'user' ? <p className="whitespace-pre-wrap">{m.content.replace(CONTEXT_RE, '')}</p> : (
+            {m.role === 'user' ? <p className="whitespace-pre-wrap">{m.content.replace(CONTEXT_RE, '').replace(/^\[Authorized pathway action\][\s\S]*$/, 'Please prepare the requested plan using my saved starting point.')}</p> : (
               <div className="prose-sm max-w-none space-y-2 [&_a]:text-blue-700 [&_a]:underline [&_li]:ml-4 [&_ol]:list-decimal [&_table]:text-xs [&_td]:border [&_td]:px-1 [&_th]:border [&_th]:px-1 [&_ul]:list-disc">
                 <Markdown remarkPlugins={[remarkGfm]} components={{ a: props => <a {...props} target="_blank" rel="noreferrer" /> }}>{m.content}</Markdown>
               </div>

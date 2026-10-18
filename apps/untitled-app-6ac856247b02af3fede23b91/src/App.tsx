@@ -1,8 +1,13 @@
+import { SbirPath } from './pages/SbirPath';
+import { Patents } from './pages/Patents';
+import { Install } from './components/Install';
+import { QuickStart, Welcome, GUEST_START } from './pages/QuickStart';
+import { SimplePlan } from './pages/SimplePlan';
+import { Pathways } from './pages/Pathways';
 import { useEffect, useState } from 'react';
-import { Menu, X, BookOpen, Briefcase, LifeBuoy, ClipboardList, FileText, FlaskConical, Gauge, Landmark, LogOut, Map, MessageSquare, Scale, Search } from 'lucide-react';
+import { Menu, X, ArrowUpRight, LogOut, Sparkles } from 'lucide-react';
 import { client, useSession } from './client';
 import { setStorageUser, useActiveProjectId, useRoute, navigate } from './lib/router';
-import { cn } from './lib/utils';
 import { clearWriteError, invalidate, useDataError, useQuery } from './lib/data';
 import { DemoGuide, DemoLauncher } from './components/Demo';
 import type { Project } from './lib/types';
@@ -21,23 +26,17 @@ import { Documents } from './pages/Documents';
 import { Help } from './pages/Help';
 import { AssistantDrawer } from './components/Assistant';
 
-const NAV = [
-  { key: 'dashboard', label: 'Dashboard', icon: Gauge },
-  { key: 'discover', label: 'Discover Technologies', icon: Search },
-  { key: 'compare', label: 'Compare Technologies', icon: Scale },
-  { key: 'projects', label: 'My Projects', icon: Briefcase },
-  { key: 'licensing', label: 'Licensing', icon: Landmark },
-  { key: 'funding', label: 'Funding Opportunities', icon: FlaskConical },
-  { key: 'proposals', label: 'Proposal Workspace', icon: ClipboardList },
-  { key: 'roadmap', label: 'Commercialization Roadmap', icon: Map },
-  { key: 'documents', label: 'Documents & Research', icon: FileText },
-];
+const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'patents', label: 'Patents worldwide' }, { key: 'compare', label: 'Compare' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
+const WORKSPACE = [{ key: 'projects', label: 'My project' }, { key: 'licensing', label: 'Licensing' }, { key: 'proposals', label: 'Applications' }, { key: 'roadmap', label: 'Roadmap' }, { key: 'documents', label: 'Library' }];
 const SECTION_OF: Record<string, string> = { tech: 'discover', funding: 'funding' };
 
 export function App() {
   const { data: session, isPending } = useSession();
+  const entryRoute=useRoute();
+  useEffect(()=>{if(session&&['signin','signup'].includes(entryRoute[0]??''))navigate(sessionStorage.getItem(GUEST_START)?'start':'dashboard');},[session?.user.id,entryRoute[0]]);
   if (isPending) return <p role="status" className="p-8 text-sm text-slate-500">Opening your workspace…</p>;
-  if (!session) return <SignIn />;
+  const preset=entryRoute[0]==='start'&&(entryRoute[1]==='sbir'||entryRoute[1]==='explore')?entryRoute[1]:undefined;
+  if (!session) return entryRoute[0]==='start'?<QuickStart key={preset??''} preset={preset}/>:entryRoute[0]==='sbir-path'?<SbirPath signedIn={false}/>:['signin','signup'].includes(entryRoute[0]??'')?<SignIn key={entryRoute[0]} initialMode={entryRoute[0]==='signup'?'signUp':'signIn'}/>:<Welcome/>;
   setStorageUser(session.user.id);
   return <Workspace key={session.user.id} user={session.user} />;
 }
@@ -46,62 +45,72 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
   const route = useRoute();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(()=>{const open=()=>setAssistantOpen(true);window.addEventListener('ltm-workflow-chat',open);return()=>window.removeEventListener('ltm-workflow-chat',open);},[]);
   const [activeId, setActive] = useActiveProjectId();
   const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
   useEffect(() => {
     if (!projects.loading && !projects.error && !projects.data.some(p => p.id === activeId)) setActive(projects.data[0]?.id ?? null);
   }, [projects.data, projects.loading, projects.error, activeId, setActive]);
-  useEffect(() => { setMenuOpen(false); }, [route.join('/')]);
+  useEffect(() => { setMenuOpen(false); window.scrollTo(0,0); document.querySelector<HTMLAnchorElement>('.context-nav a[aria-current="page"]')?.scrollIntoView({block:'nearest',inline:'center'}); }, [route.join('/')]);
   useEffect(() => {
-    const close = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenuOpen(false); setAssistantOpen(false); } };
+    const close = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) { if(menuOpen){setMenuOpen(false);document.querySelector<HTMLButtonElement>('.menu-trigger')?.focus();} if(assistantOpen){setAssistantOpen(false);document.querySelector<HTMLButtonElement>('.ask-button')?.focus();} } };
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
-  }, []);
+  }, [menuOpen, assistantOpen]);
+  useEffect(() => { if(menuOpen) document.querySelector<HTMLAnchorElement>('#workspace-menu a')?.focus(); }, [menuOpen]);
   const [section = 'dashboard', id] = route;
   const active = SECTION_OF[section] ?? section;
+  const simple=!!projects.data.find(p=>p.id===activeId)?.intake_key;
 
+  const group = section==='plan'?'workspace':EXPLORE.some(n => n.key === active) ? 'explore' : WORKSPACE.some(n => n.key === active) ? 'workspace' : 'today';
+  const subnav = ['start','plan','sbir-path'].includes(section) ? [] : group === 'explore' ? EXPLORE : group === 'workspace' ? WORKSPACE : [];
+  const fullProjectLink=activeId?`projects/${activeId}`:'projects';
+  const projectLink = simple&&activeId?`plan/${activeId}`:activeId ? `projects/${activeId}` : 'projects';
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      {menuOpen && <button type="button" aria-label="Close navigation overlay" className="fixed inset-0 z-30 bg-slate-900/40 md:hidden" onClick={() => setMenuOpen(false)} />}
-      <aside id="main-navigation" className={cn('fixed inset-y-0 left-0 z-40 h-dvh w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:sticky md:top-0 md:flex', menuOpen ? 'flex' : 'hidden')}>
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-4">
-          <BookOpen className="size-5 text-blue-700" /><button aria-label="Close menu" type="button" onClick={() => setMenuOpen(false)} className="absolute right-2 top-2 p-2 md:hidden"><X className="size-4" /></button>
-          <div>
-            <div className="text-sm font-semibold leading-tight">Lab to Market</div>
-            <div className="text-[11px] text-slate-500">Federal tech → SBIR → product</div>
+    <div className="app-shell">
+      <a className="skip-link" href="#workspace" onClick={e=>{e.preventDefault();document.getElementById('workspace')?.focus();}}>Skip to content</a>
+      <header className="app-header">
+        <div className="header-inner">
+          <a href="#/dashboard" className="wordmark" aria-label="Lab to Market home"><span className="brand-mark">↗</span>lab to market<span className="brand-dot">.</span></a>
+          <nav className="primary-nav" aria-label="Main">
+            <a href="#/dashboard" aria-current={group === 'today' && active !== 'help' ? 'page' : undefined}>Today</a>
+            <a href="#/discover" aria-current={group === 'explore' ? 'page' : undefined}>Explore</a>
+            <a href={`#/${projectLink}`} aria-current={group === 'workspace'||section==='plan' ? 'page' : undefined}>{simple?'My plan':'Workspace'}</a>
+          </nav>
+          <div className="header-actions">
+            <button type="button" onClick={() => setAssistantOpen(true)} className="ask-button" aria-label="Research assistant"><Sparkles size={16} /><span>Ask a guide</span></button>
+            <button type="button" className="menu-trigger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="workspace-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20}/> : <Menu size={20}/>}</button>
           </div>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2" aria-label="Main">
-          {NAV.map(n => (
-            <a key={n.key} href={`#/${n.key}`} className={cn('flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm', active === n.key ? 'bg-blue-50 font-medium text-blue-800' : 'text-slate-700 hover:bg-slate-100')}>
-              <n.icon className="size-4 shrink-0" />{n.label}
-            </a>
-          ))}
-        </nav>
-        <div className="space-y-2 border-t border-slate-100 p-3">
-          <DemoLauncher />
-          <a href="#/help" className={cn('flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium', active === 'help' ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50')}>
-            <LifeBuoy className="size-4" />Free help & programs
-          </a>
-          <button type="button" onClick={() => setAssistantOpen(true)} className="flex w-full items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800">
-            <MessageSquare className="size-4" />Research assistant
-          </button>
-          <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
-            <span className="truncate" title={user.email}>{user.email}</span>
-            <button type="button" aria-label="Sign out" title="Sign out" onClick={() => client.auth.signOut()} className="rounded p-1 hover:bg-slate-100"><LogOut className="size-3.5" /></button>
-          </div>
-        </div>
-      </aside>
-      <main id="workspace" className="min-w-0 flex-1 px-4 py-4 md:px-8 md:py-6">
-        <header className="mb-4 flex items-center justify-between md:hidden"><span className="font-semibold">Lab to Market</span><button type="button" aria-label="Open menu" aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setMenuOpen(true)} className="rounded border bg-white p-2"><Menu className="size-5" /></button></header>
-        <div className="mx-auto max-w-6xl">
-          <DataErrorBanner />
-          <DemoGuide section={section} />
+        {subnav.length > 0 && <nav className="context-nav" aria-label={group === 'explore' ? 'Explore sections' : 'Project sections'}>{subnav.map(n => <a key={n.key} aria-current={active === n.key ? 'page' : undefined} href={`#/${n.key === 'projects' ? projectLink : n.key}`}>{n.label}</a>)}</nav>}
+      </header>
+      {menuOpen && <><button className="menu-backdrop" type="button" aria-label="Close navigation overlay" onClick={() => setMenuOpen(false)}/><div id="workspace-menu" className="workspace-menu">
+        <div className="eyebrow">Your space</div>
+        <a href="#/start">Start an idea <ArrowUpRight size={16}/></a>
+        <a href="#/sbir-path">The SBIR path <ArrowUpRight size={16}/></a>
+        <a href="#/patents">Search patents worldwide <ArrowUpRight size={16}/></a>
+        <a href="#/pathways">Explore all routes <ArrowUpRight size={16}/></a>
+        <a href={`#/${fullProjectLink}`}>Full workspace <ArrowUpRight size={16}/></a>
+        <a href="#/projects">All projects <ArrowUpRight size={16}/></a>
+        <a href="#/help">Free help & programs <ArrowUpRight size={16}/></a>
+        <Install/>
+        <DemoLauncher />
+        <div className="menu-account"><span>{user.email}</span><button type="button" aria-label="Sign out" onClick={() => client.auth.signOut()}><LogOut size={16}/></button></div>
+      </div></>}
+      <main id="workspace" tabIndex={-1} className="workspace-main">
+        <DataErrorBanner />
+        <DemoGuide section={section} />
+        <div className="page-content" key={section + (id ?? '')}>
           {section === 'dashboard' && <Dashboard />}
+          {section === 'start' && <QuickStart key={id??''} userId={user.id} preset={id==='sbir'||id==='explore'?id:undefined}/>}
+          {section === 'sbir-path' && <SbirPath signedIn/>}
+          {section === 'patents' && <Patents />}
+          {section === 'plan' && id && <SimplePlan projectId={id}/>}
           {section === 'help' && <Help />}
           {section === 'discover' && <Discover />}
           {section === 'tech' && id && <TechnologyDetail id={id} />}
           {section === 'compare' && <Compare />}
+          {section === 'pathways' && <Pathways id={id}/>}
           {section === 'projects' && !id && <Projects />}
           {section === 'projects' && id && <ProjectWorkspace id={id} />}
           {section === 'licensing' && <Licensing />}
@@ -110,11 +119,12 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           {section === 'proposals' && <Proposals id={id} />}
           {section === 'roadmap' && <Roadmap />}
           {section === 'documents' && <Documents />}
-          {!['dashboard', 'discover', 'tech', 'compare', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
+          {!['start','sbir-path','patents','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
             <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate('dashboard')}>Go to dashboard</button></p>
           )}
         </div>
       </main>
+      <footer className="app-footer"><span>One thoughtful step at a time.</span><a href="#/help">A little help along the way ↗</a></footer>
       <AssistantDrawer userId={user.id} open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </div>
   );
@@ -141,8 +151,8 @@ function friendlyAuthError(message: string, mode: 'signIn' | 'signUp'): string {
   return message || (mode === 'signUp' ? 'Could not create the account.' : 'Sign in failed.');
 }
 
-function SignIn() {
-  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+function SignIn({initialMode='signIn'}:{initialMode?:'signIn'|'signUp'}) {
+  const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -172,15 +182,11 @@ function SignIn() {
 
   const signUp = mode === 'signUp';
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <BookOpen className="mx-auto mb-2 size-8 text-blue-700" />
-          <h1 className="text-xl font-semibold">Lab to Market</h1>
-          <p className="mt-1 text-sm text-slate-600">Find a federal-lab technology, license it, fund it through SBIR/STTR, and bring it to market.</p>
-        </div>
-        <form noValidate onSubmit={e => { e.preventDefault(); void submit(e.currentTarget); }} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold">{signUp ? 'Create your account' : 'Sign in'}</h2>
+    <main className="auth-page"><div className="auth-story"><a href="#" className="wordmark"><span className="brand-mark">↗</span>lab to market.</a><div><p className="eyebrow">FROM RESEARCH TO REAL LIFE</p><h1>Your next idea<br/>starts here.</h1><p>A quieter space to explore lab technologies, plan your business, and take the next step.</p></div><span>Explore. Make a plan. Move forward.</span></div>
+      <div className="auth-form">
+        <div className="mb-8"><p className="eyebrow">YOUR PRIVATE WORKSPACE</p><h2 className="editorial text-4xl">{signUp ? 'Make room for your idea.' : 'Welcome back.'}</h2><p className="mt-3 text-sm text-slate-500">{signUp ? 'Your starting idea will be here after you sign up.' : 'Pick up where you left off.'}</p></div>
+        <form noValidate onSubmit={e => { e.preventDefault(); void submit(e.currentTarget); }} className="flex flex-col gap-5">
+
           <label className="flex flex-col gap-1 text-sm">Email
             <input name="email" type="email" autoComplete="email" inputMode="email" className="rounded-md border border-slate-300 px-3 py-2" />
           </label>

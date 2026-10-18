@@ -1,3 +1,7 @@
+import { pathwayRoutes } from './routes/pathways';
+import { grantsRoutes } from './routes/grants';
+import { patentRoutes } from './routes/patents';
+import { learningRoutes } from './routes/learning';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from './lib/env';
@@ -10,6 +14,14 @@ import { actionRoutes } from './lib/actions';
 
 const app = new Hono<{ Bindings: Env }>();
 const apiCors = cors({ origin: origin => origin, allowHeaders: ['Authorization', 'Content-Type'], allowMethods: ['GET', 'POST', 'OPTIONS'] });
+app.use('/pathways/*', apiCors);
+app.route('/pathways', pathwayRoutes);
+app.use('/grants/*', apiCors);
+app.route('/grants', grantsRoutes);
+app.use('/patents/*', apiCors);
+app.route('/patents', patentRoutes);
+app.use('/learning/*', apiCors);
+app.route('/learning', learningRoutes);
 app.use('/demo', apiCors);
 app.use('/demo/*', apiCors);
 app.route('/demo', demoRoutes);

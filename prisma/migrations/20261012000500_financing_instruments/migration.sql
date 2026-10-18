@@ -1,0 +1,2 @@
+ALTER TABLE opportunities DROP CONSTRAINT opportunities_program_check;
+ALTER TABLE opportunities ADD CONSTRAINT opportunities_program_check CHECK(program IN ('SBIR','STTR','SBIR/STTR','Other','Grant','Cooperative agreement','Contract','Other transaction','Prize','I-Corps','Private capital','Paid pilot','Loan','Loan guarantee','Insurance','Tax incentive','Fund leverage','Technical assistance','Export support'));

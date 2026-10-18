@@ -7,7 +7,7 @@ import type { Opportunity, Project, ProjectOpportunity, Proposal, Question } fro
 import { OPP_FIELDS, OppForm, SbirSttrExplainer } from '../components/OppForm';
 import { QuestionList } from '../components/ProjectParts';
 import { SourcesPanel } from '../components/Sources';
-import { Badge, Button, Card, ErrorNote, Field, InlineText, Input, Modal, Notice, PageHeader, SampleBadge, Select, SourceLink, Tabs, useAsync } from '../components/ui';
+import { Badge, Button, Card, Disclosure, displayName, ErrorNote, Field, InlineText, Input, Modal, Notice, PageHeader, SampleBadge, Select, SourceLink, Tabs, useAsync } from '../components/ui';
 
 export function OpportunityDetail({ id }: { id: string }) {
   const q = useQuery<Opportunity>('opportunities', b => b.eq('id', id), [id]);
@@ -30,7 +30,7 @@ export function OpportunityDetail({ id }: { id: string }) {
     <div>
       <button type="button" onClick={() => navigate('funding')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />All opportunities</button>
       <PageHeader title={`${o.topic_number ? o.topic_number + ': ' : ''}${o.topic_title}`}
-        subtitle={<span className="flex flex-wrap items-center gap-2">{o.is_sample && <SampleBadge />}<Badge tone={o.program === 'STTR' ? 'purple' : 'blue'}>{o.program}</Badge>{o.agency} {o.branch && `· ${o.branch}`} {o.phase && `· ${o.phase}`}<SourceLink url={o.source_url} label="Official source" /></span>}
+        subtitle={<span className="flex flex-wrap items-center gap-2">{o.is_sample && <SampleBadge />}<Badge tone={o.program === 'STTR' ? 'purple' : 'blue'}>{o.program}</Badge>{displayName(o.agency)} {o.branch && `· ${o.branch}`} {o.phase && `· ${o.phase}`}<SourceLink url={o.source_url} label="Official source" /></span>}
         actions={<Select aria-label="Relevance" value={o.relevance} onChange={e => updateRow('opportunities', o.id, { relevance: e.target.value })} options={{ unreviewed: 'Unreviewed', relevant: 'Relevant', maybe: 'Maybe', irrelevant: 'Irrelevant' }} className="w-36" />} />
 
       <div className="mb-4 grid gap-4 md:grid-cols-3">
@@ -47,7 +47,7 @@ export function OpportunityDetail({ id }: { id: string }) {
         </Card>
         <Card title="Your project">
           {projects.data.length > 1 && project && <Select aria-label="Project for this opportunity" className="mb-2" value={project.id} onChange={e => setActiveId(e.target.value)} options={projects.data.map(x => [x.id, x.name] as [string, string])} />}
-          {projects.data.length === 1 && project && <div className="mb-2 text-sm font-medium">{project.name}</div>}
+          {projects.data.length === 1 && project && <div className="mb-2 text-sm font-medium">{displayName(project.name)}</div>}
           {!project ? <p className="text-sm text-slate-500">Create a project first.</p> : !link ? (
             <Button size="sm" variant="primary" onClick={() => insertRow('project_opportunities', { project_id: project.id, opportunity_id: o.id })}>Link to project</Button>
           ) : (
@@ -67,11 +67,11 @@ export function OpportunityDetail({ id }: { id: string }) {
       <div className="mt-4">
         {tab === 'details' && (
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-            <Card>
+            <div><section className="project-story"><p className="eyebrow">THE RESEARCH OBJECTIVE</p><p className="editorial text-2xl leading-relaxed">{displayName(o.technical_objective)||'Check the official solicitation for its objective.'}</p></section><Disclosure title="All solicitation requirements"><Card>
               <dl className="space-y-4">{OPP_FIELDS.filter(f => !['topic_title', 'source_url', 'agency', 'branch', 'open_date', 'close_date', 'award_amount', 'duration', 'award_type'].includes(f.key)).map(f => (
                 <div key={f.key}><dt className="text-xs font-medium uppercase text-slate-500">{f.label}</dt><dd className="mt-0.5 whitespace-pre-wrap text-sm">{String(o[f.key] ?? '') || <span className="text-slate-400">Not recorded — check the solicitation</span>}</dd></div>
               ))}</dl>
-            </Card>
+            </Card></Disclosure></div>
             <div className="space-y-4">
               <Card title="Fit with your project"><InlineText label="Fit notes" multiline rows={5} value={o.fit_notes} onSave={v => updateRow('opportunities', o.id, { fit_notes: v })} placeholder="How does the topic match your technology, product and team? What would you have to change?" /></Card>
               <Card title="SBIR vs STTR"><SbirSttrExplainer /></Card>

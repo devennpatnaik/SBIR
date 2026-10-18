@@ -4,6 +4,7 @@ export type Technology = {
   maturity: string; ip_info: string; patent_numbers: string; licensing_status: string; licensing_status_source: string;
   sbir_relevance: string; open_questions: string; source_text: string; source_fetched_at: string | null; shortlisted: boolean;
   archived: boolean; is_sample: boolean; last_reviewed_at: string | null; created_at: string; updated_at: string;
+  origin_kind?: string; patent_key?: string; patent_status?: string; patent_expires?: string | null; patent_assignee?: string; patent_country?: string;
 };
 export type ScoreEntry = { score: number | null; rationale: string; evidence: string; confidence: 'low' | 'medium' | 'high' };
 export type Evaluation = {
@@ -15,6 +16,7 @@ export type Lab = {
   agreement_types_offered: string; notes: string; source_url: string; verified_at: string | null;
 };
 export type Project = {
+  intake_key?: string | null; kickoff_answers?: Record<string,unknown>;
   id: string; technology_id: string; lab_id: string | null; name: string; status: string; application_summary: string;
   business_thesis: string; target_customer: string; problem: string; licensing_status: string; licensing_pathway: string;
   licensing_pathway_notes: string; risks: string; archived: boolean; created_at: string; updated_at: string;
@@ -78,4 +80,10 @@ export type Interview = {
 };
 export type ProgramTracking = {
   id: string; project_id: string | null; program_id: string; status: string; notes: string; task_id: string | null; created_at: string; updated_at: string;
+};
+export type InvestigationOutcome = {
+  id: string; technology_id: string; project_id: string | null;
+  lab_responded: string; license_available: string; tech_dd_result: string; sbir_award: string; customer_interest: string;
+  notes: string; evidence_url: string; agency: string; category: string; origin_kind: string; pathway_key: string;
+  is_sample: boolean; contribute_to_learning: boolean; recorded_at: string; updated_at: string;
 };

@@ -287,6 +287,7 @@ export type Database = {
           follow_up_date: string | null
           id: string
           occurred_at: string | null
+          pathway_id: string | null
           project_id: string
           response_summary: string
           status: string
@@ -304,6 +305,7 @@ export type Database = {
           follow_up_date?: string | null
           id?: string
           occurred_at?: string | null
+          pathway_id?: string | null
           project_id: string
           response_summary?: string
           status?: string
@@ -321,6 +323,7 @@ export type Database = {
           follow_up_date?: string | null
           id?: string
           occurred_at?: string | null
+          pathway_id?: string | null
           project_id?: string
           response_summary?: string
           status?: string
@@ -334,6 +337,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_pathway_fk"
+            columns: ["pathway_id"]
+            isOneToOne: false
+            referencedRelation: "project_pathways"
             referencedColumns: ["id"]
           },
           {
@@ -456,6 +466,7 @@ export type Database = {
           is_ai_generated: boolean
           kind: string
           opportunity_id: string | null
+          pathway_id: string | null
           project_id: string | null
           proposal_section_id: string | null
           source_url: string
@@ -464,6 +475,7 @@ export type Database = {
           updated_at: string
           upload_id: string | null
           user_id: string
+          workflow_run_id: string | null
         }
         Insert: {
           body?: string
@@ -472,6 +484,7 @@ export type Database = {
           is_ai_generated?: boolean
           kind?: string
           opportunity_id?: string | null
+          pathway_id?: string | null
           project_id?: string | null
           proposal_section_id?: string | null
           source_url?: string
@@ -480,6 +493,7 @@ export type Database = {
           updated_at?: string
           upload_id?: string | null
           user_id?: string
+          workflow_run_id?: string | null
         }
         Update: {
           body?: string
@@ -488,6 +502,7 @@ export type Database = {
           is_ai_generated?: boolean
           kind?: string
           opportunity_id?: string | null
+          pathway_id?: string | null
           project_id?: string | null
           proposal_section_id?: string | null
           source_url?: string
@@ -496,6 +511,7 @@ export type Database = {
           updated_at?: string
           upload_id?: string | null
           user_id?: string
+          workflow_run_id?: string | null
         }
         Relationships: [
           {
@@ -503,6 +519,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_pathway_fk"
+            columns: ["pathway_id"]
+            isOneToOne: false
+            referencedRelation: "project_pathways"
             referencedColumns: ["id"]
           },
           {
@@ -524,6 +547,13 @@ export type Database = {
             columns: ["technology_id"]
             isOneToOne: false
             referencedRelation: "technologies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_workflow_run_fk"
+            columns: ["workflow_run_id"]
+            isOneToOne: true
+            referencedRelation: "workflow_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -627,6 +657,87 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "interviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investigation_outcomes: {
+        Row: {
+          agency: string
+          category: string
+          contribute_to_learning: boolean
+          customer_interest: string
+          evidence_url: string
+          id: string
+          is_sample: boolean
+          lab_responded: string
+          license_available: string
+          notes: string
+          origin_kind: string
+          pathway_key: string
+          project_id: string | null
+          recorded_at: string
+          sbir_award: string
+          tech_dd_result: string
+          technology_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency?: string
+          category?: string
+          contribute_to_learning?: boolean
+          customer_interest?: string
+          evidence_url?: string
+          id?: string
+          is_sample?: boolean
+          lab_responded?: string
+          license_available?: string
+          notes?: string
+          origin_kind?: string
+          pathway_key?: string
+          project_id?: string | null
+          recorded_at?: string
+          sbir_award?: string
+          tech_dd_result?: string
+          technology_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          agency?: string
+          category?: string
+          contribute_to_learning?: boolean
+          customer_interest?: string
+          evidence_url?: string
+          id?: string
+          is_sample?: boolean
+          lab_responded?: string
+          license_available?: string
+          notes?: string
+          origin_kind?: string
+          pathway_key?: string
+          project_id?: string | null
+          recorded_at?: string
+          sbir_award?: string
+          tech_dd_result?: string
+          technology_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_outcomes_technology_fk"
+            columns: ["technology_id"]
+            isOneToOne: false
+            referencedRelation: "technologies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigation_outcomes_project_fk"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -751,6 +862,8 @@ export type Database = {
           deadline_verified: boolean
           duration: string
           eligibility: string
+          external_id: string
+          external_provider: string
           fit_notes: string
           id: string
           is_sample: boolean
@@ -787,6 +900,8 @@ export type Database = {
           deadline_verified?: boolean
           duration?: string
           eligibility?: string
+          external_id?: string
+          external_provider?: string
           fit_notes?: string
           id?: string
           is_sample?: boolean
@@ -823,6 +938,8 @@ export type Database = {
           deadline_verified?: boolean
           duration?: string
           eligibility?: string
+          external_id?: string
+          external_provider?: string
           fit_notes?: string
           id?: string
           is_sample?: boolean
@@ -846,6 +963,21 @@ export type Database = {
           topic_title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      pathway_catalog: {
+        Row: {
+          key: string
+          spec: Json
+        }
+        Insert: {
+          key: string
+          spec: Json
+        }
+        Update: {
+          key?: string
+          spec?: Json
         }
         Relationships: []
       }
@@ -945,6 +1077,54 @@ export type Database = {
           },
         ]
       }
+      project_pathways: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string
+          pathway_key: string
+          project_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string
+          pathway_key: string
+          project_id: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string
+          pathway_key?: string
+          project_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_pathways_catalog_fk"
+            columns: ["pathway_key"]
+            isOneToOne: false
+            referencedRelation: "pathway_catalog"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "project_pathways_project_fk"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           application_summary: string
@@ -952,6 +1132,8 @@ export type Database = {
           business_thesis: string
           created_at: string
           id: string
+          intake_key: string | null
+          kickoff_answers: Json
           lab_id: string | null
           licensing_pathway: string
           licensing_pathway_notes: string
@@ -971,6 +1153,8 @@ export type Database = {
           business_thesis?: string
           created_at?: string
           id?: string
+          intake_key?: string | null
+          kickoff_answers?: Json
           lab_id?: string | null
           licensing_pathway?: string
           licensing_pathway_notes?: string
@@ -990,6 +1174,8 @@ export type Database = {
           business_thesis?: string
           created_at?: string
           id?: string
+          intake_key?: string | null
+          kickoff_answers?: Json
           lab_id?: string | null
           licensing_pathway?: string
           licensing_pathway_notes?: string
@@ -1147,6 +1333,7 @@ export type Database = {
           id: string
           kind: string
           opportunity_id: string | null
+          pathway_id: string | null
           project_id: string | null
           status: string
           technology_id: string | null
@@ -1163,6 +1350,7 @@ export type Database = {
           id?: string
           kind?: string
           opportunity_id?: string | null
+          pathway_id?: string | null
           project_id?: string | null
           status?: string
           technology_id?: string | null
@@ -1179,6 +1367,7 @@ export type Database = {
           id?: string
           kind?: string
           opportunity_id?: string | null
+          pathway_id?: string | null
           project_id?: string | null
           status?: string
           technology_id?: string | null
@@ -1191,6 +1380,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_pathway_fk"
+            columns: ["pathway_id"]
+            isOneToOne: false
+            referencedRelation: "project_pathways"
             referencedColumns: ["id"]
           },
           {
@@ -1328,6 +1524,7 @@ export type Database = {
           id: string
           kind: string
           opportunity_id: string | null
+          pathway_id: string | null
           priority: number
           project_id: string
           proposal_id: string | null
@@ -1349,6 +1546,7 @@ export type Database = {
           id?: string
           kind?: string
           opportunity_id?: string | null
+          pathway_id?: string | null
           priority?: number
           project_id: string
           proposal_id?: string | null
@@ -1370,6 +1568,7 @@ export type Database = {
           id?: string
           kind?: string
           opportunity_id?: string | null
+          pathway_id?: string | null
           priority?: number
           project_id?: string
           proposal_id?: string | null
@@ -1391,6 +1590,13 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_pathway_fk"
+            columns: ["pathway_id"]
+            isOneToOne: false
+            referencedRelation: "project_pathways"
             referencedColumns: ["id"]
           },
           {
@@ -1419,6 +1625,7 @@ export type Database = {
           created_at: string
           customers: string
           description: string
+          funding_relevance: string
           id: string
           inventors: string
           ip_info: string
@@ -1431,7 +1638,13 @@ export type Database = {
           maturity: string
           name: string
           open_questions: string
+          origin_kind: string
+          patent_assignee: string
+          patent_country: string
+          patent_expires: string | null
+          patent_key: string
           patent_numbers: string
+          patent_status: string
           sbir_relevance: string
           shortlisted: boolean
           source_fetched_at: string | null
@@ -1450,6 +1663,7 @@ export type Database = {
           created_at?: string
           customers?: string
           description?: string
+          funding_relevance?: string
           id?: string
           inventors?: string
           ip_info?: string
@@ -1462,7 +1676,13 @@ export type Database = {
           maturity?: string
           name: string
           open_questions?: string
+          origin_kind?: string
+          patent_assignee?: string
+          patent_country?: string
+          patent_expires?: string | null
+          patent_key?: string
           patent_numbers?: string
+          patent_status?: string
           sbir_relevance?: string
           shortlisted?: boolean
           source_fetched_at?: string | null
@@ -1481,6 +1701,7 @@ export type Database = {
           created_at?: string
           customers?: string
           description?: string
+          funding_relevance?: string
           id?: string
           inventors?: string
           ip_info?: string
@@ -1493,7 +1714,13 @@ export type Database = {
           maturity?: string
           name?: string
           open_questions?: string
+          origin_kind?: string
+          patent_assignee?: string
+          patent_country?: string
+          patent_expires?: string | null
+          patent_key?: string
           patent_numbers?: string
+          patent_status?: string
           sbir_relevance?: string
           shortlisted?: boolean
           source_fetched_at?: string | null
@@ -1537,13 +1764,101 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_runs: {
+        Row: {
+          action: string
+          completed_at: string | null
+          created_at: string
+          error: string
+          id: string
+          pathway_id: string
+          project_id: string
+          request_key: string
+          session_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          pathway_id: string
+          project_id: string
+          request_key?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          action?: string
+          completed_at?: string | null
+          created_at?: string
+          error?: string
+          id?: string
+          pathway_id?: string
+          project_id?: string
+          request_key?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_pathway_fk"
+            columns: ["pathway_id"]
+            isOneToOne: false
+            referencedRelation: "project_pathways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_project_fk"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       app_user_id: { Args: never; Returns: string }
+      create_pathway_plan: {
+        Args: { selected_pathway: string; target_project: string }
+        Returns: Json
+      }
+      create_simple_plan: {
+        Args: { answers: Json; request_key: string }
+        Returns: Json
+      }
+      learning_cohort_insights: {
+        Args: { filter_agency?: string; filter_category?: string }
+        Returns: Json
+      }
       manage_demo: { Args: { operation?: string }; Returns: Json }
+      start_pathway_workflow: {
+        Args: {
+          idempotency_key: string
+          requested_action: string
+          target_pathway: string
+        }
+        Returns: Json
+      }
+      upsert_investigation_outcome: {
+        Args: {
+          answers: Json
+          target_project: string | null
+          target_technology: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

@@ -9,7 +9,7 @@ export function Documents() {
   const [kind, setKind] = useState('');
   return (
     <div>
-      <PageHeader title="Documents & research" subtitle="Research notes, correspondence, technical evidence, solicitations and files for your project. Original source text and AI-generated material are labeled separately." />
+      <PageHeader title="A home for your thinking." subtitle="Notes, evidence and working drafts. Keep what you learn close to the project it belongs to." />
       <ProjectPicker>{pid => (
         <div className="space-y-4">
           <div className="flex items-center gap-2"><Select aria-label="Filter document type" value={kind} onChange={e => setKind(e.target.value)} options={[['', 'All types'], ...Object.entries(DOC_KINDS)]} className="w-64" /></div>

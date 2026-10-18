@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { applyLearningScore, type CohortInsights } from '@project/learning';
 import { DIMENSIONS, TECH_LICENSING_STATUS, defaultWeights } from '../lib/constants';
 import { useQuery } from '../lib/data';
+import { insightsForTech } from '../lib/learning';
 import { hashParam, navigate } from '../lib/router';
 import { summarize } from '../lib/scoring';
 import { saveSettings, useSettings } from '../lib/settings';
 import type { Evaluation, Project, Technology } from '../lib/types';
 import { ConfidenceBadge, ScoreEditor } from '../components/Scoring';
 import { SelectTechButton } from '../components/SelectTech';
-import { Button, Card, Empty, Input, Modal, PageHeader, SampleBadge, useAsync } from '../components/ui';
+import { Button, Card, Disclosure, displayName, Empty, Input, Modal, PageHeader, SampleBadge, useAsync } from '../components/ui';
 import { cn } from '../lib/utils';
 
 export function Compare() {
@@ -18,13 +20,26 @@ export function Compare() {
   const [picked, setPicked] = useState<string[] | null>(null);
   const [scoring, setScoring] = useState<string | null>(hashParam('score'));
   const [weightsOpen, setWeightsOpen] = useState(false);
+  const [insights, setInsights] = useState<Record<string, CohortInsights | null>>({});
 
   const defaults = techs.data.filter(t => t.shortlisted).map(t => t.id);
   const ids = picked ?? (defaults.length ? defaults : techs.data.slice(0, 4).map(t => t.id));
   const cols = techs.data.filter(t => ids.includes(t.id));
   const evalOf = (id: string) => evals.data.find(e => e.technology_id === id);
   const sums = Object.fromEntries(cols.map(t => [t.id, summarize(evalOf(t.id) && { ...evalOf(t.id)!, weights: settings.weights }, t)]));
-  const ranked = [...cols].sort((a, b) => (sums[b.id]?.overall ?? -1) - (sums[a.id]?.overall ?? -1));
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const next: Record<string, CohortInsights | null> = {};
+      await Promise.all(cols.map(async t => {
+        next[t.id] = await insightsForTech(t.agency || '', t.category || '');
+      }));
+      if (alive) setInsights(next);
+    })();
+    return () => { alive = false; };
+  }, [cols.map(t => `${t.id}:${t.agency}:${t.category}`).join('|')]);
+  const learned = Object.fromEntries(cols.map(t => [t.id, applyLearningScore(sums[t.id]?.overall ?? null, insights[t.id])]));
+  const ranked = [...cols].sort((a, b) => (learned[b.id]?.score ?? -1) - (learned[a.id]?.score ?? -1));
   const scoringTech = techs.data.find(t => t.id === scoring);
 
   if (!techs.loading && !techs.data.length) {
@@ -33,18 +48,20 @@ export function Compare() {
 
   return (
     <div>
-      <PageHeader title="Compare technologies" subtitle="Score each candidate 1–5 on ten dimensions with a rationale and evidence. Shortlisted technologies are shown by default."
+      <PageHeader title="Which idea fits best?" subtitle="Compare the possibilities, not just the scores. Evidence and uncertainty matter as much as the ranking."
         actions={<Button onClick={() => setWeightsOpen(true)}>Adjust weights</Button>} />
 
       <div className="mb-3 flex flex-wrap gap-2" aria-label="Technologies to compare">
         {techs.data.map(t => (
-          <label key={t.id} className={cn('flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs', ids.includes(t.id) ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-300 bg-white')}>
+          <label key={t.id} className={cn('flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-xs', ids.includes(t.id) ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-300 bg-white')}>
             <input type="checkbox" checked={ids.includes(t.id)} onChange={() => setPicked(ids.includes(t.id) ? ids.filter(x => x !== t.id) : [...ids, t.id])} />
-            {t.name.length > 40 ? t.name.slice(0, 40) + '…' : t.name}
+            {displayName(t.name).length > 40 ? displayName(t.name).slice(0,40)+'…' : displayName(t.name)}
           </label>
         ))}
       </div>
 
+      {!!cols.length && <div className="compare-summaries">{ranked.map((t,i)=>{const L=learned[t.id];const delta=L?.delta??0;return <article key={t.id} className={`compare-summary ${i===0?'leading':''}`}><div className="eyebrow">{i===0?'HIGHEST EVIDENCE-ADJUSTED SCORE':`OPTION ${i+1}`}</div><h2 className="editorial">{displayName(t.name)}</h2><div className="comparison-score">{L?.score ?? sums[t.id]?.overall ?? '—'}<span>/ 100</span></div><p className="text-xs text-slate-500">{sums[t.id]?.scored}/10 dimensions · {sums[t.id]?.confidence} confidence{t.is_sample?' · Sample':''}{delta!==0?` · ${delta>0?'+':''}${delta} from similar outcomes`:insights[t.id]?.sampleSize?` · ${insights[t.id]!.sampleSize} similar cases`:''}</p><p className="mt-5 text-sm leading-relaxed text-slate-600">{L?.reasons[0] || sums[t.id]?.risks[0] || 'Review the evidence before deciding.'}</p><div className="mt-auto flex flex-wrap gap-2 pt-6"><Button size="sm" onClick={()=>setScoring(t.id)}>Review scores</Button><Button size="sm" onClick={()=>navigate(`tech/${t.id}`)}>Log outcomes</Button><SelectTechButton size="sm" tech={t} evaluation={evalOf(t.id)} project={projects.data.find(p=>p.technology_id===t.id)}/></div></article>;})}</div>}
+      <Disclosure title="Compare all 10 dimensions and the evidence">
       {!cols.length ? <Empty title="Pick technologies to compare above" /> : (
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full min-w-[720px] text-sm">
@@ -97,8 +114,9 @@ export function Compare() {
           </table>
         </div>
       )}
-      <p className="mt-3 text-xs text-slate-500">Overall = weighted average of scored dimensions, rescaled to 0–100. Unscored dimensions are excluded (and lower confidence). A high score is not a verified investment opportunity.</p>
+      <p className="mt-3 text-xs text-slate-500">Overall = weighted average of scored dimensions, rescaled to 0–100. When enough anonymized investigation outcomes exist for a similar agency/category, a small evidence adjustment (−12…+12) is applied. A high score is not a verified investment opportunity.</p>
 
+      </Disclosure>
       <Modal open={!!scoringTech} onClose={() => setScoring(null)} title={`Score: ${scoringTech?.name ?? ''}`} wide>
         {scoringTech && <ScoreEditor tech={scoringTech} evaluation={evalOf(scoringTech.id)} weights={settings.weights} />}
       </Modal>

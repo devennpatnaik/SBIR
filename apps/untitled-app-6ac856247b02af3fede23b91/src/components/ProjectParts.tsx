@@ -7,7 +7,7 @@ import { analyze } from '../lib/nextAction';
 import { navigate, useActiveProjectId } from '../lib/router';
 import type { Bundle } from '../lib/bundle';
 import type { Project, Question, Task } from '../lib/types';
-import { Badge, Button, Card, Empty, ErrorNote, Field, Input, Modal, Notice, Select, Textarea, useAsync } from './ui';
+import { Badge, Button, Card, displayName, Empty, ErrorNote, Field, Input, Modal, Notice, Select, Textarea, useAsync } from './ui';
 import { cn } from '../lib/utils';
 
 export function StageBar({ project }: { project: Project }) {
@@ -83,7 +83,7 @@ export function NextActionPanel({ bundle, limit = 5 }: { bundle: Bundle; limit?:
               </li>
             ))}
           </ul>
-          <p className="text-xs text-slate-400">Recommendations are recalculated from your project records each time they change.</p>
+          <p className="text-xs text-slate-400">Recommendations use your project records and Layer 4 investigation outcomes when you have recorded them.</p>
         </div>
       )}
     </Card>
@@ -118,8 +118,9 @@ export function DeadlinesAndBlockers({ bundle }: { bundle: Bundle }) {
   );
 }
 
-export function TaskList({ projectId, tasks, area, milestones, proposalId, defaultCategory }: { projectId: string; tasks: Task[]; area?: string; milestones?: boolean; proposalId?: string; defaultCategory?: string }) {
+export function TaskList({ projectId, tasks, area, milestones, proposalId, defaultCategory, pathwayId }: { projectId: string; tasks: Task[]; area?: string; milestones?: boolean; proposalId?: string; defaultCategory?: string; pathwayId?: string }) {
   const [title, setTitle] = useState('');
+  const [adding, setAdding] = useState(false);
   const [due, setDue] = useState('');
   const [taskArea, setTaskArea] = useState(area ?? 'general');
   const [cat, setCat] = useState(defaultCategory ?? 'customer_discovery');
@@ -131,19 +132,20 @@ export function TaskList({ projectId, tasks, area, milestones, proposalId, defau
   const titleOf = (id: string | null) => tasks.find(t => t.id === id)?.title;
 
   const add = () => run(async () => {
-    await insertRow('tasks', { project_id: projectId, title: title.trim(), due_date: due || null, area: milestones ? 'commercialization' : taskArea, kind: milestones ? 'milestone' : 'task', roadmap_category: milestones ? cat : '', proposal_id: proposalId ?? null });
+    await insertRow('tasks', { project_id: projectId, pathway_id: pathwayId ?? null, title: title.trim(), due_date: due || null, area: milestones ? 'commercialization' : taskArea, kind: milestones ? 'milestone' : 'task', roadmap_category: milestones ? cat : '', proposal_id: proposalId ?? null });
     setTitle(''); setDue('');
   });
 
   return (
     <div className="space-y-3">
-      <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); if (title.trim()) void add(); }}>
+      <Button size="sm" onClick={() => setAdding(!adding)}>{adding ? 'Close new item' : milestones ? '+ Add a milestone' : '+ Add a task'}</Button>
+      {adding && <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); if (title.trim()) void add(); }}>
         <Input aria-label={milestones ? 'New milestone' : 'New task'} placeholder={milestones ? 'Add a milestone…' : 'Add a task…'} value={title} onChange={e => setTitle(e.target.value)} className="min-w-64 flex-1" />
         {milestones ? <Select aria-label="Roadmap category" value={cat} onChange={e => setCat(e.target.value)} options={ROADMAP_CATEGORIES.map(c => [c.key, c.label] as [string, string])} className="w-52" />
           : !area && <Select aria-label="Task area" value={taskArea} onChange={e => setTaskArea(e.target.value)} options={AREAS} className="w-44" />}
         <Input aria-label="Due date" type="date" value={due} onChange={e => setDue(e.target.value)} className="w-40" />
         <Button type="submit" busy={busy} disabled={!title.trim()}>Add</Button>
-      </form>
+      </form>}
       <ErrorNote error={error} />
       {!open.length && !done.length ? <Empty title={milestones ? 'No milestones yet' : 'No tasks here yet'}>{milestones ? 'Add milestones such as "First pilot customer signed" or "Prototype meets 90% detection accuracy".' : 'Add the next concrete step above.'}</Empty> : (
         <ul className="divide-y divide-slate-100 rounded-md border border-slate-200 bg-white">
@@ -166,13 +168,13 @@ function TaskRow({ t, all, dependsTitle }: { t: Task; all: Task[]; dependsTitle?
   const isDone = t.status === 'done';
   const depOpen = t.depends_on && all.find(x => x.id === t.depends_on)?.status !== 'done';
   return (
-    <li className="px-3 py-2">
+    <li className="px-4 py-4">
       <div className="flex items-start gap-2">
         <button type="button" disabled={!isDone && !!(depOpen || t.status === 'blocked')} title={depOpen ? 'Complete the prerequisite first' : t.status === 'blocked' ? 'Resolve the blocker first' : undefined} aria-label={isDone ? `Reopen ${t.title}` : `Complete ${t.title}`} onClick={() => updateRow('tasks', t.id, { status: isDone ? 'todo' : 'done', completed_at: isDone ? null : nowIso() })} className="mt-0.5">
           {isDone ? <CheckCircle2 className="size-4 text-emerald-600" /> : <Circle className="size-4 text-slate-400 hover:text-blue-700" />}
         </button>
         <div className="min-w-0 flex-1">
-          <button type="button" onClick={() => setEdit(!edit)} className={cn('text-left text-sm', isDone && 'line-through')}>{t.title}</button>
+          <button type="button" onClick={() => setEdit(!edit)} className={cn('text-left text-sm', isDone && 'line-through')}>{displayName(t.title)}</button>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
             {t.kind === 'milestone' && <Badge tone="purple">milestone</Badge>}
             <Badge>{AREAS[t.area] ?? t.area}</Badge>
@@ -213,19 +215,21 @@ function TaskEditor({ t, all, onClose }: { t: Task; all: Task[]; onClose: () => 
 }
 
 const QKIND: Record<string, string> = { question: 'Open question', risk: 'Risk', eligibility: 'Eligibility question', assumption: 'Assumption' };
-export function QuestionList({ projectId, questions, kind, opportunityId, area, title }: { projectId: string; questions: Question[]; kind?: string; opportunityId?: string; area?: string; title?: string }) {
+export function QuestionList({ projectId, questions, kind, opportunityId, area, title, pathwayId }: { projectId: string; questions: Question[]; kind?: string; opportunityId?: string; area?: string; title?: string; pathwayId?: string }) {
   const [text, setText] = useState('');
   const [k, setK] = useState(kind ?? 'question');
+  const [adding, setAdding] = useState(false);
   const { busy, run } = useAsync();
   const list = questions.filter(q => (!kind || q.kind === kind) && (!opportunityId || q.opportunity_id === opportunityId));
   return (
     <div className="space-y-3">
       {title && <h4 className="text-sm font-semibold">{title}</h4>}
-      <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); if (text.trim()) void run(async () => { await insertRow('questions', { project_id: projectId, opportunity_id: opportunityId ?? null, kind: k, text: text.trim(), area: area ?? 'general' }); setText(''); }); }}>
+      <Button size="sm" onClick={()=>setAdding(!adding)}>{adding?'Close new question':'+ Add a question'}</Button>
+      {adding &&       <form className="flex flex-wrap gap-2" onSubmit={e => { e.preventDefault(); if (text.trim()) void run(async () => { await insertRow('questions', { project_id: projectId, pathway_id: pathwayId ?? null, opportunity_id: opportunityId ?? null, kind: k, text: text.trim(), area: area ?? 'general' }); setText(''); }); }}>
         <Input aria-label={`New ${QKIND[k]?.toLowerCase() ?? 'question'}`} placeholder={`Add ${QKIND[k]?.toLowerCase() ?? 'question'}…`} value={text} onChange={e => setText(e.target.value)} className="min-w-64 flex-1" />
         {!kind && <Select aria-label="Question type" value={k} onChange={e => setK(e.target.value)} options={QKIND} className="w-48" />}
         <Button type="submit" busy={busy} disabled={!text.trim()}>Add</Button>
-      </form>
+      </form>}
       {!list.length ? <p className="text-sm text-slate-500">None recorded.</p> : (
         <ul className="divide-y divide-slate-100 rounded-md border border-slate-200 bg-white">{list.map(q => <QuestionRow key={q.id} q={q} />)}</ul>
       )}
@@ -241,7 +245,7 @@ function QuestionRow({ q }: { q: Question }) {
     <li className="px-3 py-2 text-sm">
       <div className="flex items-start justify-between gap-2">
         <button type="button" className="text-left" onClick={() => setOpen(!open)}>
-          <span className={q.status !== 'open' ? 'text-slate-500 line-through' : ''}>{q.text}</span>
+          <span className={q.status !== 'open' ? 'text-slate-500 line-through' : ''}>{displayName(q.text)}</span>
           <span className="ml-2 inline-flex gap-1">{q.kind !== 'question' && <Badge tone={q.kind === 'risk' ? 'red' : q.kind === 'eligibility' ? 'amber' : 'slate'}>{QKIND[q.kind]}</Badge>}{q.blocking && q.status === 'open' && <Badge tone="red">blocking</Badge>}{q.status === 'answered' && <Badge tone="green">answered</Badge>}</span>
         </button>
         <div className="flex shrink-0 gap-1">

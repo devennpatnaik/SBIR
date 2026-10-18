@@ -8,7 +8,7 @@ import { deleteRow, fmtDate, insertRow, insertRows } from '../lib/data';
 import { hashParam, setHashParam } from '../lib/router';
 import type { Interview } from '../lib/types';
 import { ProjectPicker, TaskList } from '../components/ProjectParts';
-import { Badge, Button, Card, Empty, Field, Input, Modal, Notice, PageHeader, Select, Tabs, Textarea, useAsync } from '../components/ui';
+import { Badge, Button, Card, Disclosure, displayName, Empty, Field, Input, Modal, Notice, PageHeader, Select, Tabs, Textarea, useAsync } from '../components/ui';
 
 const SUGGESTED: Record<string, string[]> = {
   customer_discovery: ['Complete 10 customer-discovery interviews', 'Identify the economic buyer and decision process'],
@@ -28,8 +28,8 @@ const SUGGESTED: Record<string, string[]> = {
 export function Roadmap() {
   return (
     <div>
-      <PageHeader title="Commercialization roadmap" subtitle="Milestones from customer discovery to revenue. It continues after any SBIR/STTR award — Phase III and commercial sales are never automatic." />
-      <HelpSuggestions projectId={getActiveProject()} stage="awarded" title="Free help after an award" />
+      <PageHeader title="Build a path forward." subtitle="From your first customer conversation to your first sale. Work toward the next milestone, one step at a time." />
+      <HelpSuggestions projectId={getActiveProject()} stage="awarded" title="Help bringing it to market" />
       <ProjectPicker>{id => <RoadmapFor id={id} />}</ProjectPicker>
     </div>
   );
@@ -46,7 +46,7 @@ function RoadmapFor({ id }: { id: string }) {
   return (
     <div>
       <Card className="mb-4" title="Next milestone">
-        {next ? <div><div className="font-medium">{next.title}</div><div className="text-sm text-slate-500">{ROADMAP_CATEGORIES.find(c => c.key === next.roadmap_category)?.label}{next.due_date && ` · target ${fmtDate(next.due_date)}`}</div></div>
+        {next ? <div><div className="font-medium">{displayName(next.title)}</div><div className="text-sm text-slate-500">{ROADMAP_CATEGORIES.find(c => c.key === next.roadmap_category)?.label}{next.due_date && ` · target ${fmtDate(next.due_date)}`}</div></div>
           : <p className="text-sm text-slate-600">{ms.length ? 'All milestones are complete or blocked by dependencies.' : 'No milestones yet. Add suggested milestones below.'}</p>}
         {b.interviews.length < 5 && <p className="mt-2 text-sm text-amber-800">Customer evidence is thin ({b.interviews.length} interviews logged). Most later milestones depend on it.</p>}
       </Card>
@@ -66,7 +66,8 @@ function Milestones({ b }: { b: Bundle }) {
   const { busy, run } = useAsync();
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 md:grid-cols-4">
+      <Disclosure title={cat?`Filter: ${ROADMAP_CATEGORIES.find(c=>c.key===cat)?.label}`:'Browse milestone categories'}>
+      <div className="milestone-categories grid gap-3 md:grid-cols-4">
         {ROADMAP_CATEGORIES.map(c => {
           const list = ms.filter(m => m.roadmap_category === c.key);
           const done = list.filter(m => m.status === 'done').length;
@@ -77,6 +78,7 @@ function Milestones({ b }: { b: Bundle }) {
           );
         })}
       </div>
+      </Disclosure>
       {cat && !ms.some(m => m.roadmap_category === cat) && (
         <Notice tone="blue">Suggested for this category: {SUGGESTED[cat]?.join(' · ')}{' '}
           <Button size="sm" busy={busy} onClick={() => run(() => insertRows('tasks', (SUGGESTED[cat] ?? []).map(title => ({ project_id: p.id, title, kind: 'milestone', area: 'commercialization', roadmap_category: cat, created_by: 'template' }))))}>Add these</Button>

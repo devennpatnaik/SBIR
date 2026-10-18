@@ -50,6 +50,28 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
 
   const add = (a: Action) => actions.push(a);
   const ev = summarize(b.evaluation, b.tech);
+  const outcome = b.outcome;
+  const techLink = `tech/${p.technology_id}`;
+  if (!outcome || [outcome.lab_responded, outcome.license_available, outcome.tech_dd_result, outcome.sbir_award, outcome.customer_interest].every(v => v === 'unknown')) {
+    add({ title: 'Record what happened with this technology', why: 'Five short outcome questions feed Layer 4 learning so future recommendations use real evidence.', link: techLink, area: 'validation', urgency: 'soon' });
+  }
+  if (outcome?.license_available === 'no') {
+    blockers.push({ label: 'You recorded that a license is not available for this technology.', link: techLink });
+  }
+  if (outcome?.tech_dd_result === 'failed') {
+    blockers.push({ label: 'Technical due diligence did not pass — revisit before spending more on this path.', link: techLink });
+  }
+  if (outcome?.lab_responded === 'pending') {
+    add({ title: 'Follow up on the unanswered lab inquiry', why: 'You marked the laboratory response as still pending.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
+  }
+  if (outcome?.customer_interest === 'none') {
+    add({ title: 'Re-check the customer problem (or pause)', why: 'You recorded no customer interest. Confirm the segment before writing a proposal.', link: 'roadmap?tab=interviews', area: 'validation', urgency: 'soon' });
+  } else if (outcome?.customer_interest === 'strong' && !b.links.length) {
+    add({ title: 'Explore funding while customer interest is warm', why: 'Strong customer interest is recorded. Look for fitting SBIR topics or paid pilots.', link: 'funding', area: 'funding', urgency: 'soon' });
+  }
+  if (outcome?.sbir_award === 'pending') {
+    add({ title: 'Track your SBIR/STTR decision', why: 'You marked an award decision as pending. Update the outcome when the official notice arrives.', link: techLink, area: 'funding', urgency: 'later' });
+  }
   if (ev.scored < 10) add({ title: 'Finish scoring this technology', why: `${ev.scored}/10 dimensions scored. Scores drive the go/no-go decision.`, link: `compare?score=${p.technology_id}`, area: 'validation', urgency: 'soon' });
   if (!p.business_thesis.trim()) add({ title: 'Write your business thesis', why: 'One paragraph: who has the problem, what you will sell, why this technology wins. Everything else builds on it.', link: `projects/${pid}?tab=overview`, area: 'validation', urgency: 'now' });
   if (!b.lab?.tto_email && !b.lab?.tto_url && !b.contacts.length) add({ title: 'Identify the technology-transfer office contact', why: 'No tech-transfer contact recorded. Find it on the lab\'s own website and record the source URL.', link: 'licensing?tab=office', area: 'licensing', urgency: 'now' });
@@ -58,9 +80,9 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
   const outbound = b.comms.filter(c => c.direction === 'outbound' && c.area === 'licensing');
   const sent = outbound.filter(c => c.status === 'sent_by_user');
   const inbound = b.comms.filter(c => c.direction === 'inbound');
-  if (!outbound.length) add({ title: 'Draft an introductory email to the tech-transfer office', why: 'No licensing outreach yet. The app drafts it; you review and send it yourself.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
-  else if (!sent.length) add({ title: b.tech?.is_sample ? 'Review the practice licensing inquiry' : 'Review and send your drafted outreach email', why: b.tech?.is_sample ? 'Practice reviewing this fictional draft. Do not send it to the sample contact.' : 'A draft exists but has not been marked as sent.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
-  else if (!inbound.length) {
+  if (!outbound.length && outcome?.lab_responded !== 'yes' && outcome?.lab_responded !== 'no') add({ title: 'Draft an introductory email to the tech-transfer office', why: 'No licensing outreach yet. The app drafts it; you review and send it yourself.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
+  else if (outbound.length && !sent.length) add({ title: b.tech?.is_sample ? 'Review the practice licensing inquiry' : 'Review and send your drafted outreach email', why: b.tech?.is_sample ? 'Practice reviewing this fictional draft. Do not send it to the sample contact.' : 'A draft exists but has not been marked as sent.', link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
+  else if (sent.length && !inbound.length && outcome?.lab_responded !== 'yes' && outcome?.lab_responded !== 'no') {
     const last = sent[0];
     const since = last?.occurred_at ? Math.floor((Date.now() - new Date(last.occurred_at).getTime()) / 86400000) : 0;
     if (since >= 7) add({ title: 'Follow up with the tech-transfer office', why: `No response logged ${since} days after your email.`, link: 'licensing?tab=outreach', area: 'licensing', urgency: 'now' });
@@ -70,9 +92,9 @@ export function analyze(b: Bundle): { actions: Action[]; deadlines: Deadline[]; 
   if (p.licensing_pathway === 'undecided' && b.licensing.filter(l => l.status === 'answered').length >= 3) add({ title: 'Choose a licensing pathway', why: 'You have enough answers to compare an evaluation license, option, license, or CRADA.', link: 'licensing?tab=pathway', area: 'licensing', urgency: 'soon' });
 
   const done = (b.interviews ?? []).length;
-  if (done < 5) add({ title: `Hold customer-discovery interviews (${done}/5 logged)`, why: 'Customer demand is the most important evidence for both the business and an SBIR commercialization section.', link: 'roadmap?tab=interviews', area: 'validation', urgency: done ? 'soon' : 'now' });
+  if (done < 5) add({ title: `Hold customer-discovery interviews (${done}/5 logged)`, why: 'Real conversations help test who has the problem and whether the idea is useful.', link: 'roadmap?tab=interviews', area: 'validation', urgency: done ? 'soon' : 'now' });
 
-  if (!b.links.length) add({ title: 'Find and save candidate SBIR/STTR topics', why: 'No funding opportunities linked. Search official agency topic lists and save the ones that fit.', link: 'funding', area: 'funding', urgency: 'soon' });
+  if (!b.links.length) add({ title: 'Explore suitable funding and revenue routes', why: 'No opportunities are linked yet. Consider grants, contracts, pilots or investment only if the project needs them.', link: 'funding', area: 'funding', urgency: 'soon' });
   for (const o of b.opps.filter(o => pursued.has(o.id))) {
     if (o.close_date && !o.deadline_verified) add({ title: `Verify the deadline for ${o.topic_number || o.topic_title}`, why: 'The deadline is not confirmed against a current official source.', link: `funding/${o.id}`, area: 'funding', urgency: 'soon' });
   }

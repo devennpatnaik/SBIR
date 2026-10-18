@@ -20,7 +20,9 @@
     "jose": "6.2.3",
     "zod": "4.5.4",
     "@project/database": "workspace:*",
-    "@project/ontology": "workspace:*"
+    "@project/learning": "workspace:*",
+    "@project/ontology": "workspace:*",
+    "@project/pathways": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260921.1",
