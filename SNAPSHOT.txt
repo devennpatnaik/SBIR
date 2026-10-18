@@ -1,0 +1,5 @@
+Bourne-free Compose snapshot
+branch: main
+commit: cc1527b97ef1c3b31820e73eef117b578b325bc5
+short: cc1527b
+remote: https://github.com/devennpatnaik/sbir
