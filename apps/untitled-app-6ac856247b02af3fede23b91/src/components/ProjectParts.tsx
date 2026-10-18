@@ -83,7 +83,7 @@ export function NextActionPanel({ bundle, limit = 5 }: { bundle: Bundle; limit?:
               </li>
             ))}
           </ul>
-          <p className="text-xs text-slate-400">Recommendations are recalculated from your project records each time they change.</p>
+          <p className="text-xs text-slate-400">Recommendations use your project records and Layer 4 investigation outcomes when you have recorded them.</p>
         </div>
       )}
     </Card>

@@ -10,6 +10,7 @@ import { TECH_FIELDS, TechForm } from '../components/TechForm';
 import { ConfidenceBadge, ScoreEditor } from '../components/Scoring';
 import { SelectTechButton } from '../components/SelectTech';
 import { SourcesPanel } from '../components/Sources';
+import { OutcomesForm } from '../components/Outcomes';
 import { Badge, Button, Card, Disclosure, displayName, displaySummary, ErrorNote, Notice, PageHeader, SampleBadge, SourceLink, Tabs } from '../components/ui';
 
 export function TechnologyDetail({ id }: { id: string }) {
@@ -17,7 +18,7 @@ export function TechnologyDetail({ id }: { id: string }) {
   const ev = useQuery<Evaluation>('evaluations', b => b.eq('technology_id', id), [id]);
   const pr = useQuery<Project>('projects', b => b.eq('technology_id', id), [id]);
   const settings = useSettings();
-  const [tab, setTab] = useState<'overview' | 'edit' | 'score' | 'evidence' | 'source'>('overview');
+  const [tab, setTab] = useState<'overview' | 'edit' | 'score' | 'outcomes' | 'evidence' | 'source'>('overview');
   const t = q.data[0];
   if (q.loading) return <p className="text-sm text-slate-500">Loading…</p>;
   if (!t) return <ErrorNote error={q.error ?? 'Technology not found.'} />;
@@ -33,10 +34,21 @@ export function TechnologyDetail({ id }: { id: string }) {
           <Button onClick={() => updateRow('technologies', t.id, { last_reviewed_at: nowIso() })}>Mark reviewed today</Button>
           <SelectTechButton tech={t} evaluation={ev.data[0]} project={pr.data[0]} />
         </>} />
-      <Tabs tabs={[['overview', 'Overview'], ['edit', 'Edit details'], ['score', 'Score'], ['evidence', 'Sources & evidence'], ['source', 'Original source text']]} value={tab} onChange={setTab} />
+      <Tabs tabs={[['overview', 'Overview'], ['edit', 'Edit details'], ['score', 'Score'], ['outcomes', 'What happened'], ['evidence', 'Sources & evidence'], ['source', 'Original source text']]} value={tab} onChange={setTab} />
       <div className="mt-4">
         {tab === 'overview' && (
-          <div><section className="project-story"><p className="eyebrow">THE TECHNOLOGY, IN PLAIN ENGLISH</p><p className="editorial thesis-text">{displaySummary(t.description)||'Add a description from the official listing.'}</p></section><div className="grid gap-5 md:grid-cols-2"><Card title="Where it could help"><p className="text-sm leading-relaxed">{displayName(t.applications)||'Applications not recorded.'}</p></Card><Card title="Who might use it"><p className="text-sm leading-relaxed">{displayName(t.customers)||'Potential customers not recorded.'}</p></Card></div><Disclosure title="Scoring, licensing & missing information">
+          <div><section className="project-story"><p className="eyebrow">THE TECHNOLOGY, IN PLAIN ENGLISH</p><p className="editorial thesis-text">{displaySummary(t.description)||'Add a description from the official listing.'}</p></section><div className="grid gap-5 md:grid-cols-2"><Card title="Where it could help"><p className="text-sm leading-relaxed">{displayName(t.applications)||'Applications not recorded.'}</p></Card><Card title="Who might use it"><p className="text-sm leading-relaxed">{displayName(t.customers)||'Potential customers not recorded.'}</p></Card></div>
+          <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4 md:p-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="eyebrow">LEARNING LOOP</p>
+                <h3 className="text-lg font-semibold text-slate-900">What happened with this technology?</h3>
+                <p className="mt-1 text-sm text-slate-600">Log lab response, license, diligence, SBIR, and customer interest in one place.</p>
+              </div>
+              <Button onClick={() => setTab('outcomes')}>Record outcomes</Button>
+            </div>
+          </section>
+          <Disclosure title="Scoring, licensing & missing information">
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <Card><div className="text-xs text-slate-500">Score</div><div className="text-2xl font-semibold">{s.overall == null ? '—' : `${s.overall}/100`}</div><div className="mt-1 flex items-center gap-2 text-xs text-slate-500">{s.scored}/10 dimensions <ConfidenceBadge c={s.confidence} /></div></Card>
         <Card><div className="text-xs text-slate-500">Licensing status</div><div className="mt-1 text-sm font-medium">{TECH_LICENSING_STATUS[t.licensing_status]}</div>{t.licensing_status_source && <div className="mt-1 text-xs text-slate-500">Source: {t.licensing_status_source}</div>}</Card>
@@ -63,6 +75,11 @@ export function TechnologyDetail({ id }: { id: string }) {
           await updateRow('technologies', t.id, { ...rest, updated_at: nowIso(), last_reviewed_at: nowIso() }); setTab('overview');
         }} /></Card>}
         {tab === 'score' && <Card><ScoreEditor tech={t} evaluation={ev.data[0]} weights={settings.weights} /></Card>}
+        {tab === 'outcomes' && (
+          <Card>
+            <OutcomesForm technologyId={t.id} projectId={pr.data[0]?.id} isSample={t.is_sample} />
+          </Card>
+        )}
         {tab === 'evidence' && <Card><SourcesPanel scope={{ technology_id: t.id }} /></Card>}
         {tab === 'source' && (
           <Card>

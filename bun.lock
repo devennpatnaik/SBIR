@@ -26,6 +26,7 @@
         "@fontsource-variable/newsreader": "5.3.0",
         "@neondatabase/neon-js": "0.7.0-beta",
         "@project/database": "workspace:*",
+        "@project/learning": "workspace:*",
         "@project/pathways": "workspace:*",
         "@tailwindcss/vite": "4.3.3",
         "class-variance-authority": "0.7.1",
@@ -55,6 +56,7 @@
       "name": "@project/backend",
       "version": "0.0.0",
       "dependencies": {
+        "@project/learning": "workspace:*",
         "@project/pathways": "workspace:*",
         "hono": "4",
         "jose": "6.2.3",
@@ -66,6 +68,10 @@
     },
     "packages/database": {
       "name": "@project/database",
+    },
+    "packages/learning": {
+      "name": "@project/learning",
+      "version": "1.0.0",
     },
     "packages/pathways": {
       "name": "@project/pathways",
@@ -330,6 +336,8 @@
     "@project/backend": ["@project/backend@workspace:backend"],
 
     "@project/database": ["@project/database@workspace:packages/database"],
+
+    "@project/learning": ["@project/learning@workspace:packages/learning"],
 
     "@project/pathways": ["@project/pathways@workspace:packages/pathways"],
 

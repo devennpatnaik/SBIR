@@ -81,3 +81,9 @@ export type Interview = {
 export type ProgramTracking = {
   id: string; project_id: string | null; program_id: string; status: string; notes: string; task_id: string | null; created_at: string; updated_at: string;
 };
+export type InvestigationOutcome = {
+  id: string; technology_id: string; project_id: string | null;
+  lab_responded: string; license_available: string; tech_dd_result: string; sbir_award: string; customer_interest: string;
+  notes: string; evidence_url: string; agency: string; category: string; origin_kind: string; pathway_key: string;
+  is_sample: boolean; contribute_to_learning: boolean; recorded_at: string; updated_at: string;
+};

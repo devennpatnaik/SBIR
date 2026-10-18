@@ -664,6 +664,87 @@ export type Database = {
           },
         ]
       }
+      investigation_outcomes: {
+        Row: {
+          agency: string
+          category: string
+          contribute_to_learning: boolean
+          customer_interest: string
+          evidence_url: string
+          id: string
+          is_sample: boolean
+          lab_responded: string
+          license_available: string
+          notes: string
+          origin_kind: string
+          pathway_key: string
+          project_id: string | null
+          recorded_at: string
+          sbir_award: string
+          tech_dd_result: string
+          technology_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency?: string
+          category?: string
+          contribute_to_learning?: boolean
+          customer_interest?: string
+          evidence_url?: string
+          id?: string
+          is_sample?: boolean
+          lab_responded?: string
+          license_available?: string
+          notes?: string
+          origin_kind?: string
+          pathway_key?: string
+          project_id?: string | null
+          recorded_at?: string
+          sbir_award?: string
+          tech_dd_result?: string
+          technology_id: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          agency?: string
+          category?: string
+          contribute_to_learning?: boolean
+          customer_interest?: string
+          evidence_url?: string
+          id?: string
+          is_sample?: boolean
+          lab_responded?: string
+          license_available?: string
+          notes?: string
+          origin_kind?: string
+          pathway_key?: string
+          project_id?: string | null
+          recorded_at?: string
+          sbir_award?: string
+          tech_dd_result?: string
+          technology_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_outcomes_technology_fk"
+            columns: ["technology_id"]
+            isOneToOne: false
+            referencedRelation: "technologies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investigation_outcomes_project_fk"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       labs: {
         Row: {
           agency: string
@@ -1757,12 +1838,24 @@ export type Database = {
         Args: { answers: Json; request_key: string }
         Returns: Json
       }
+      learning_cohort_insights: {
+        Args: { filter_agency?: string; filter_category?: string }
+        Returns: Json
+      }
       manage_demo: { Args: { operation?: string }; Returns: Json }
       start_pathway_workflow: {
         Args: {
           idempotency_key: string
           requested_action: string
           target_pathway: string
+        }
+        Returns: Json
+      }
+      upsert_investigation_outcome: {
+        Args: {
+          answers: Json
+          target_project: string | null
+          target_technology: string
         }
         Returns: Json
       }
