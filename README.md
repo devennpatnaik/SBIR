@@ -13,7 +13,7 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 
 Ask a guide returns structured SBIR / licensing / diligence checklists offline. Pathway research/draft/review writes Markdown from your saved fields. Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` later for a live model.
 
-CI: `bun scripts/smoke-offline.ts` and `.github/workflows/ci.yml`.
+CI: `bun scripts/smoke-offline.ts` and `scripts/ci-workflow.yml (install as GitHub Action when token has workflow scope)`.
 
 ## One command
 
