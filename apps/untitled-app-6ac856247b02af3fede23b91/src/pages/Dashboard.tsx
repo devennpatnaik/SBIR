@@ -20,9 +20,9 @@ export function Dashboard() {
   if (projects.loading) return <p role="status" className="py-20 text-center text-sm text-slate-500">Finding where you left off…</p>;
   if (projects.error) return <ErrorNote error={projects.error}/>;
   if (!current) return <div>
-    <div className="home-heading"><div><p className="eyebrow">A SPACE FOR WHAT COMES NEXT</p><h1 className="editorial">Good ideas start<br/>with curiosity.</h1></div><p>Find a technology worth pursuing. Make a plan to license it, fund it, and bring it into the world.</p></div>
-    <div className="welcome-grid"><section className="welcome-start"><p className="eyebrow" style={{color:'#cedab9'}}>YOUR FIRST STEP</p><h2 className="editorial">Find your starting point.</h2><p>Tell us what interests you. Three simple questions are enough to make a starting plan.</p><Button className="!bg-[#edf0d2] !text-[#294f3d]" onClick={() => navigate('start')}>Let’s make a plan <ArrowRight size={16}/></Button></section><DemoLauncher welcome/></div>
-    <div className="journey"><span className="journey-label">A simple path</span>{['Explore','License','Fund','Build'].map((s,i)=><a key={s} href={`#/${['discover','licensing','funding','roadmap'][i]}`}><span>{i+1}</span>{s}</a>)}</div>
+    <div className="home-heading"><div><p className="eyebrow">SBIR ROUTE · GOVERNMENT R&amp;D</p><h1 className="editorial">Get paid to develop<br/>what labs invented.</h1></div><p>Find SBIR-eligible federal research, follow the process steps, and take the next funding move with clear coaching.</p></div>
+    <div className="welcome-grid"><section className="welcome-start"><p className="eyebrow" style={{color:'#cedab9'}}>YOUR FIRST STEP</p><h2 className="editorial">Start the SBIR path.</h2><p>Three simple questions set up your seven SBIR steps and one clear next move.</p><Button className="!bg-[#edf0d2] !text-[#294f3d]" onClick={() => navigate('start/sbir')}>Let’s make a plan <ArrowRight size={16}/></Button></section><DemoLauncher welcome/></div>
+    <div className="journey"><span className="journey-label">SBIR process</span>{['Gov R&D','License','Fund','Build'].map((s,i)=><a key={s} href={`#/sbir/${['discover','licensing','funding','roadmap'][i]}`}><span>{i+1}</span>{s}</a>)}</div>
   </div>;
   if(current.intake_key)return <SimplePlan projectId={current.id}/>;
   const { actions, deadlines, blockers } = analyze(b);

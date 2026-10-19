@@ -37,7 +37,8 @@ export function draftFromExtract(url: string, x: Extracted): TechDraft {
   };
 }
 
-export function Discover() {
+export function Discover({ trackMode = 'sbir' }: { trackMode?: 'sbir' | 'patents' }) {
+  const patentsTrack = trackMode === 'patents';
   const techs = useQuery<Technology>('technologies', q => q.order('created_at', { ascending: false }));
   const evals = useQuery<Evaluation>('evaluations', q => q);
   const [adding, setAdding] = useState<null | 'url' | 'manual' | 'csv'>(null);
@@ -45,7 +46,7 @@ export function Discover() {
   const [agency, setAgency] = useState('');
   const [category, setCategory] = useState('');
   const [lic, setLic] = useState('');
-  const [view, setView] = useState<'active' | 'shortlist' | 'archived'>('active');
+  const [view, setView] = useState<'active' | 'shortlist' | 'archived'>(patentsTrack ? 'shortlist' : 'active');
 
   const list = useMemo(() => techs.data.filter(t => {
     if (view === 'shortlist' && (!t.shortlisted || t.archived)) return false;
@@ -71,9 +72,16 @@ export function Discover() {
 
   return (
     <div>
-      <PageHeader title="Explore technologies." subtitle={<>A good business starts with a problem worth solving. Collect the ideas that interest you, then compare their potential. <a className="underline" href="#/patents">Search patents worldwide</a> or follow <a className="underline" href="#/sbir-path">the SBIR path</a>.</>}
-        actions={<Button variant="primary" onClick={() => setAdding('url')}><Link2 size={16}/>Add a technology</Button>} />
-      <div className="collection-toolbar"><div className="search-box"><Search size={18}/><Input aria-label="Search technologies" placeholder="Find an idea in your collection…" value={search} onChange={e=>setSearch(e.target.value)}/></div><Tabs tabs={[['active', `All ${techs.data.filter(t=>!t.archived).length}`],['shortlist','Saved'],['archived','Archived']]} value={view} onChange={setView}/></div>
+      <PageHeader
+        title={patentsTrack ? 'Your patent shortlist.' : 'Government R&D worth pursuing.'}
+        subtitle={patentsTrack
+          ? <>Leads you saved from worldwide patent search. Inspect and shortlist here — this track does not coach SBIR or commercialization. <a className="underline" href="#/patents/home">Back to patent search</a>.</>
+          : <>SBIR-eligible and agency-backed inventions from federal labs and related listings. Compare options, then follow the SBIR process. <a className="underline" href="#/sbir/path">Open the SBIR path</a>.</>}
+        actions={patentsTrack
+          ? <Button variant="primary" onClick={() => navigate('patents/home')}><Search size={16}/>Search patents</Button>
+          : <Button variant="primary" onClick={() => setAdding('url')}><Link2 size={16}/>Add a technology</Button>}
+      />
+      <div className="collection-toolbar"><div className="search-box"><Search size={18}/><Input aria-label="Search technologies" placeholder={patentsTrack ? 'Find a saved patent lead…' : 'Find an idea in your collection…'} value={search} onChange={e=>setSearch(e.target.value)}/></div><Tabs tabs={[['active', `All ${techs.data.filter(t=>!t.archived).length}`],['shortlist','Saved'],['archived','Archived']]} value={view} onChange={setView}/></div>
       <details className="collection-tools"><summary><SlidersHorizontal size={14}/>Filters & collection tools{(agency||category||lic)&&<Badge>Filtered</Badge>}</summary><div className="flex flex-wrap gap-3 pt-4"><Select aria-label="Filter by agency" value={agency} onChange={e=>setAgency(e.target.value)} options={[['','All agencies'],...agencies.map(a=>[a,a] as [string,string])]} className="w-52"/><Select aria-label="Filter by category" value={category} onChange={e=>setCategory(e.target.value)} options={[['','All categories'],...categories.map(a=>[a,a] as [string,string])]} className="w-52"/><Select aria-label="Filter by licensing status" value={lic} onChange={e=>setLic(e.target.value)} options={[['','Any licensing status'],...Object.entries(TECH_LICENSING_STATUS)]} className="w-56"/><Button onClick={()=>setAdding('manual')}><PenLine size={14}/>Enter manually</Button><Button onClick={()=>setAdding('csv')}><Upload size={14}/>Import CSV</Button><Button onClick={exportCsv} disabled={!techs.data.length}><Download size={14}/>Export CSV</Button></div></details>
       <ErrorNote error={techs.error}/>
       {techs.loading?<p role="status" className="py-12 text-sm text-slate-500">Opening your collection…</p>:!techs.data.length?<Empty title="Your collection starts here." action={<div className="flex flex-wrap gap-3"><Button variant="primary" onClick={()=>setAdding('url')}>Add from URL</Button><LoadSample/></div>}>Save a technology from a lab’s official page, or explore our sample company first.</Empty>:<div className="technology-grid">{list.map(t=>{const s=summarize(evals.data.find(e=>e.technology_id===t.id),t);return <article className="technology-card" key={t.id}>

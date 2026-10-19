@@ -198,8 +198,91 @@ function clip(q: string): string {
   return cleaned.length > 220 ? `${cleaned.slice(0, 220)}…` : cleaned;
 }
 
-export function offlineGuideReply(userText: string): string {
+export type GuideTrack = 'sbir' | 'patents';
+
+/** Pull track=sbir|patents from the app context prefix the client sends. */
+export function detectTrack(text: string): GuideTrack | null {
+  const m = text.match(/\[App context:[^\]]*track=(sbir|patents)/i);
+  return m ? (m[1].toLowerCase() as GuideTrack) : null;
+}
+
+function patentsTrackReply(userText: string): string {
+  const q = clip(userText);
   const topic = detectTopic(userText);
+  if (topic === 'sbir' || topic === 'licensing' || topic === 'customers') {
+    return `${banner()}
+## Worldwide patents track — discovery only
+
+You asked: *${q}*
+
+You are on the **worldwide patents** track. This experience is for finding and shortlisting patents that may not be commercialized yet. It does **not** include SBIR process coaching or commercialization handholding.
+
+### Stay on-track
+1. Run a tight search in **Patents**.
+2. Read assignee / status from the record only (**sourced**).
+3. Shortlist leads; add light notes if useful.
+4. Treat “available to commercialize” as **hypothesis** until the owner confirms.
+
+### If you need SBIR coaching
+Switch to the **SBIR route** from the track banner — that track is for government R&D and SBIR/STTR process steps.
+
+${footer().replace('**The SBIR path**, **Compare**, **What happened**, **What we learned**.', '**Patent search**, **Shortlist**, **Compare** (light). Switch tracks for SBIR coaching.')}
+`;
+  }
+  if (topic === 'patents' || topic === 'general' || topic === 'next') {
+    return `${banner()}
+## Patent discovery (Track B)
+
+You asked: *${q}*
+
+### Checklist
+1. Search with a specific technical phrase + country/office filter.
+2. Prefer recent grants / applications with a clear assignee.
+3. Shortlist only what you will actually inspect.
+4. Optional: log a one-line note on why it matters — not an SBIR plan.
+
+### Single next action
+Run one search from **Patents**, save at most three leads, then open each record and write what is still unknown (owner contact, product status).
+
+### Avoid
+- Treating patent hits as SBIR-eligible.
+- Drafting proposals or agency funding plans on this track.
+
+${footer().replace('**The SBIR path**, **Compare**, **What happened**, **What we learned**.', '**Patent search** and **Shortlist**. Use **Switch to SBIR route** for federal funding coaching.')}
+`;
+  }
+  return GUIDES[topic](userText);
+}
+
+function stripAppContext(text: string): string {
+  return text.replace(/^\[App context:[^\]]*\]\s*/i, '').trim();
+}
+
+export function offlineGuideReply(userText: string): string {
+  const track = detectTrack(userText);
+  const asked = stripAppContext(userText);
+  if (track === 'patents') return patentsTrackReply(userText);
+  // Topic detection must ignore the context prefix (it contains "track=sbir").
+  const topic = detectTopic(asked || userText);
+  if (track === 'sbir' && topic === 'general') {
+    return `${banner()}
+## SBIR route guide (offline)
+
+You asked: *${clip(userText) || '(general orientation)'}*
+
+You are on the **SBIR route** — government R&D that can feed SBIR/STTR, with process handholding.
+
+| Goal | Where in the app |
+|------|------------------|
+| Process steps | **The SBIR path** |
+| Federal / lab tech | **Gov R&D** |
+| Funding | **SBIR & funding** |
+| Rights follow-up | **Licensing** |
+| Outcomes for SBIR | **What happened** |
+
+Ask about SBIR eligibility, solicitations, licensing follow-ups, diligence, or your next process step.
+${footer()}`;
+  }
   return GUIDES[topic](userText);
 }
 

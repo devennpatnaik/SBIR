@@ -13,7 +13,8 @@ import { SourcesPanel } from '../components/Sources';
 import { OutcomesForm } from '../components/Outcomes';
 import { Badge, Button, Card, Disclosure, displayName, displaySummary, ErrorNote, Notice, PageHeader, SampleBadge, SourceLink, Tabs } from '../components/ui';
 
-export function TechnologyDetail({ id }: { id: string }) {
+export function TechnologyDetail({ id, trackMode = 'sbir' }: { id: string; trackMode?: 'sbir' | 'patents' }) {
+  const patentsTrack = trackMode === 'patents';
   const q = useQuery<Technology>('technologies', b => b.eq('id', id), [id]);
   const ev = useQuery<Evaluation>('evaluations', b => b.eq('technology_id', id), [id]);
   const pr = useQuery<Project>('projects', b => b.eq('technology_id', id), [id]);
@@ -23,18 +24,21 @@ export function TechnologyDetail({ id }: { id: string }) {
   if (q.loading) return <p className="text-sm text-slate-500">Loading…</p>;
   if (!t) return <ErrorNote error={q.error ?? 'Technology not found.'} />;
   const s = summarize(ev.data[0], t);
+  const tabs = patentsTrack
+    ? ([['overview', 'Overview'], ['edit', 'Edit details'], ['outcomes', 'Notes'], ['evidence', 'Sources'], ['source', 'Original text']] as const)
+    : ([['overview', 'Overview'], ['edit', 'Edit details'], ['score', 'Score'], ['outcomes', 'What happened'], ['evidence', 'Sources & evidence'], ['source', 'Original source text']] as const);
 
   return (
     <div>
-      <button type="button" onClick={() => navigate('discover')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />All technologies</button>
+      <button type="button" onClick={() => navigate(patentsTrack ? 'shortlist' : 'discover')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />{patentsTrack ? 'Back to shortlist' : 'All technologies'}</button>
       <PageHeader title={t.name}
         subtitle={<span className="flex flex-wrap items-center gap-2">{t.is_sample && <SampleBadge />}{displayName(t.lab_name)}{t.source_url && <SourceLink url={t.source_url} label="Original listing" />}<span className="text-xs text-slate-500">Last reviewed {fmtDate(t.last_reviewed_at)}</span></span>}
         actions={<>
           <Button onClick={() => updateRow('technologies', t.id, { shortlisted: !t.shortlisted })}><Star className={t.shortlisted ? 'size-4 fill-amber-400 text-amber-500' : 'size-4'} />{t.shortlisted ? 'Shortlisted' : 'Shortlist'}</Button>
           <Button onClick={() => updateRow('technologies', t.id, { last_reviewed_at: nowIso() })}>Mark reviewed today</Button>
-          <SelectTechButton tech={t} evaluation={ev.data[0]} project={pr.data[0]} />
+          {!patentsTrack && <SelectTechButton tech={t} evaluation={ev.data[0]} project={pr.data[0]} />}
         </>} />
-      <Tabs tabs={[['overview', 'Overview'], ['edit', 'Edit details'], ['score', 'Score'], ['outcomes', 'What happened'], ['evidence', 'Sources & evidence'], ['source', 'Original source text']]} value={tab} onChange={setTab} />
+      <Tabs tabs={[...tabs]} value={tab} onChange={setTab} />
       <div className="mt-4">
         {tab === 'overview' && (
           <div><section className="project-story"><p className="eyebrow">THE TECHNOLOGY, IN PLAIN ENGLISH</p><p className="editorial thesis-text">{displaySummary(t.description)||'Add a description from the official listing.'}</p></section><div className="grid gap-5 md:grid-cols-2"><Card title="Where it could help"><p className="text-sm leading-relaxed">{displayName(t.applications)||'Applications not recorded.'}</p></Card><Card title="Who might use it"><p className="text-sm leading-relaxed">{displayName(t.customers)||'Potential customers not recorded.'}</p></Card></div>

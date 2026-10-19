@@ -1,13 +1,15 @@
 import { SbirPath } from './pages/SbirPath';
+import { SbirHome } from './pages/SbirHome';
 import { Patents } from './pages/Patents';
 import { Install } from './components/Install';
 import { QuickStart, Welcome, GUEST_START } from './pages/QuickStart';
 import { SimplePlan } from './pages/SimplePlan';
 import { Pathways } from './pages/Pathways';
 import { useEffect, useState } from 'react';
-import { Menu, X, ArrowUpRight, LogOut, Sparkles } from 'lucide-react';
+import { Menu, X, ArrowUpRight, LogOut, Sparkles, Landmark, Globe2 } from 'lucide-react';
 import { client, useSession } from './client';
-import { setStorageUser, useActiveProjectId, useRoute, navigate } from './lib/router';
+import { enterTrack, setStorageUser, useActiveProjectId, useRoute, navigate, getUrlTrack } from './lib/router';
+import { useTrack, TRACK_LABEL, type ProductTrack } from './lib/track';
 import { clearWriteError, invalidate, useDataError, useQuery } from './lib/data';
 import { DemoGuide, DemoLauncher } from './components/Demo';
 import type { Project } from './lib/types';
@@ -27,108 +29,314 @@ import { Help } from './pages/Help';
 import { AssistantDrawer } from './components/Assistant';
 import { Insights } from './pages/Insights';
 
-const EXPLORE = [{ key: 'discover', label: 'Technologies' }, { key: 'patents', label: 'Patents worldwide' }, { key: 'compare', label: 'Compare' }, { key: 'insights', label: 'What we learned' }, { key: 'pathways', label: 'Pathways' }, { key: 'funding', label: 'Funding & revenue' }];
-const WORKSPACE = [{ key: 'projects', label: 'My project' }, { key: 'licensing', label: 'Licensing' }, { key: 'proposals', label: 'Applications' }, { key: 'roadmap', label: 'Roadmap' }, { key: 'documents', label: 'Library' }];
-const SECTION_OF: Record<string, string> = { tech: 'discover', funding: 'funding' };
+const SBIR_EXPLORE = [
+  { key: 'discover', label: 'Gov R&D' },
+  { key: 'compare', label: 'Compare' },
+  { key: 'insights', label: 'What we learned' },
+  { key: 'pathways', label: 'Pathways' },
+  { key: 'funding', label: 'SBIR & funding' },
+];
+const SBIR_WORKSPACE = [
+  { key: 'projects', label: 'My project' },
+  { key: 'licensing', label: 'Licensing' },
+  { key: 'proposals', label: 'Applications' },
+  { key: 'roadmap', label: 'Roadmap' },
+  { key: 'documents', label: 'Library' },
+];
+const PATENT_NAV = [
+  { key: 'home', label: 'Search patents' },
+  { key: 'shortlist', label: 'Shortlist' },
+  { key: 'compare', label: 'Compare' },
+  { key: 'documents', label: 'Notes & files' },
+];
+const SECTION_OF: Record<string, string> = {
+  tech: 'discover',
+  funding: 'funding',
+  home: 'home',
+  path: 'path',
+  shortlist: 'shortlist',
+  dashboard: 'home',
+};
 
 export function App() {
   const { data: session, isPending } = useSession();
-  const entryRoute=useRoute();
-  useEffect(()=>{if(session&&['signin','signup'].includes(entryRoute[0]??''))navigate(sessionStorage.getItem(GUEST_START)?'start':'dashboard');},[session?.user.id,entryRoute[0]]);
+  const entryRoute = useRoute();
+  const track = useTrack();
+
+  useEffect(() => {
+    if (session && ['signin', 'signup'].includes(entryRoute[0] ?? '')) {
+      navigate(sessionStorage.getItem(GUEST_START) ? 'start' : (track === 'patents' ? 'patents/home' : 'sbir/home'));
+    }
+  }, [session?.user.id, entryRoute[0], track]);
+
   if (isPending) return <p role="status" className="p-8 text-sm text-slate-500">Opening your workspace…</p>;
-  const preset=entryRoute[0]==='start'&&(entryRoute[1]==='sbir'||entryRoute[1]==='explore')?entryRoute[1]:undefined;
-  if (!session) return entryRoute[0]==='start'?<QuickStart key={preset??''} preset={preset}/>:entryRoute[0]==='sbir-path'?<SbirPath signedIn={false}/>:['signin','signup'].includes(entryRoute[0]??'')?<SignIn key={entryRoute[0]} initialMode={entryRoute[0]==='signup'?'signUp':'signIn'}/>:<Welcome/>;
+
+  const preset = entryRoute[0] === 'start' && (entryRoute[1] === 'sbir' || entryRoute[1] === 'explore') ? entryRoute[1] : undefined;
+
+  if (!session) {
+    if (entryRoute[0] === 'start') return <QuickStart key={preset ?? ''} preset={preset} />;
+    if (['signin', 'signup'].includes(entryRoute[0] ?? '')) {
+      return <SignIn key={entryRoute[0]} initialMode={entryRoute[0] === 'signup' ? 'signUp' : 'signIn'} />;
+    }
+    // Guest track surfaces — only when URL includes a track prefix
+    const urlTrack = getUrlTrack();
+    if (urlTrack === 'sbir') {
+      if (entryRoute[0] === 'path') return <SbirPath signedIn={false} />;
+      return <SbirHome signedIn={false} />;
+    }
+    if (urlTrack === 'patents') {
+      return (
+        <div className="guest-track-shell">
+          <header className="guest-track-header">
+            <a className="wordmark" href="#/"><span className="brand-mark">↗</span>lab to market.</a>
+            <a href="#/signin">Sign in</a>
+          </header>
+          <Patents signedIn={false} />
+        </div>
+      );
+    }
+    return <Welcome />;
+  }
+
   setStorageUser(session.user.id);
   return <Workspace key={session.user.id} user={session.user} />;
 }
 
 function Workspace({ user }: { user: { id: string; email: string } }) {
   const route = useRoute();
+  const track = useTrack();
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(()=>{const open=()=>setAssistantOpen(true);window.addEventListener('ltm-workflow-chat',open);return()=>window.removeEventListener('ltm-workflow-chat',open);},[]);
+  useEffect(() => {
+    const open = () => setAssistantOpen(true);
+    window.addEventListener('ltm-workflow-chat', open);
+    return () => window.removeEventListener('ltm-workflow-chat', open);
+  }, []);
   const [activeId, setActive] = useActiveProjectId();
   const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
   useEffect(() => {
     if (!projects.loading && !projects.error && !projects.data.some(p => p.id === activeId)) setActive(projects.data[0]?.id ?? null);
   }, [projects.data, projects.loading, projects.error, activeId, setActive]);
-  useEffect(() => { setMenuOpen(false); window.scrollTo(0,0); document.querySelector<HTMLAnchorElement>('.context-nav a[aria-current="page"]')?.scrollIntoView({block:'nearest',inline:'center'}); }, [route.join('/')]);
   useEffect(() => {
-    const close = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) { if(menuOpen){setMenuOpen(false);document.querySelector<HTMLButtonElement>('.menu-trigger')?.focus();} if(assistantOpen){setAssistantOpen(false);document.querySelector<HTMLButtonElement>('.ask-button')?.focus();} } };
+    setMenuOpen(false);
+    window.scrollTo(0, 0);
+    document.querySelector<HTMLAnchorElement>('.context-nav a[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [route.join('/'), track]);
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) {
+        if (menuOpen) { setMenuOpen(false); document.querySelector<HTMLButtonElement>('.menu-trigger')?.focus(); }
+        if (assistantOpen) { setAssistantOpen(false); document.querySelector<HTMLButtonElement>('.ask-button')?.focus(); }
+      }
+    };
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
   }, [menuOpen, assistantOpen]);
-  useEffect(() => { if(menuOpen) document.querySelector<HTMLAnchorElement>('#workspace-menu a')?.focus(); }, [menuOpen]);
-  const [section = 'dashboard', id] = route;
-  const active = SECTION_OF[section] ?? section;
-  const simple=!!projects.data.find(p=>p.id===activeId)?.intake_key;
+  useEffect(() => { if (menuOpen) document.querySelector<HTMLAnchorElement>('#workspace-menu a')?.focus(); }, [menuOpen]);
 
-  const group = section==='plan'?'workspace':EXPLORE.some(n => n.key === active) ? 'explore' : WORKSPACE.some(n => n.key === active) ? 'workspace' : 'today';
-  const subnav = ['start','plan','sbir-path'].includes(section) ? [] : group === 'explore' ? EXPLORE : group === 'workspace' ? WORKSPACE : [];
-  const fullProjectLink=activeId?`projects/${activeId}`:'projects';
-  const projectLink = simple&&activeId?`plan/${activeId}`:activeId ? `projects/${activeId}` : 'projects';
+  const [section = 'home', id] = route;
+  const active = SECTION_OF[section] ?? section;
+  const simple = !!projects.data.find(p => p.id === activeId)?.intake_key;
+  const fullProjectLink = activeId ? `projects/${activeId}` : 'projects';
+  const projectLink = simple && activeId ? `plan/${activeId}` : activeId ? `projects/${activeId}` : 'projects';
+
+  const isPatents = track === 'patents';
+  const exploreKeys = isPatents ? PATENT_NAV.map(n => n.key) : SBIR_EXPLORE.map(n => n.key);
+  const group = section === 'plan' || section === 'path'
+    ? (section === 'path' ? 'today' : 'workspace')
+    : exploreKeys.includes(active) || active === 'discover' || active === 'shortlist'
+      ? 'explore'
+      : SBIR_WORKSPACE.some(n => n.key === active)
+        ? 'workspace'
+        : 'today';
+
+  const subnav = isPatents
+    ? (['start', 'plan', 'path'].includes(section) ? [] : PATENT_NAV)
+    : (['start', 'plan', 'path'].includes(section) ? [] : group === 'explore' ? SBIR_EXPLORE : group === 'workspace' ? SBIR_WORKSPACE : []);
+
+  const homeHref = isPatents ? '#/patents/home' : '#/sbir/home';
+
   return (
-    <div className="app-shell">
-      <a className="skip-link" href="#workspace" onClick={e=>{e.preventDefault();document.getElementById('workspace')?.focus();}}>Skip to content</a>
+    <div className={`app-shell track-${track}`}>
+      <a className="skip-link" href="#workspace" onClick={e => { e.preventDefault(); document.getElementById('workspace')?.focus(); }}>Skip to content</a>
       <header className="app-header">
         <div className="header-inner">
-          <a href="#/dashboard" className="wordmark" aria-label="Lab to Market home"><span className="brand-mark">↗</span>lab to market<span className="brand-dot">.</span></a>
+          <a href={homeHref} className="wordmark" aria-label="Lab to Market home"><span className="brand-mark">↗</span>lab to market<span className="brand-dot">.</span></a>
           <nav className="primary-nav" aria-label="Main">
-            <a href="#/dashboard" aria-current={group === 'today' && active !== 'help' ? 'page' : undefined}>Today</a>
-            <a href="#/discover" aria-current={group === 'explore' ? 'page' : undefined}>Explore</a>
-            <a href={`#/${projectLink}`} aria-current={group === 'workspace'||section==='plan' ? 'page' : undefined}>{simple?'My plan':'Workspace'}</a>
+            {isPatents ? (
+              <>
+                <a href="#/patents/home" aria-current={active === 'home' ? 'page' : undefined}>Patents</a>
+                <a href="#/patents/shortlist" aria-current={active === 'shortlist' || active === 'discover' ? 'page' : undefined}>Shortlist</a>
+                <a href="#/patents/compare" aria-current={active === 'compare' ? 'page' : undefined}>Compare</a>
+              </>
+            ) : (
+              <>
+                <a href="#/sbir/home" aria-current={group === 'today' && active !== 'help' ? 'page' : undefined}>Today</a>
+                <a href="#/sbir/discover" aria-current={group === 'explore' ? 'page' : undefined}>Gov R&amp;D</a>
+                <a href={`#/sbir/${projectLink}`} aria-current={group === 'workspace' || section === 'plan' ? 'page' : undefined}>{simple ? 'My plan' : 'Workspace'}</a>
+              </>
+            )}
           </nav>
           <div className="header-actions">
+            <TrackChip track={track} />
             <button type="button" onClick={() => setAssistantOpen(true)} className="ask-button" aria-label="Research assistant"><Sparkles size={16} /><span>Ask a guide</span></button>
-            <button type="button" className="menu-trigger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="workspace-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20}/> : <Menu size={20}/>}</button>
+            <button type="button" className="menu-trigger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="workspace-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
           </div>
         </div>
-        {subnav.length > 0 && <nav className="context-nav" aria-label={group === 'explore' ? 'Explore sections' : 'Project sections'}>{subnav.map(n => <a key={n.key} aria-current={active === n.key ? 'page' : undefined} href={`#/${n.key === 'projects' ? projectLink : n.key}`}>{n.label}</a>)}</nav>}
+        {subnav.length > 0 && (
+          <nav className="context-nav" aria-label={isPatents ? 'Patent track sections' : group === 'explore' ? 'SBIR explore' : 'Project sections'}>
+            {subnav.map(n => (
+              <a
+                key={n.key}
+                aria-current={active === n.key || (n.key === 'shortlist' && active === 'discover') ? 'page' : undefined}
+                href={`#/${track}/${n.key === 'projects' ? projectLink : n.key === 'shortlist' ? 'shortlist' : n.key}`}
+              >
+                {n.label}
+              </a>
+            ))}
+          </nav>
+        )}
       </header>
-      {menuOpen && <><button className="menu-backdrop" type="button" aria-label="Close navigation overlay" onClick={() => setMenuOpen(false)}/><div id="workspace-menu" className="workspace-menu">
-        <div className="eyebrow">Your space</div>
-        <a href="#/start">Start an idea <ArrowUpRight size={16}/></a>
-        <a href="#/sbir-path">The SBIR path <ArrowUpRight size={16}/></a>
-        <a href="#/patents">Search patents worldwide <ArrowUpRight size={16}/></a>
-        <a href="#/pathways">Explore all routes <ArrowUpRight size={16}/></a>
-        <a href={`#/${fullProjectLink}`}>Full workspace <ArrowUpRight size={16}/></a>
-        <a href="#/projects">All projects <ArrowUpRight size={16}/></a>
-        <a href="#/help">Free help & programs <ArrowUpRight size={16}/></a>
-        <Install/>
-        <DemoLauncher />
-        <div className="menu-account"><span>{user.email}</span><button type="button" aria-label="Sign out" onClick={() => client.auth.signOut()}><LogOut size={16}/></button></div>
-      </div></>}
+      {menuOpen && (
+        <>
+          <button className="menu-backdrop" type="button" aria-label="Close navigation overlay" onClick={() => setMenuOpen(false)} />
+          <div id="workspace-menu" className="workspace-menu">
+            <div className="eyebrow">Active track</div>
+            <p className="menu-track-label">{TRACK_LABEL[track]}</p>
+            <button type="button" className="menu-track-switch" onClick={() => enterTrack(track === 'sbir' ? 'patents' : 'sbir')}>
+              Switch to {track === 'sbir' ? 'worldwide patents' : 'SBIR route'} <ArrowUpRight size={16} />
+            </button>
+            <div className="eyebrow">Your space</div>
+            {isPatents ? (
+              <>
+                <a href="#/patents/home">Search patents <ArrowUpRight size={16} /></a>
+                <a href="#/patents/shortlist">Shortlist <ArrowUpRight size={16} /></a>
+                <a href="#/patents/documents">Notes &amp; files <ArrowUpRight size={16} /></a>
+              </>
+            ) : (
+              <>
+                <a href="#/sbir/home">SBIR home <ArrowUpRight size={16} /></a>
+                <a href="#/sbir/path">The SBIR path <ArrowUpRight size={16} /></a>
+                <a href="#/start/sbir">Start an SBIR idea <ArrowUpRight size={16} /></a>
+                <a href="#/sbir/funding">SBIR &amp; funding <ArrowUpRight size={16} /></a>
+                <a href={`#/sbir/${fullProjectLink}`}>Full workspace <ArrowUpRight size={16} /></a>
+                <a href="#/sbir/help">Free help &amp; programs <ArrowUpRight size={16} /></a>
+              </>
+            )}
+            <Install />
+            {!isPatents && <DemoLauncher />}
+            <div className="menu-account"><span>{user.email}</span><button type="button" aria-label="Sign out" onClick={() => client.auth.signOut()}><LogOut size={16} /></button></div>
+          </div>
+        </>
+      )}
       <main id="workspace" tabIndex={-1} className="workspace-main">
         <DataErrorBanner />
-        <DemoGuide section={section} />
-        <div className="page-content" key={section + (id ?? '')}>
-          {section === 'dashboard' && <Dashboard />}
-          {section === 'start' && <QuickStart key={id??''} userId={user.id} preset={id==='sbir'||id==='explore'?id:undefined}/>}
-          {section === 'sbir-path' && <SbirPath signedIn/>}
-          {section === 'patents' && <Patents />}
-          {section === 'plan' && id && <SimplePlan projectId={id}/>}
-          {section === 'help' && <Help />}
-          {section === 'discover' && <Discover />}
-          {section === 'tech' && id && <TechnologyDetail id={id} />}
-          {section === 'compare' && <Compare />}
-          {section === 'insights' && <Insights />}
-          {section === 'pathways' && <Pathways id={id}/>}
-          {section === 'projects' && !id && <Projects />}
-          {section === 'projects' && id && <ProjectWorkspace id={id} />}
-          {section === 'licensing' && <Licensing />}
-          {section === 'funding' && !id && <Funding />}
-          {section === 'funding' && id && <OpportunityDetail id={id} />}
-          {section === 'proposals' && <Proposals id={id} />}
-          {section === 'roadmap' && <Roadmap />}
-          {section === 'documents' && <Documents />}
-          {!['start','sbir-path','patents','plan','signin','signup','dashboard', 'discover', 'tech', 'compare', 'insights', 'pathways', 'projects', 'licensing', 'funding', 'proposals', 'roadmap', 'documents', 'help'].includes(section) && (
-            <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate('dashboard')}>Go to dashboard</button></p>
-          )}
+        {!isPatents && <DemoGuide section={section === 'home' ? 'dashboard' : section} />}
+        <div className="page-content" key={`${track}-${section}-${id ?? ''}`}>
+          {renderPage({ section, id, track, userId: user.id })}
         </div>
       </main>
-      <footer className="app-footer"><span>One thoughtful step at a time.</span><a href="#/help">A little help along the way ↗</a></footer>
-      <AssistantDrawer userId={user.id} open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+      <footer className="app-footer">
+        <span>{isPatents ? 'Discover first. Decide later.' : 'One thoughtful step at a time.'}</span>
+        {isPatents
+          ? <button type="button" className="footer-track-link" onClick={() => enterTrack('sbir')}>Need SBIR coaching? Switch tracks ↗</button>
+          : <a href="#/sbir/help">A little help along the way ↗</a>}
+      </footer>
+      <AssistantDrawer userId={user.id} open={assistantOpen} onClose={() => setAssistantOpen(false)} track={track} />
     </div>
+  );
+}
+
+function TrackChip({ track }: { track: ProductTrack }) {
+  const Icon = track === 'sbir' ? Landmark : Globe2;
+  return (
+    <button
+      type="button"
+      className={`track-chip ${track}`}
+      title="Switch product track"
+      onClick={() => enterTrack(track === 'sbir' ? 'patents' : 'sbir')}
+    >
+      <Icon size={14} />
+      <span>{TRACK_LABEL[track]}</span>
+    </button>
+  );
+}
+
+function renderPage({
+  section, id, track, userId,
+}: {
+  section: string;
+  id?: string;
+  track: ProductTrack;
+  userId: string;
+}) {
+  const isPatents = track === 'patents';
+
+  if (section === 'home' || section === 'dashboard') {
+    return isPatents ? <Patents signedIn /> : <SbirHome signedIn />;
+  }
+  if (section === 'start') return <QuickStart key={id ?? ''} userId={userId} preset={id === 'sbir' || id === 'explore' ? id : undefined} />;
+  if (section === 'path' || section === 'sbir-path') {
+    if (isPatents) {
+      return (
+        <div className="track-redirect">
+          <p>The SBIR path belongs to the SBIR route.</p>
+          <button type="button" onClick={() => enterTrack('sbir', 'path')}>Open SBIR route →</button>
+        </div>
+      );
+    }
+    return <SbirPath signedIn />;
+  }
+  if (section === 'patents') return <Patents signedIn />;
+  if (section === 'shortlist') return <Discover trackMode="patents" />;
+  if (section === 'plan' && id) return <SimplePlan projectId={id} />;
+  if (section === 'help') {
+    if (isPatents) return <Patents signedIn />;
+    return <Help />;
+  }
+  if (section === 'discover') return <Discover trackMode={isPatents ? 'patents' : 'sbir'} />;
+  if (section === 'tech' && id) return <TechnologyDetail id={id} trackMode={isPatents ? 'patents' : 'sbir'} />;
+  if (section === 'compare') return <Compare />;
+  if (section === 'insights') {
+    if (isPatents) return <Discover trackMode="patents" />;
+    return <Insights />;
+  }
+  if (section === 'pathways') {
+    if (isPatents) return <Patents signedIn />;
+    return <Pathways id={id} />;
+  }
+  if (section === 'projects' && !id) {
+    if (isPatents) return <Discover trackMode="patents" />;
+    return <Projects />;
+  }
+  if (section === 'projects' && id) {
+    if (isPatents) return <TechnologyDetail id={id} trackMode="patents" />;
+    return <ProjectWorkspace id={id} />;
+  }
+  if (section === 'licensing') {
+    if (isPatents) return <Discover trackMode="patents" />;
+    return <Licensing />;
+  }
+  if (section === 'funding' && !id) {
+    if (isPatents) return <Patents signedIn />;
+    return <Funding />;
+  }
+  if (section === 'funding' && id) {
+    if (isPatents) return <Patents signedIn />;
+    return <OpportunityDetail id={id} />;
+  }
+  if (section === 'proposals') {
+    if (isPatents) return <Discover trackMode="patents" />;
+    return <Proposals id={id} />;
+  }
+  if (section === 'roadmap') {
+    if (isPatents) return <Discover trackMode="patents" />;
+    return <Roadmap />;
+  }
+  if (section === 'documents') return <Documents />;
+
+  return (
+    <p className="text-sm">Page not found. <button type="button" className="text-blue-700 underline" onClick={() => navigate(isPatents ? 'patents/home' : 'sbir/home')}>Go to track home</button></p>
   );
 }
 
@@ -153,12 +361,11 @@ function friendlyAuthError(message: string, mode: 'signIn' | 'signUp'): string {
   return message || (mode === 'signUp' ? 'Could not create the account.' : 'Sign in failed.');
 }
 
-function SignIn({initialMode='signIn'}:{initialMode?:'signIn'|'signUp'}) {
+function SignIn({ initialMode = 'signIn' }: { initialMode?: 'signIn' | 'signUp' }) {
   const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Read the fields from the form itself so browser/password-manager autofill is always included.
   const submit = async (form: HTMLFormElement) => {
     const data = new FormData(form);
     const email = String(data.get('email') ?? '').trim();
@@ -184,11 +391,10 @@ function SignIn({initialMode='signIn'}:{initialMode?:'signIn'|'signUp'}) {
 
   const signUp = mode === 'signUp';
   return (
-    <main className="auth-page"><div className="auth-story"><a href="#" className="wordmark"><span className="brand-mark">↗</span>lab to market.</a><div><p className="eyebrow">FROM RESEARCH TO REAL LIFE</p><h1>Your next idea<br/>starts here.</h1><p>A quieter space to explore lab technologies, plan your business, and take the next step.</p></div><span>Explore. Make a plan. Move forward.</span></div>
+    <main className="auth-page"><div className="auth-story"><a href="#" className="wordmark"><span className="brand-mark">↗</span>lab to market.</a><div><p className="eyebrow">FROM RESEARCH TO REAL LIFE</p><h1>Your next idea<br />starts here.</h1><p>A quieter space to explore lab technologies, plan your business, and take the next step.</p></div><span>Pick a track. Make a plan. Move forward.</span></div>
       <div className="auth-form">
         <div className="mb-8"><p className="eyebrow">YOUR PRIVATE WORKSPACE</p><h2 className="editorial text-4xl">{signUp ? 'Make room for your idea.' : 'Welcome back.'}</h2><p className="mt-3 text-sm text-slate-500">{signUp ? 'Your starting idea will be here after you sign up.' : 'Pick up where you left off.'}</p></div>
         <form noValidate onSubmit={e => { e.preventDefault(); void submit(e.currentTarget); }} className="flex flex-col gap-5">
-
           <label className="flex flex-col gap-1 text-sm">Email
             <input name="email" type="email" autoComplete="email" inputMode="email" className="rounded-md border border-slate-300 px-3 py-2" />
           </label>

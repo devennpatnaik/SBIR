@@ -4,18 +4,26 @@ import remarkGfm from 'remark-gfm';
 import { Loader2, Plus, Send, Square, X } from 'lucide-react';
 import { useLocalChat } from '../use-local-chat';
 import { getActiveProject } from '../lib/router';
+import type { ProductTrack } from '../lib/track';
 import { Button, Textarea } from './ui';
 
 const CONTEXT_RE = /^\[App context:[^\]]*\]\s*/;
 
-const PROMPTS = [
-  'What is the single most important next action on my project, and why?',
+const PROMPTS_SBIR = [
+  'What is the single most important next SBIR process step, and why?',
   'Summarize the technology in plain English.',
-  'Which pathways fit — licensing, SBIR, customers?',
+  'What should I verify before pursuing an SBIR topic?',
   'List the biggest risks and missing information.',
 ];
 
-export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onClose: () => void; userId: string }) {
+const PROMPTS_PATENTS = [
+  'How should I refine my patent search query?',
+  'What should I check on a patent record before shortlisting?',
+  'How do I tell if a patent looks unused or not commercialized?',
+  'What notes are worth saving on a patent lead?',
+];
+
+export function AssistantDrawer({ open, onClose, userId, track = 'sbir' }: { open: boolean; onClose: () => void; userId: string; track?: ProductTrack }) {
   const KEY = `ltm:${userId}:local-assistant`;
   const chat = useLocalChat(KEY);
   const [text, setText] = useState('');
@@ -45,9 +53,11 @@ export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onCl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const prompts = track === 'patents' ? PROMPTS_PATENTS : PROMPTS_SBIR;
+
   const send = async (msg: string) => {
     if (!msg.trim() || busy) return;
-    const ctx = `[App context: page=${window.location.hash || '#/dashboard'}; active_project_id=${getActiveProject() ?? 'none'}]`;
+    const ctx = `[App context: track=${track}; page=${window.location.hash || '#/'}; active_project_id=${getActiveProject() ?? 'none'}]`;
     setText('');
     await chat.send(`${ctx}\n${msg.trim()}`);
   };
@@ -73,15 +83,18 @@ export function AssistantDrawer({ open, onClose, userId }: { open: boolean; onCl
         {!chat.messages.length && (
           <div className="space-y-2">
             <p className="text-sm text-slate-600">
-              Ask about the technology, licensing, funding, or your next step. Answers should label facts as <b>verified</b>, <b>sourced</b>, <b>estimate</b>, or <b>hypothesis</b>.
+              {track === 'patents'
+                ? 'Ask about patent search, reading a record, or shortlisting. This track does not coach SBIR commercialization.'
+                : 'Ask about government R&D, SBIR process steps, licensing follow-ups, or your next move.'}
+              {' '}Answers should label facts as <b>verified</b>, <b>sourced</b>, <b>estimate</b>, or <b>hypothesis</b>.
             </p>
             {!chat.assistant?.configured && (
               <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-700" role="status">
-                Offline mode: you’ll get structured SBIR, licensing, diligence, and next-step checklists.
+                Offline mode: structured checklists for your <b>{track === 'patents' ? 'patents' : 'SBIR'}</b> track.
                 Add <code>OPENAI_API_KEY</code> or <code>ANTHROPIC_API_KEY</code> later for a live model.
               </p>
             )}
-            {PROMPTS.map(p => (
+            {prompts.map(p => (
               <button key={p} type="button" onClick={() => void send(p)} className="block w-full rounded-md border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50">{p}</button>
             ))}
           </div>

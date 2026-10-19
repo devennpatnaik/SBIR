@@ -14,7 +14,7 @@ export function DemoLauncher({ welcome = false }: { welcome?: boolean }) {
   const { busy, error, run } = useAsync();
   const start = () => run(async () => {
     const result = await backend<Demo>('/demo', { method: 'POST', body: JSON.stringify({ operation: 'create' }) });
-    setActiveProject(result.project_id); invalidate(); setOpen(false); navigate('dashboard');
+    setActiveProject(result.project_id); invalidate(); setOpen(false); navigate('home');
   });
   return <>
     {welcome ? <Card className="demo-welcome" title="Take a look around.">
@@ -35,7 +35,7 @@ export function DemoLauncher({ welcome = false }: { welcome?: boolean }) {
             if (!removing) { setRemoving(true); return; }
             void run(async () => {
               await backend('/demo', { method: 'POST', body: JSON.stringify({ operation: 'remove' }) });
-              setActiveProject(null); invalidate(); setRemoving(false); setOpen(false); navigate('dashboard');
+              setActiveProject(null); invalidate(); setRemoving(false); setOpen(false); navigate('home');
             });
           }}>{removing ? 'Yes, remove demo data' : 'Remove demo data'}</Button>}
           <Button disabled={busy} onClick={() => removing ? setRemoving(false) : setOpen(false)}>Cancel</Button>

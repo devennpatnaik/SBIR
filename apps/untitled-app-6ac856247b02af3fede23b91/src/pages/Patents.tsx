@@ -1,21 +1,28 @@
 import { useState } from 'react';
 import { ArrowUpRight, Check, Globe2, Search } from 'lucide-react';
-import { navigate } from '../lib/router';
+import { enterTrack, navigate } from '../lib/router';
 import { OWNER_LABEL, PatentError, patentApi, type PatentHit, type PatentLink, type PatentResults } from '../lib/patents';
 import { Badge, Button, ErrorNote, Input, Notice, Select } from '../components/ui';
 const COUNTRIES:[string,string][]=[['','All countries'],['US','United States'],['EP','European Patent Office'],['WO','International (PCT)'],['CN','China'],['JP','Japan'],['KR','South Korea'],['DE','Germany'],['GB','United Kingdom'],['FR','France'],['CA','Canada'],['AU','Australia'],['IN','India']];
 type Filters={q:string;country:string;status:string;age:string;owner:string};
-export function Patents(){
+export function Patents({ signedIn = true }: { signedIn?: boolean }){
  const [f,setF]=useState<Filters>({q:'',country:'',status:'',age:'',owner:''});
  const [res,setRes]=useState<PatentResults|null>(null);const [page,setPage]=useState(0);const [busy,setBusy]=useState(false);
  const [error,setError]=useState<{message:string;links:PatentLink[]}|null>(null);const [saved,setSaved]=useState<Record<string,{id:string;partial:boolean}>>({});const [saving,setSaving]=useState('');const [saveError,setSaveError]=useState('');
  const search=async(p=0)=>{if(f.q.trim().length<2)return;setBusy(true);setError(null);try{setRes(await patentApi<PatentResults>('/patents/search',{...f,page:p}));setPage(p);}catch(e){setError({message:e instanceof Error?e.message:'Search failed.',links:e instanceof PatentError?e.links:[]});}finally{setBusy(false);}};
- const save=async(h:PatentHit)=>{setSaving(h.key);setSaveError('');try{const r=await patentApi<{id:string;partial?:boolean}>('/patents/import',{key:h.key,hit:h});setSaved(s=>({...s,[h.key]:{id:r.id,partial:!!r.partial}}));}catch(e){setSaveError(`${h.key}: ${e instanceof Error?e.message:'Could not save.'}`);}finally{setSaving('');}};
+ const save=async(h:PatentHit)=>{
+  if(!signedIn){navigate('signin');return;}
+  setSaving(h.key);setSaveError('');try{const r=await patentApi<{id:string;partial?:boolean}>('/patents/import',{key:h.key,hit:h});setSaved(s=>({...s,[h.key]:{id:r.id,partial:!!r.partial}}));}catch(e){setSaveError(`${h.key}: ${e instanceof Error?e.message:'Could not save.'}`);}finally{setSaving('');}};
  const change=(p:Partial<Filters>)=>setF(v=>({...v,...p}));
- return <div className="patents-page">
-  <p className="eyebrow">EXPLORE ALL TECHNOLOGY</p>
-  <h1 className="editorial">Inventions waiting<br/>for someone to build them.</h1>
-  <p className="patents-lede">Search patents from around the world: companies, universities, government labs and independent inventors. Many never become products. Save the ones that interest you and we’ll help you approach the owner.</p>
+ return <div className="patents-page track-home patents-track-home">
+  <div className="track-banner patents" role="status">
+   <Globe2 size={16}/>
+   <span><strong>Worldwide patents</strong> — discovery only · may not be SBIR-eligible · no commercialization handholding</span>
+   <button type="button" className="track-switch-btn" onClick={()=>enterTrack('sbir')}>Switch to SBIR route</button>
+  </div>
+  <p className="eyebrow">TRACK B · WORLDWIDE PATENTS</p>
+  <h1 className="editorial">Find patents that<br/>haven’t been commercialized yet.</h1>
+  <p className="patents-lede">Search <strong>patents registered anywhere in the world</strong> that look unused or unfinished. Inspect the record, shortlist leads, and keep light notes. This track is discovery-focused — it does <em>not</em> walk you through SBIR or commercialization coaching. Many patents here are <strong>not SBIR-eligible</strong>.</p>
   <form className="patents-search" onSubmit={e=>{e.preventDefault();void search(0);}}>
    <div className="search-box"><Search size={18}/><Input aria-label="Describe the technology" placeholder="e.g. low-cost lead detection in drinking water" value={f.q} maxLength={250} onChange={e=>change({q:e.target.value})}/></div>
    <Button variant="primary" type="submit" busy={busy} disabled={f.q.trim().length<2}>Search patents</Button>
@@ -42,6 +49,9 @@ export function Patents(){
    <p className="patents-also"><Globe2 size={15}/> Also search: {res.links.map((l,i)=><span key={l.url}>{i>0&&' · '}<a href={l.url} target="_blank" rel="noopener noreferrer">{l.label}</a></span>)}</p>
   </section>}
   <Notice tone="slate">A patent record tells you who filed and whether it appears to be in force. It can’t tell you whether it’s already in a product, whether the owner will license it, or that you’re free to use it. Status and owners shown here come from Google Patents, not an official patent office. Confirm them in official records, and talk to a patent attorney before relying on a patent. General information, not legal advice.</Notice>
-  <p className="patents-sbir">Want to be paid to develop government research instead? <a href="#/sbir-path">See the SBIR path ↗</a></p>
+  <p className="track-switch">Need federal R&D funding coaching instead?{' '}
+   <button type="button" onClick={()=>enterTrack('sbir')}>Switch to the SBIR route →</button>
+  </p>
+  {!signedIn&&<p className="patents-guest-note">You can search without an account. Sign in to shortlist patents to your saved leads.</p>}
  </div>;
 }

@@ -16,6 +16,19 @@ describe('offline guide', () => {
     expect(reply.length).toBeGreaterThan(400);
   });
 
+  test('patents track refuses SBIR coaching', () => {
+    const reply = offlineGuideReply('[App context: track=patents; page=#/patents/home]\nWhat is my next step for SBIR?');
+    expect(reply).toContain('worldwide patents');
+    expect(reply).toContain('does **not** include SBIR');
+    expect(reply).toContain('Switch to the **SBIR route**');
+  });
+
+  test('sbir track orients to process steps', () => {
+    const reply = offlineGuideReply('[App context: track=sbir; page=#/sbir/home]\nHello');
+    expect(reply).toContain('SBIR route');
+    expect(reply).toContain('The SBIR path');
+  });
+
   test('pathway templates include local project fields', () => {
     const doc = offlinePathwayDocument({
       action: 'draft',

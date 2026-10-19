@@ -347,3 +347,34 @@ aside[aria-label="Research assistant"]>header{padding:24px;}aside[aria-label="Re
 .patents-sbir{font-size:13px;color:#5f6f54;margin:22px 0}
 .patents-sbir a{text-decoration:underline}
 @media(max-width:640px){.welcome-doors{grid-template-columns:1fr}.welcome-door{padding:22px}.welcome-door strong{font-size:22px}.sbir-phases{grid-template-columns:1fr}.sbir-path.standalone{padding:22px 22px 50px}.sbir-path>h1{font-size:40px}.sbir-facts{padding:22px}.patents-search{flex-direction:column}.patents-filters>div{grid-template-columns:1fr}.patents-page>h1{font-size:38px}.patent-card{padding:20px}}
+
+/* Two-track product chrome */
+.track-banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 14px;border-radius:14px;font-size:13px;margin:0 0 22px;line-height:1.4}
+.track-banner.sbir{background:#e7efe3;color:#244e3b;border:1px solid #c5d4b8}
+.track-banner.patents{background:#eef2f6;color:#2a3a4a;border:1px solid #d0d8e2}
+.track-banner strong{font-weight:600}
+.track-switch-btn,.footer-track-link,.track-switch button,.menu-track-switch{appearance:none;background:none;border:0;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer;font-weight:500}
+.track-switch-btn{margin-left:auto;white-space:nowrap}
+.track-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #d5ddd0;background:#f7f8f2;font-size:12px;font-weight:500;color:#35503a;cursor:pointer}
+.track-chip.patents{background:#f3f6f9;border-color:#d3dbe4;color:#2f4558}
+.track-chip:hover{filter:brightness(0.98)}
+.track-home.guest{max-width:720px;margin:0 auto;padding:40px 6vw 80px}
+.track-home.guest h1{font-size:clamp(36px,5vw,56px);line-height:1.1;letter-spacing:-1.5px;margin:10px 0 18px}
+.track-lede{font-size:16px;line-height:1.75;color:#5f6d58;margin-bottom:22px}
+.track-lede strong{color:#2f4a28;font-weight:600}
+.track-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:28px}
+.track-pillars{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:12px}
+.track-pillars li{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:1px solid #e0e6d8;border-radius:16px;background:#fff;color:#5b7847}
+.track-pillars span{display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.55;color:#6a7860}
+.track-pillars strong{font-size:14px;color:#2f4a28}
+.track-switch{font-size:13px;color:#6a7860}
+.guest-track-shell{min-height:100dvh;background:#f8f9f1}
+.guest-track-header{display:flex;justify-content:space-between;align-items:center;padding:22px 6vw}
+.patents-guest-note{font-size:13px;color:#6a7860;margin-top:12px}
+.menu-track-label{font-size:14px;font-weight:600;color:#2f4a28;margin:0 0 8px}
+.menu-track-switch{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:8px 0 14px;margin-bottom:8px;border-bottom:1px solid #e5eadc}
+.track-redirect{padding:40px 0;text-align:center;color:#5f6d58}
+.track-redirect button{margin-top:12px;text-decoration:underline;color:#244e3b;font-weight:500}
+.app-shell.track-patents .context-nav{background:#f3f6f9}
+.sbir-switch-link{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;font:inherit;color:#426947;text-decoration:underline;cursor:pointer}
+@media(max-width:720px){.track-chip span{display:none}.track-banner{font-size:12px}.track-switch-btn{margin-left:0}}
