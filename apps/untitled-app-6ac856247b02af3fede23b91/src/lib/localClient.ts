@@ -24,18 +24,22 @@ function writeSession(s: Session | null) {
   window.dispatchEvent(new Event('ltm-auth-change'));
 }
 
-type Filter = { type: 'eq' | 'in'; col: string; val: unknown };
+type Filter = { type: 'eq' | 'in' | 'ilike' | 'is'; col: string; val: unknown };
 type Order = { col: string; ascending: boolean; nullsFirst?: boolean };
 
 class QueryBuilder {
   private filters: Filter[] = [];
   private orders: Order[] = [];
   private wantSingle = false;
+  private rowLimit: number | null = null;
   constructor(private table: string, private method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET', private body?: unknown) {}
 
   select(_cols = '*') { return this; }
   eq(col: string, val: unknown) { this.filters.push({ type: 'eq', col, val }); return this; }
   in(col: string, vals: unknown[]) { this.filters.push({ type: 'in', col, val: vals }); return this; }
+  ilike(col: string, val: unknown) { this.filters.push({ type: 'ilike', col, val }); return this; }
+  is(col: string, val: unknown) { this.filters.push({ type: 'is', col, val }); return this; }
+  limit(n: number) { this.rowLimit = n; return this; }
   order(col: string, opts?: { ascending?: boolean; nullsFirst?: boolean }) {
     this.orders.push({ col, ascending: opts?.ascending !== false, nullsFirst: opts?.nullsFirst });
     return this;
@@ -61,6 +65,8 @@ class QueryBuilder {
     for (const f of this.filters) {
       if (f.type === 'eq') q.set(f.col, `eq.${f.val}`);
       else if (f.type === 'in') q.set(f.col, `in.(${(f.val as unknown[]).map(v => `"${String(v).replace(/"/g, '')}"`).join(',')})`);
+      else if (f.type === 'ilike') q.set(f.col, `ilike.${f.val}`);
+      else if (f.type === 'is') q.set(f.col, `is.${f.val === null ? 'null' : String(f.val)}`);
     }
     for (const o of this.orders) {
       const dir = o.ascending ? 'asc' : 'desc';
@@ -68,6 +74,7 @@ class QueryBuilder {
       q.append('order', `${o.col}.${dir}${nulls}`);
     }
     if (this.wantSingle) q.set('limit', '1');
+    else if (this.rowLimit != null) q.set('limit', String(this.rowLimit));
     const qs = q.toString();
     return `${apiBase()}/data/rest/${this.table}${qs ? `?${qs}` : ''}`;
   }
