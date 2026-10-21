@@ -52,10 +52,10 @@ jobs:
           done
           docker compose -f deploy/selfhost/docker-compose.yml logs --tail 80
           exit 1
-      - name: Offline assistant status
+      - name: Assistant retired (list→pursue)
         run: |
           curl -sf http://127.0.0.1:8787/assistant/status | tee /tmp/assistant.json
-          grep -q offline /tmp/assistant.json || grep -q '"provider":"offline"' /tmp/assistant.json
+          grep -Eq 'retired|offline|Pursue' /tmp/assistant.json
       - name: Compose down
         if: always()
         working-directory: deploy/selfhost

@@ -6,14 +6,13 @@ import { QuickStart, Welcome, GUEST_START } from './pages/QuickStart';
 import { SimplePlan } from './pages/SimplePlan';
 import { Pathways } from './pages/Pathways';
 import { useEffect, useState } from 'react';
-import { Menu, X, ArrowUpRight, LogOut, Sparkles, Landmark, Globe2 } from 'lucide-react';
+import { Menu, X, ArrowUpRight, LogOut, Landmark, Globe2, ListChecks } from 'lucide-react';
 import { client, useSession } from './client';
 import { enterTrack, setStorageUser, useActiveProjectId, useRoute, navigate, getUrlTrack } from './lib/router';
 import { useTrack, TRACK_LABEL, type ProductTrack } from './lib/track';
 import { clearWriteError, invalidate, useDataError, useQuery } from './lib/data';
 import { DemoGuide, DemoLauncher } from './components/Demo';
 import type { Project } from './lib/types';
-import { Dashboard } from './pages/Dashboard';
 import { Discover } from './pages/Discover';
 import { TechnologyDetail } from './pages/TechnologyDetail';
 import { Compare } from './pages/Compare';
@@ -26,10 +25,11 @@ import { Proposals } from './pages/Proposals';
 import { Roadmap } from './pages/Roadmap';
 import { Documents } from './pages/Documents';
 import { Help } from './pages/Help';
-import { AssistantDrawer } from './components/Assistant';
+import { Pursue } from './pages/Pursue';
 import { Insights } from './pages/Insights';
 
 const SBIR_EXPLORE = [
+  { key: 'pursue', label: 'Pursue' },
   { key: 'discover', label: 'Gov R&D' },
   { key: 'compare', label: 'Compare' },
   { key: 'insights', label: 'What we learned' },
@@ -44,6 +44,7 @@ const SBIR_WORKSPACE = [
   { key: 'documents', label: 'Library' },
 ];
 const PATENT_NAV = [
+  { key: 'pursue', label: 'Pursue' },
   { key: 'home', label: 'Search patents' },
   { key: 'shortlist', label: 'Shortlist' },
   { key: 'compare', label: 'Compare' },
@@ -56,6 +57,7 @@ const SECTION_OF: Record<string, string> = {
   path: 'path',
   shortlist: 'shortlist',
   dashboard: 'home',
+  pursue: 'pursue',
 };
 
 export function App() {
@@ -82,6 +84,17 @@ export function App() {
     const urlTrack = getUrlTrack();
     if (urlTrack === 'sbir') {
       if (entryRoute[0] === 'path') return <SbirPath signedIn={false} />;
+      if (entryRoute[0] === 'pursue') {
+        return (
+          <div className="guest-track-shell">
+            <header className="guest-track-header">
+              <a className="wordmark" href="#/"><span className="brand-mark">↗</span>lab to market.</a>
+              <a href="#/signin">Sign in</a>
+            </header>
+            <main className="workspace-main"><Pursue track="sbir" /></main>
+          </div>
+        );
+      }
       return <SbirHome signedIn={false} />;
     }
     if (urlTrack === 'patents') {
@@ -91,7 +104,7 @@ export function App() {
             <a className="wordmark" href="#/"><span className="brand-mark">↗</span>lab to market.</a>
             <a href="#/signin">Sign in</a>
           </header>
-          <Patents signedIn={false} />
+          {entryRoute[0] === 'pursue' ? <main className="workspace-main"><Pursue track="patents" /></main> : <Patents signedIn={false} />}
         </div>
       );
     }
@@ -105,13 +118,7 @@ export function App() {
 function Workspace({ user }: { user: { id: string; email: string } }) {
   const route = useRoute();
   const track = useTrack();
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => {
-    const open = () => setAssistantOpen(true);
-    window.addEventListener('ltm-workflow-chat', open);
-    return () => window.removeEventListener('ltm-workflow-chat', open);
-  }, []);
   const [activeId, setActive] = useActiveProjectId();
   const projects = useQuery<Project>('projects', q => q.eq('archived', false).order('updated_at', { ascending: false }));
   useEffect(() => {
@@ -124,14 +131,14 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
   }, [route.join('/'), track]);
   useEffect(() => {
     const close = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !document.querySelector('[role="dialog"]')) {
-        if (menuOpen) { setMenuOpen(false); document.querySelector<HTMLButtonElement>('.menu-trigger')?.focus(); }
-        if (assistantOpen) { setAssistantOpen(false); document.querySelector<HTMLButtonElement>('.ask-button')?.focus(); }
+      if (e.key === 'Escape' && !document.querySelector('[role="dialog"]') && menuOpen) {
+        setMenuOpen(false);
+        document.querySelector<HTMLButtonElement>('.menu-trigger')?.focus();
       }
     };
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
-  }, [menuOpen, assistantOpen]);
+  }, [menuOpen]);
   useEffect(() => { if (menuOpen) document.querySelector<HTMLAnchorElement>('#workspace-menu a')?.focus(); }, [menuOpen]);
 
   const [section = 'home', id] = route;
@@ -165,21 +172,21 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           <nav className="primary-nav" aria-label="Main">
             {isPatents ? (
               <>
+                <a href="#/patents/pursue" aria-current={active === 'pursue' ? 'page' : undefined}>Pursue</a>
                 <a href="#/patents/home" aria-current={active === 'home' ? 'page' : undefined}>Patents</a>
                 <a href="#/patents/shortlist" aria-current={active === 'shortlist' || active === 'discover' ? 'page' : undefined}>Shortlist</a>
-                <a href="#/patents/compare" aria-current={active === 'compare' ? 'page' : undefined}>Compare</a>
               </>
             ) : (
               <>
-                <a href="#/sbir/home" aria-current={group === 'today' && active !== 'help' ? 'page' : undefined}>Today</a>
-                <a href="#/sbir/discover" aria-current={group === 'explore' ? 'page' : undefined}>Gov R&amp;D</a>
+                <a href="#/sbir/pursue" aria-current={active === 'pursue' ? 'page' : undefined}>Pursue</a>
+                <a href="#/sbir/discover" aria-current={group === 'explore' && active !== 'pursue' ? 'page' : undefined}>Gov R&amp;D</a>
                 <a href={`#/sbir/${projectLink}`} aria-current={group === 'workspace' || section === 'plan' ? 'page' : undefined}>{simple ? 'My plan' : 'Workspace'}</a>
               </>
             )}
           </nav>
           <div className="header-actions">
             <TrackChip track={track} />
-            <button type="button" onClick={() => setAssistantOpen(true)} className="ask-button" aria-label="Research assistant"><Sparkles size={16} /><span>Ask a guide</span></button>
+            <a href={`#/${track}/pursue`} className="pursue-header-link" aria-label="Pursue next step"><ListChecks size={16} /><span>Pursue</span></a>
             <button type="button" className="menu-trigger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="workspace-menu" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
           </div>
         </div>
@@ -209,12 +216,14 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
             <div className="eyebrow">Your space</div>
             {isPatents ? (
               <>
+                <a href="#/patents/pursue">Pursue a lead <ArrowUpRight size={16} /></a>
                 <a href="#/patents/home">Search patents <ArrowUpRight size={16} /></a>
                 <a href="#/patents/shortlist">Shortlist <ArrowUpRight size={16} /></a>
                 <a href="#/patents/documents">Notes &amp; files <ArrowUpRight size={16} /></a>
               </>
             ) : (
               <>
+                <a href="#/sbir/pursue">Pursue next step <ArrowUpRight size={16} /></a>
                 <a href="#/sbir/home">SBIR home <ArrowUpRight size={16} /></a>
                 <a href="#/sbir/path">The SBIR path <ArrowUpRight size={16} /></a>
                 <a href="#/start/sbir">Start an SBIR idea <ArrowUpRight size={16} /></a>
@@ -242,7 +251,6 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
           ? <button type="button" className="footer-track-link" onClick={() => enterTrack('sbir')}>Need SBIR coaching? Switch tracks ↗</button>
           : <a href="#/sbir/help">A little help along the way ↗</a>}
       </footer>
-      <AssistantDrawer userId={user.id} open={assistantOpen} onClose={() => setAssistantOpen(false)} track={track} />
     </div>
   );
 }
@@ -275,6 +283,7 @@ function renderPage({
   if (section === 'home' || section === 'dashboard') {
     return isPatents ? <Patents signedIn /> : <SbirHome signedIn />;
   }
+  if (section === 'pursue') return <Pursue track={track} />;
   if (section === 'start') return <QuickStart key={id ?? ''} userId={userId} preset={id === 'sbir' || id === 'explore' ? id : undefined} />;
   if (section === 'path' || section === 'sbir-path') {
     if (isPatents) {

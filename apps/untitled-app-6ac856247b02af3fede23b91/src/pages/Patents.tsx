@@ -1,10 +1,25 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowUpRight, Check, Globe2, Search } from 'lucide-react';
 import { enterTrack, navigate } from '../lib/router';
 import { OWNER_LABEL, PatentError, patentApi, type PatentHit, type PatentLink, type PatentResults } from '../lib/patents';
 import { Badge, Button, ErrorNote, Input, Notice, Select } from '../components/ui';
 const COUNTRIES:[string,string][]=[['','All countries'],['US','United States'],['EP','European Patent Office'],['WO','International (PCT)'],['CN','China'],['JP','Japan'],['KR','South Korea'],['DE','Germany'],['GB','United Kingdom'],['FR','France'],['CA','Canada'],['AU','Australia'],['IN','India']];
 type Filters={q:string;country:string;status:string;age:string;owner:string};
+
+/** Heuristic “unused / not commercialized yet” fit for a search hit. */
+function patentHitScore(h: PatentHit): number {
+  let score = 40;
+  if (h.ownerKind === 'university' || h.ownerKind === 'federal_lab') score += 16;
+  else if (h.ownerKind === 'individual') score += 8;
+  else if (h.ownerKind === 'company') score += 2;
+  if (!h.grantDate) score += 6;
+  const year = Number.parseInt((h.filingDate || h.priorityDate || '').slice(0, 4), 10);
+  const now = new Date().getFullYear();
+  if (year && year <= now - 20) score += 14;
+  else if (year && year <= now - 10) score += 6;
+  return score;
+}
+
 export function Patents({ signedIn = true }: { signedIn?: boolean }){
  const [f,setF]=useState<Filters>({q:'',country:'',status:'',age:'',owner:''});
  const [res,setRes]=useState<PatentResults|null>(null);const [page,setPage]=useState(0);const [busy,setBusy]=useState(false);
@@ -14,6 +29,15 @@ export function Patents({ signedIn = true }: { signedIn?: boolean }){
   if(!signedIn){navigate('signin');return;}
   setSaving(h.key);setSaveError('');try{const r=await patentApi<{id:string;partial?:boolean}>('/patents/import',{key:h.key,hit:h});setSaved(s=>({...s,[h.key]:{id:r.id,partial:!!r.partial}}));}catch(e){setSaveError(`${h.key}: ${e instanceof Error?e.message:'Could not save.'}`);}finally{setSaving('');}};
  const change=(p:Partial<Filters>)=>setF(v=>({...v,...p}));
+ const rankedItems = useMemo(() => {
+  if (!res?.items.length) return [];
+  return [...res.items].sort((a, b) => {
+   const aSaved = saved[a.key] ? 1 : 0;
+   const bSaved = saved[b.key] ? 1 : 0;
+   if (aSaved !== bSaved) return aSaved - bSaved; // unpicked first
+   return patentHitScore(b) - patentHitScore(a);
+  });
+ }, [res, saved]);
  return <div className="patents-page track-home patents-track-home">
   <div className="track-banner patents" role="status">
    <Globe2 size={16}/>
@@ -22,7 +46,8 @@ export function Patents({ signedIn = true }: { signedIn?: boolean }){
   </div>
   <p className="eyebrow">TRACK B · WORLDWIDE PATENTS</p>
   <h1 className="editorial">Find patents that<br/>haven’t been commercialized yet.</h1>
-  <p className="patents-lede">Search <strong>patents registered anywhere in the world</strong> that look unused or unfinished. Inspect the record, shortlist leads, and keep light notes. This track is discovery-focused — it does <em>not</em> walk you through SBIR or commercialization coaching. Many patents here are <strong>not SBIR-eligible</strong>.</p>
+  <p className="patents-lede">Search <strong>patents registered anywhere in the world</strong> that look unused or unfinished. Select a lead, then pursue inspect/shortlist. This track is discovery-focused — it does <em>not</em> walk you through SBIR or commercialization coaching. Many patents here are <strong>not SBIR-eligible</strong>.</p>
+  <p className="pursue-rank-label" style={{marginBottom:16}}><a href="#/patents/pursue">Open pursue list</a> · Ranked search shows most promising unpicked first</p>
   <form className="patents-search" onSubmit={e=>{e.preventDefault();void search(0);}}>
    <div className="search-box"><Search size={18}/><Input aria-label="Describe the technology" placeholder="e.g. low-cost lead detection in drinking water" value={f.q} maxLength={250} onChange={e=>change({q:e.target.value})}/></div>
    <Button variant="primary" type="submit" busy={busy} disabled={f.q.trim().length<2}>Search patents</Button>
@@ -37,13 +62,14 @@ export function Patents({ signedIn = true }: { signedIn?: boolean }){
   <ErrorNote error={saveError}/>
   {res&&<section aria-live="polite">
    <p className="patents-count">{res.items.length?`About ${res.total.toLocaleString()} results from ${res.sourceName}, checked ${new Date(res.checkedAt).toLocaleString()}.`:'No patents matched. Try simpler words or fewer filters.'}</p>
-   <div className="patent-list">{res.items.map(h=>{const s=saved[h.key];return <article key={h.key} className="patent-card">
-    <div className="patent-meta"><Badge tone={h.ownerKind==='university'?'purple':h.ownerKind==='federal_lab'?'blue':h.ownerKind==='company'?'slate':'green'}>{OWNER_LABEL[h.ownerKind]}</Badge><span>{h.key}</span></div>
+   {rankedItems.length>0&&<p className="pursue-rank-label" role="status">Ranked: most promising unpicked</p>}
+   <div className="patent-list">{rankedItems.map(h=>{const s=saved[h.key];const fit=patentHitScore(h);return <article key={h.key} className="patent-card">
+    <div className="patent-meta"><Badge tone={h.ownerKind==='university'?'purple':h.ownerKind==='federal_lab'?'blue':h.ownerKind==='company'?'slate':'green'}>{OWNER_LABEL[h.ownerKind]}</Badge><span>{h.key}</span>{!s&&<Badge>Unpicked · fit {fit}</Badge>}</div>
     <h2>{h.title}</h2>
     <p className="patent-owner">{h.assignee||'No owner listed (may belong to the inventor)'}{h.inventor&&` · Inventor: ${h.inventor}`}</p>
     <p className="patent-snippet">{h.snippet}</p>
     <p className="patent-dates">{[h.priorityDate&&`Priority ${h.priorityDate}`,h.filingDate&&`Filed ${h.filingDate}`,h.grantDate?`Granted ${h.grantDate}`:'Not granted (application)'].filter(Boolean).join(' · ')}</p>
-    <div className="patent-actions">{s?<><span className="patent-saved"><Check size={15}/>Saved{s.partial?' (summary only)':''}</span><Button size="sm" onClick={()=>navigate(`tech/${s.id}`)}>Open</Button></>:<Button size="sm" variant="primary" busy={saving===h.key} disabled={!!saving} onClick={()=>void save(h)}>Save to my technologies</Button>}<a href={h.url} target="_blank" rel="noopener noreferrer">Full record <ArrowUpRight size={14}/></a></div>
+    <div className="patent-actions">{s?<><span className="patent-saved"><Check size={15}/>Shortlisted{s.partial?' (summary only)':''}</span><Button size="sm" variant="primary" onClick={()=>navigate(`tech/${s.id}`)}>Pursue / inspect</Button></>:<Button size="sm" variant="primary" busy={saving===h.key} disabled={!!saving} onClick={()=>void save(h)}>Pursue (shortlist)</Button>}<a href={h.url} target="_blank" rel="noopener noreferrer">Full record <ArrowUpRight size={14}/></a></div>
    </article>;})}</div>
    {res.items.length>0&&<div className="patents-pager">{page>0&&<Button size="sm" disabled={busy} onClick={()=>void search(page-1)}>Previous</Button>}{page+1<Math.min(res.pages,20)&&<Button size="sm" disabled={busy} onClick={()=>void search(page+1)}>More results</Button>}</div>}
    <p className="patents-also"><Globe2 size={15}/> Also search: {res.links.map((l,i)=><span key={l.url}>{i>0&&' · '}<a href={l.url} target="_blank" rel="noopener noreferrer">{l.label}</a></span>)}</p>

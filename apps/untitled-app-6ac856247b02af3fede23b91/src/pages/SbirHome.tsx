@@ -9,6 +9,16 @@ export function SbirHome({ signedIn }: { signedIn: boolean }) {
     return (
       <div className="track-home sbir-track-home">
         <TrackBanner />
+        <div className="pursue-home-cta">
+          <div>
+            <p className="eyebrow">SELECT → PURSUE</p>
+            <h2 className="editorial">Pick one thing. Move it forward.</h2>
+            <p>Choose a government R&amp;D lead or SBIR process step from a list — no chat.</p>
+          </div>
+          <Button variant="primary" onClick={() => navigate('sbir/pursue')}>
+            Open pursue list <ArrowRight size={16} />
+          </Button>
+        </div>
         <Dashboard />
       </div>
     );
@@ -24,7 +34,10 @@ export function SbirHome({ signedIn }: { signedIn: boolean }) {
         find a fit, follow up on rights, prepare funding steps, and log outcomes that matter for SBIR.
       </p>
       <div className="track-actions">
-        <Button variant="primary" onClick={() => navigate('sbir/path')}>
+        <Button variant="primary" onClick={() => navigate('sbir/pursue')}>
+          Pursue from a list <ArrowRight size={16} />
+        </Button>
+        <Button onClick={() => navigate('sbir/path')}>
           See the SBIR path <ArrowRight size={16} />
         </Button>
         <Button onClick={() => navigate('start/sbir')}>

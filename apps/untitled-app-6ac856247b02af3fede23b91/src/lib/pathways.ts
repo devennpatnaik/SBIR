@@ -8,4 +8,7 @@ export async function pathwayApi<T>(path:string,body?:unknown):Promise<T>{
  const r=await fetch(`${apiBase()}${path}`,{method:body===undefined?'GET':'POST',headers:{...await authHeaders(),'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
  const result=await r.json().catch(()=>({error:'The service returned an unreadable response.'}));if(!r.ok)throw new Error(result.error||`Request failed (${r.status})`);if(body!==undefined){clearWriteError();invalidate();}return result as T;
 }
-export function openWorkflowChat(sessionId:string){window.dispatchEvent(new CustomEvent('ltm-workflow-chat',{detail:{sessionId}}));}
+/** @deprecated Chat removed — use navigate('sbir/pursue') instead. */
+export function openWorkflowChat(_sessionId: string) {
+  window.location.hash = '/sbir/pursue';
+}

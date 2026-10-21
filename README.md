@@ -11,7 +11,7 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 ./lab-to-market up
 ```
 
-Ask a guide returns structured SBIR / licensing / diligence checklists offline. Pathway research/draft/review writes Markdown from your saved fields. Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` later for a live model.
+**Pursue** is list → select → next step (no chat). Lists rank **most promising unpicked** first (scores + Layer 4 when cohort ≥3 on SBIR; unused-patent heuristics on patents). Pathway research/draft/review still writes Markdown from your saved fields without an API key.
 
 CI: `bun scripts/smoke-offline.ts` and `scripts/ci-workflow.yml (install as GitHub Action when token has workflow scope)`.
 
@@ -21,7 +21,7 @@ CI: `bun scripts/smoke-offline.ts` and `scripts/ci-workflow.yml (install as GitH
 ./lab-to-market up
 ```
 
-Opens **http://localhost:8080**. Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in `deploy/selfhost/.env` for the research guide and pathway research/draft/review. Without a key, set `ASSISTANT_DEV_FALLBACK=1` for offline stubs.
+Opens **http://localhost:8080**. No chat guide. Optional keys only affect pathway LLM drafting if you add them later; pursue lists work offline.
 
 ## Quick start (Docker Compose — no Bourne account)
 
