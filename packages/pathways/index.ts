@@ -920,7 +920,7 @@ export const pathwayByKey = (key:string) => PATHWAYS.find(p=>p.key===key);
 export const OPPORTUNITY_PROGRAMS = ['Other','SBIR','STTR','SBIR/STTR','Grant','Cooperative agreement','Contract','Other transaction','Prize','I-Corps','Private capital','Paid pilot','Loan','Loan guarantee','Insurance','Tax incentive','Fund leverage','Technical assistance','Export support'];
 export const programPathway = (program:string) => ({Grant:'federal_assistance','Cooperative agreement':'federal_assistance',Contract:'federal_contract','Other transaction':'other_transaction',Prize:'prize','I-Corps':'icorps','Private capital':'private_capital','Paid pilot':'paid_pilot'}[program] || (program.includes('SBIR')||program==='STTR'?'sbir_sttr':null));
 
-export {PROGRAM_REFERENCES,type ProgramReference} from './programs';
+export {PROGRAM_REFERENCES,type ProgramReference} from './programs.ts';
 
 export function packetSections(program:string):string[]{
  const specific:Record<string,string[]>={

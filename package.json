@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "typecheck:agents": "tsc -p tsconfig.agent.json",
-    "build:agents": "eve build"
+    "build:agents": "eve build",
+    "ltm": "./lab-to-market"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",

@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
-# One-command Lab to Market (Docker Compose).
+# Lab to Market.
 #
-#   ./lab-to-market              # up --build (detached)
-#   ./lab-to-market up
-#   ./lab-to-market doctor       # env + docker checks (no keys required)
-#   ./lab-to-market reset-demo   # wipe DB volume and recreate (destructive)
-#   ./lab-to-market package      # write release tarball under dist/
-#   ./lab-to-market prod|down|logs|ps
-#
-# Works fully offline for core product + structured guide (no LLM key).
-# Optional: OPENAI_API_KEY or ANTHROPIC_API_KEY for live model answers.
+#   ./lab-to-market                  # next SBIR question, saved on this machine
+#   ./lab-to-market status --json    # where the record is
+#   ./lab-to-market do --name "..." --idea "..."
+#   ./lab-to-market up               # optional: Postgres + API + old web UI
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_DIR="$ROOT/deploy/selfhost"
-cd "$COMPOSE_DIR"
 
 ensure_env() {
   if [[ ! -f .env ]]; then
@@ -55,7 +49,8 @@ doctor() {
     echo "INFO API not running yet (start with ./lab-to-market up)"
   fi
   echo ""
-  echo "Native .app / .exe: not shipped. This script + Docker Compose is the distributable."
+  echo "Text interface: ./lab-to-market"
+  echo "API for that interface: ./lab-to-market up"
   [[ $ok -eq 1 ]] || exit 1
 }
 
@@ -88,8 +83,28 @@ package_release() {
   echo "Install: tar -xzf $name && cd lab-to-market-* 2>/dev/null; ./lab-to-market doctor && ./lab-to-market up"
 }
 
-cmd="${1:-up}"
-shift || true
+is_stack() {
+  case "$1" in
+    up|start|doctor|prod|reset-demo|reset|package|down|stop|logs|ps) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+cmd="${1:-}"
+if [[ -z "$cmd" ]] || ! is_stack "$cmd"; then
+  if command -v bun >/dev/null 2>&1; then
+    exec bun "$ROOT/cli/src/main.ts" "$@"
+  fi
+  if command -v node >/dev/null 2>&1; then
+    exec node --experimental-strip-types --disable-warning=ExperimentalWarning "$ROOT/cli/src/main.ts" "$@"
+  fi
+  echo "bun or Node.js 22+ is required for the text interface." >&2
+  echo "Or run ./lab-to-market up for the legacy web UI." >&2
+  exit 1
+fi
+
+cd "$COMPOSE_DIR"
+shift
 
 case "$cmd" in
   doctor)
@@ -99,8 +114,9 @@ case "$cmd" in
     ensure_env
     docker compose up -d --build "$@"
     echo ""
-    echo "Lab to Market → http://localhost:${WEB_PORT:-8080}"
-    echo "API health     → http://localhost:${API_PORT:-8787}/health"
+    echo "API            → http://localhost:${API_PORT:-8787}"
+    echo "Text interface → ./lab-to-market"
+    echo "Legacy web UI  → http://localhost:${WEB_PORT:-8080}"
     echo "Offline guide works without an LLM key. Optional: set OPENAI_API_KEY or ANTHROPIC_API_KEY in deploy/selfhost/.env"
     ;;
   prod)
@@ -113,7 +129,7 @@ case "$cmd" in
     echo "This deletes the Postgres volume (all local accounts/data)."
     docker compose down -v
     docker compose up -d --build
-    echo "Fresh stack at http://localhost:${WEB_PORT:-8080} — create an account, then Demo company."
+    echo "Fresh stack. Then: ./lab-to-market signup, and ./lab-to-market demo"
     ;;
   package)
     package_release
@@ -124,7 +140,7 @@ case "$cmd" in
   logs)
     docker compose logs -f "$@"
     ;;
-  ps|status)
+  ps)
     docker compose ps
     ;;
   *)

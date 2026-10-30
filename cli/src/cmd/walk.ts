@@ -1,0 +1,214 @@
+import readline from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
+import { flag, on, type Args } from '../args.ts';
+import { clearWork, draftPaths, loadWork, saveWork, writeDrafts } from '../sbir/store.ts';
+import {
+  applyPatch,
+  nextGate,
+  parseGateAnswer,
+  renderStatus,
+  where,
+  type Award,
+  type Company,
+  type Patch,
+  type Rights,
+  type SbirWork,
+  type YesLater,
+} from '../sbir/work.ts';
+import type { Ask } from './account.ts';
+
+function yesLater(value: string | undefined): YesLater | undefined {
+  if (value == null) return undefined;
+  const normalized = value.replace(/-/g, '_');
+  if (normalized === 'yes' || normalized === 'no' || normalized === 'later') return normalized;
+  throw new Error('Use yes, no, or later.');
+}
+
+function rightsOf(value: string | undefined): Rights | undefined {
+  if (value == null) return undefined;
+  const normalized = value.replace(/-/g, '_') as Rights;
+  if (normalized === 'not_needed' || normalized === 'asked' || normalized === 'available' || normalized === 'unavailable') return normalized;
+  throw new Error('Rights must be not-needed, asked, available, or unavailable.');
+}
+
+function companyOf(value: string | undefined): Company | undefined {
+  if (value == null) return undefined;
+  const normalized = value.replace(/-/g, '_') as Company;
+  if (normalized === 'ready' || normalized === 'not_yet' || normalized === 'partner') return normalized;
+  throw new Error('Company must be ready, not-yet, or partner.');
+}
+
+function awardOf(value: string | undefined): Award | undefined {
+  if (value == null) return undefined;
+  if (value === 'pending' || value === 'yes' || value === 'no') return value;
+  throw new Error('Award must be pending, yes, or no.');
+}
+
+export function patchFromFlags(args: Args): Patch {
+  const submitted = flag(args, 'submitted');
+  const phase2Submitted = flag(args, 'phase2-submitted');
+  return {
+    name: flag(args, 'name'),
+    idea: flag(args, 'idea'),
+    owner: flag(args, 'owner'),
+    skipOwner: on(args, 'skip-owner'),
+    source: flag(args, 'source'),
+    skipSource: on(args, 'skip-source'),
+    rights: rightsOf(flag(args, 'rights')),
+    rightsNote: flag(args, 'rights-note'),
+    company: companyOf(flag(args, 'company')),
+    sam: yesLater(flag(args, 'sam')),
+    sbirRegistry: yesLater(flag(args, 'sbir-registry')),
+    portal: yesLater(flag(args, 'portal')),
+    agency: flag(args, 'agency'),
+    number: flag(args, 'number'),
+    title: flag(args, 'title'),
+    closes: flag(args, 'closes'),
+    url: flag(args, 'url'),
+    objective: flag(args, 'objective'),
+    plan: flag(args, 'plan'),
+    market: flag(args, 'market'),
+    team: flag(args, 'team'),
+    budget: flag(args, 'budget'),
+    submitted: submitted == null ? undefined : submitted === 'yes',
+    ref: flag(args, 'ref'),
+    award: awardOf(flag(args, 'award')),
+    phase2Plan: flag(args, 'phase2-plan'),
+    phase2Customers: flag(args, 'phase2-customers'),
+    phase2Submitted: phase2Submitted == null ? undefined : phase2Submitted === 'yes',
+    phase2Ref: flag(args, 'phase2-ref'),
+    phase2Award: awardOf(flag(args, 'phase2-award')),
+    buyer: flag(args, 'buyer'),
+    offer: flag(args, 'offer'),
+    money: flag(args, 'money'),
+  };
+}
+
+function hasPatch(patch: Patch): boolean {
+  return Object.values(patch).some(value => value != null && value !== false);
+}
+
+export function statusPayload(work: SbirWork) {
+  const place = where(work);
+  const gate = nextGate(work);
+  const drafts = draftPaths();
+  return {
+    phase: place.phase,
+    heading: place.heading,
+    step: gate.id,
+    kind: gate.kind,
+    next: gate.title,
+    prompt: gate.prompt,
+    choices: gate.choices?.map(choice => ({ value: choice.value, label: choice.label })),
+    blocked: gate.kind === 'stop',
+    finished: gate.kind === 'done',
+    research: work.research,
+    rights: work.rights,
+    company: work.company,
+    registrations: work.registrations,
+    topic: work.topic,
+    phase1: { submittedAt: work.phase1.submittedAt, ref: work.phase1.ref, award: work.phase1.award },
+    phase2: { submittedAt: work.phase2.submittedAt, ref: work.phase2.ref, award: work.phase2.award },
+    phase3: work.phase3,
+    drafts,
+  };
+}
+
+function draftFile(work: SbirWork): string {
+  const gate = nextGate(work);
+  const drafts = draftPaths();
+  if (gate.kind === 'done' || gate.phase === 'III') return drafts.phase3;
+  if (gate.phase === 'II') return drafts.phase2;
+  return drafts.phase1;
+}
+
+function printWork(work: SbirWork, json: boolean, note = '', save = true): void {
+  if (save) saveWork(work);
+  else writeDrafts(work);
+  if (json) {
+    console.log(JSON.stringify({ ...statusPayload(work), note: note || undefined }, null, 2));
+    return;
+  }
+  if (note) console.log(`${note}\n`);
+  console.log(renderStatus(work));
+  console.log('');
+  console.log(`Draft: ${draftFile(work)}`);
+}
+
+export function showStatus(args: Args): void {
+  printWork(loadWork(), on(args, 'json'), '', false);
+}
+
+export async function doStep(args: Args, ask: Ask): Promise<void> {
+  const patch = patchFromFlags(args);
+  if (hasPatch(patch)) {
+    const applied = applyPatch(loadWork(), patch);
+    printWork(applied.work, on(args, 'json'), applied.note);
+    return;
+  }
+  if (!stdin.isTTY) throw new Error('Pass the next fact, for example: do --name "Ammonia sensor" --idea "Cheaper wastewater tests"');
+  await askOnce(ask, on(args, 'json'));
+}
+
+async function askOnce(ask: Ask, json: boolean): Promise<void> {
+  const work = loadWork();
+  const gate = nextGate(work);
+  if (!json) {
+    console.log(renderStatus(work));
+    console.log('');
+  }
+  if (gate.kind === 'done' || gate.kind === 'stop' || gate.kind === 'wait') {
+    if (json) console.log(JSON.stringify(statusPayload(work), null, 2));
+    return;
+  }
+  const line = await ask('> ');
+  const parsed = parseGateAnswer(gate, line);
+  if (parsed === 'quit' || parsed === 'pause') {
+    if (!json) console.log(parsed === 'pause' ? 'Left this for later. The draft is unchanged.' : 'Stopped. The draft is saved.');
+    return;
+  }
+  if (parsed === 'again') throw new Error('That was not one of the choices.');
+  const applied = applyPatch(work, parsed);
+  printWork(applied.work, json, applied.note);
+}
+
+export async function walkLoop(): Promise<void> {
+  const rl = readline.createInterface({ input: stdin, output: stdout });
+  const ask = (question: string) => rl.question(question);
+  console.log('SBIR on this machine. One question at a time. q leaves. Nothing is submitted for you.\n');
+  try {
+    for (;;) {
+      const work = loadWork();
+      const gate = nextGate(work);
+      console.log(renderStatus(work));
+      console.log(`\nDraft: ${draftFile(work)}`);
+      if (gate.kind === 'done' || gate.kind === 'stop' || gate.kind === 'wait') {
+        await ask('\nenter to close> ');
+        return;
+      }
+      const line = await ask('\n> ');
+      const parsed = parseGateAnswer(gate, line);
+      if (parsed === 'quit' || parsed === 'pause') return;
+      if (parsed === 'again') {
+        console.log('\nUse one of the numbers above, or q to leave.\n');
+        continue;
+      }
+      try {
+        const applied = applyPatch(work, parsed);
+        saveWork(applied.work);
+        console.log(applied.note ? `\n${applied.note}\n` : '\nSaved.\n');
+      } catch (error) {
+        console.log(`\n${error instanceof Error ? error.message : String(error)}\n`);
+      }
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+export function clearLocal(args: Args): void {
+  if (!on(args, 'yes')) throw new Error('This deletes the SBIR file on this machine. Re-run with: clear --yes');
+  clearWork();
+  if (on(args, 'json')) console.log(JSON.stringify({ cleared: true }));
+  else console.log('Deleted the local SBIR record and drafts.');
+}

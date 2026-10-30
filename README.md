@@ -4,24 +4,35 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 
 **Canonical remote:** Deven’s private GitHub repository (Bourne git hosting is abandoned).
 
-## Works without an API key
+## SBIR on this machine
+
+No account and no server. You pick the research, then walk Phase I, Phase II, and Phase III. The program asks one question at a time and writes the record on this computer. You still submit every proposal yourself.
+
+```bash
+./lab-to-market
+./lab-to-market status
+./lab-to-market do --name "Ammonia sensor" --idea "Cheaper wastewater tests"
+./lab-to-market clear --yes
+```
+
+The record is `~/.lab-to-market/sbir.json`. Drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. `LTM_DIR` moves that folder. Add `--json` when another program is driving the commands.
+
+Phase I proves it can work. Phase II builds and demonstrates it, and is not automatic. Phase III is a sale paid by a customer or by private capital, not an SBIR award. Close dates, tracking numbers, and award decisions are copied from official notices. This program does not invent them, and it does not submit, sign, or send anything.
+
+`claude-code-prompt.md` is the prompt to paste into Claude Code. It runs this walk one question at a time.
+
+`./lab-to-market menu` is the older list of lab records, grants, and patents. Those commands need `./lab-to-market up`. `path`, `guide`, and `programs` still run with no server.
+
+CI: `bun test cli/src/cli.test.ts`, `bun scripts/smoke-offline.ts`, and `scripts/ci-workflow.yml (install as GitHub Action when token has workflow scope)`.
+
+## API and legacy web UI
 
 ```bash
 ./lab-to-market doctor
 ./lab-to-market up
 ```
 
-**Pursue** is list → select → next step (no chat). Lists rank **most promising unpicked** first (scores + Layer 4 when cohort ≥3 on SBIR; unused-patent heuristics on patents). Pathway research/draft/review still writes Markdown from your saved fields without an API key.
-
-CI: `bun scripts/smoke-offline.ts` and `scripts/ci-workflow.yml (install as GitHub Action when token has workflow scope)`.
-
-## One command
-
-```bash
-./lab-to-market up
-```
-
-Opens **http://localhost:8080**. No chat guide. Optional keys only affect pathway LLM drafting if you add them later; pursue lists work offline.
+`up` starts the API the text interface talks to, and still serves the old web UI at **http://localhost:8080**. Day-to-day use is the terminal. Optional keys only affect pathway LLM drafting if you add them later.
 
 ## Quick start (Docker Compose — no Bourne account)
 

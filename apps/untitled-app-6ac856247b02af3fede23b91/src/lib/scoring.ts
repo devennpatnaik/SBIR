@@ -1,5 +1,5 @@
-import { DIMENSIONS, defaultWeights } from './constants';
-import type { Evaluation, Technology } from './types';
+import { DIMENSIONS, defaultWeights } from './constants.ts';
+import type { Evaluation, Technology } from './types.ts';
 
 export type ScoreSummary = {
   overall: number | null; // 0-100 weighted, over scored dimensions only

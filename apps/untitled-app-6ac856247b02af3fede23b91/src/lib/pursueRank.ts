@@ -2,9 +2,9 @@
  * Deterministic pursue-list ranking: unpicked first, then by promising score.
  * Uses existing scoring + Layer 4 learning helpers — no chatty AI ranker.
  */
-import { applyLearningScore, type CohortInsights } from '@project/learning';
-import { summarize } from './scoring';
-import type { Evaluation, Technology } from './types';
+import { applyLearningScore, type CohortInsights } from '../../../../packages/learning/index.ts';
+import { summarize } from './scoring.ts';
+import type { Evaluation, Technology } from './types.ts';
 
 export type PursueStatus = 'unpicked' | 'progress' | 'done';
 

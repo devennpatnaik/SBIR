@@ -1,0 +1,666 @@
+/** Local SBIR record. One file on this machine. Nothing here is submitted. */
+
+export type Rights = '' | 'not_needed' | 'asked' | 'available' | 'unavailable';
+export type Company = '' | 'ready' | 'not_yet' | 'partner';
+export type Award = '' | 'pending' | 'yes' | 'no';
+export type YesLater = 'yes' | 'no' | 'later';
+
+export type SbirWork = {
+  version: 1;
+  research: { name: string; idea: string; owner: string; source: string };
+  skipped: { owner: boolean; source: boolean };
+  rights: Rights;
+  rightsNote: string;
+  company: Company;
+  registrations: { sam: boolean; sbirGov: boolean; portal: boolean };
+  deferred: { sam: boolean; sbirGov: boolean; portal: boolean };
+  topic: { agency: string; number: string; title: string; closes: string; url: string };
+  phase1: {
+    objective: string; plan: string; market: string; team: string; budget: string;
+    submittedAt: string; ref: string; award: Award;
+  };
+  phase2: { plan: string; customers: string; submittedAt: string; ref: string; award: Award };
+  phase3: { buyer: string; offer: string; money: string };
+};
+
+export type Patch = {
+  name?: string;
+  idea?: string;
+  owner?: string;
+  skipOwner?: boolean;
+  source?: string;
+  skipSource?: boolean;
+  rights?: Rights;
+  rightsNote?: string;
+  company?: Company;
+  sam?: YesLater;
+  sbirRegistry?: YesLater;
+  portal?: YesLater;
+  agency?: string;
+  number?: string;
+  title?: string;
+  closes?: string;
+  url?: string;
+  objective?: string;
+  plan?: string;
+  market?: string;
+  team?: string;
+  budget?: string;
+  submitted?: boolean;
+  ref?: string;
+  award?: Award;
+  phase2Plan?: string;
+  phase2Customers?: string;
+  phase2Submitted?: boolean;
+  phase2Ref?: string;
+  phase2Award?: Award;
+  buyer?: string;
+  offer?: string;
+  money?: string;
+};
+
+export type Choice = { value: string; label: string };
+
+export type Gate = {
+  id: string;
+  phase: 'I' | 'II' | 'III';
+  title: string;
+  prompt: string;
+  kind: 'text' | 'choice' | 'ref' | 'stop' | 'wait' | 'done';
+  optional?: boolean;
+  choices?: Choice[];
+};
+
+const RIGHTS: Choice[] = [
+  { value: 'not_needed', label: 'This is our own work. Nobody else has to grant permission.' },
+  { value: 'asked', label: 'We still have to ask the owner.' },
+  { value: 'available', label: 'The owner said the rights we need are available.' },
+  { value: 'unavailable', label: 'The owner said no.' },
+];
+
+const COMPANY: Choice[] = [
+  { value: 'ready', label: 'We have a for-profit U.S. small business. I will confirm the size and ownership rules myself.' },
+  { value: 'not_yet', label: 'No company yet.' },
+  { value: 'partner', label: 'We will partner with a research institution (that may be STTR, not SBIR).' },
+];
+
+const REG: Choice[] = [
+  { value: 'yes', label: 'Done' },
+  { value: 'no', label: 'Not yet' },
+  { value: 'later', label: 'Not yet — keep going, and stop me before I record a submission' },
+];
+
+const AWARD: Choice[] = [
+  { value: 'pending', label: 'Submitted. No official decision yet.' },
+  { value: 'yes', label: 'Official notice says we were selected.' },
+  { value: 'no', label: 'Official notice says we were not selected.' },
+];
+
+export function emptyWork(): SbirWork {
+  return {
+    version: 1,
+    research: { name: '', idea: '', owner: '', source: '' },
+    skipped: { owner: false, source: false },
+    rights: '',
+    rightsNote: '',
+    company: '',
+    registrations: { sam: false, sbirGov: false, portal: false },
+    deferred: { sam: false, sbirGov: false, portal: false },
+    topic: { agency: '', number: '', title: '', closes: '', url: '' },
+    phase1: { objective: '', plan: '', market: '', team: '', budget: '', submittedAt: '', ref: '', award: '' },
+    phase2: { plan: '', customers: '', submittedAt: '', ref: '', award: '' },
+    phase3: { buyer: '', offer: '', money: '' },
+  };
+}
+
+function text(value: unknown, max: number, label: string): string {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (trimmed.length > max) throw new Error(`${label} is too long (max ${max} characters).`);
+  return trimmed;
+}
+
+export function normalize(raw: unknown): SbirWork {
+  const base = emptyWork();
+  if (!raw || typeof raw !== 'object') return base;
+  const row = raw as Partial<SbirWork>;
+  const research = row.research ?? base.research;
+  const topic = row.topic ?? base.topic;
+  const phase1 = row.phase1 ?? base.phase1;
+  const phase2 = row.phase2 ?? base.phase2;
+  const phase3 = row.phase3 ?? base.phase3;
+  const registrations = row.registrations ?? base.registrations;
+  const deferred = row.deferred ?? base.deferred;
+  const skipped = row.skipped ?? base.skipped;
+  return {
+    version: 1,
+    research: {
+      name: text(research.name, 200, 'Name'),
+      idea: text(research.idea, 2000, 'Idea'),
+      owner: text(research.owner, 200, 'Owner'),
+      source: text(research.source, 500, 'Link'),
+    },
+    skipped: { owner: Boolean(skipped.owner), source: Boolean(skipped.source) },
+    rights: isRights(row.rights) ? row.rights : '',
+    rightsNote: text(row.rightsNote, 2000, 'Rights note'),
+    company: isCompany(row.company) ? row.company : '',
+    registrations: {
+      sam: Boolean(registrations.sam),
+      sbirGov: Boolean(registrations.sbirGov),
+      portal: Boolean(registrations.portal),
+    },
+    deferred: {
+      sam: Boolean(deferred.sam),
+      sbirGov: Boolean(deferred.sbirGov),
+      portal: Boolean(deferred.portal),
+    },
+    topic: {
+      agency: text(topic.agency, 80, 'Agency'),
+      number: text(topic.number, 80, 'Number'),
+      title: text(topic.title, 300, 'Title'),
+      closes: text(topic.closes, 20, 'Close date'),
+      url: text(topic.url, 500, 'URL'),
+    },
+    phase1: {
+      objective: text(phase1.objective, 8000, 'Objective'),
+      plan: text(phase1.plan, 8000, 'Work plan'),
+      market: text(phase1.market, 8000, 'Customer'),
+      team: text(phase1.team, 4000, 'Team'),
+      budget: text(phase1.budget, 4000, 'Budget note'),
+      submittedAt: text(phase1.submittedAt, 20, 'Submitted date'),
+      ref: text(phase1.ref, 80, 'Tracking number'),
+      award: isAward(phase1.award) ? phase1.award : '',
+    },
+    phase2: {
+      plan: text(phase2.plan, 8000, 'Phase II plan'),
+      customers: text(phase2.customers, 8000, 'Customers'),
+      submittedAt: text(phase2.submittedAt, 20, 'Phase II date'),
+      ref: text(phase2.ref, 80, 'Phase II tracking number'),
+      award: isAward(phase2.award) ? phase2.award : '',
+    },
+    phase3: {
+      buyer: text(phase3.buyer, 2000, 'Buyer'),
+      offer: text(phase3.offer, 4000, 'Offer'),
+      money: text(phase3.money, 2000, 'Money'),
+    },
+  };
+}
+
+function isRights(value: unknown): value is Rights {
+  return value === '' || value === 'not_needed' || value === 'asked' || value === 'available' || value === 'unavailable';
+}
+function isCompany(value: unknown): value is Company {
+  return value === '' || value === 'ready' || value === 'not_yet' || value === 'partner';
+}
+function isAward(value: unknown): value is Award {
+  return value === '' || value === 'pending' || value === 'yes' || value === 'no';
+}
+
+export function isUrl(value: string): boolean {
+  return /^https?:\/\/\S+$/i.test(value);
+}
+
+export function isDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year!, month! - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month! - 1 && date.getUTCDate() === day;
+}
+
+function today(): string {
+  const date = new Date();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function clone(work: SbirWork): SbirWork {
+  return normalize(JSON.parse(JSON.stringify(work)) as unknown);
+}
+
+function missingPackage(work: SbirWork): string | null {
+  if (!work.research.name || !work.research.idea) return 'Name the research and what the company will do with it.';
+  if (!work.rights || work.rights === 'unavailable') return 'Rights are unresolved. An owner who said no blocks a proposal on that research.';
+  if (work.company !== 'ready' && work.company !== 'partner') return 'Record whether you have a U.S. small business, or a research partner.';
+  if (!work.topic.agency || !work.topic.number || !work.topic.title || !work.topic.closes || !work.topic.url) {
+    return 'Save the official solicitation: agency, number, title, close date, and URL.';
+  }
+  if (!work.phase1.objective || !work.phase1.plan || !work.phase1.market || !work.phase1.team || !work.phase1.budget) {
+    return 'Finish the Phase I notes: objective, work plan, customer, team, and what the money pays for.';
+  }
+  if (!work.registrations.sam || !work.registrations.sbirGov || !work.registrations.portal) {
+    return 'Registrations are still open: SAM.gov, the SBIR.gov company registry, and the agency portal.';
+  }
+  return null;
+}
+
+export type Applied = { work: SbirWork; note: string };
+
+/** Apply whatever the user just typed. Rejects a submission the record cannot support. */
+export function applyPatch(current: SbirWork, patch: Patch): Applied {
+  const work = clone(current);
+  const notes: string[] = [];
+
+  if (patch.name != null) work.research.name = text(patch.name, 200, 'Name');
+  if (patch.idea != null) work.research.idea = text(patch.idea, 2000, 'Idea');
+  if (patch.skipOwner) {
+    work.skipped.owner = true;
+    if (!work.research.owner) work.research.owner = 'Own work';
+  }
+  if (patch.owner != null && patch.owner.trim()) {
+    work.research.owner = text(patch.owner, 200, 'Owner');
+    work.skipped.owner = false;
+  }
+  if (patch.skipSource) work.skipped.source = true;
+  if (patch.source != null && patch.source.trim()) {
+    const source = text(patch.source, 500, 'Link');
+    if (!isUrl(source)) throw new Error('The link must start with http:// or https://.');
+    work.research.source = source;
+    work.skipped.source = false;
+  }
+  if (patch.rights != null) {
+    if (!isRights(patch.rights) || !patch.rights) throw new Error('Rights must be not-needed, asked, available, or unavailable.');
+    work.rights = patch.rights;
+  }
+  if (patch.rightsNote != null) work.rightsNote = text(patch.rightsNote, 2000, 'Rights note');
+  if (patch.company != null) {
+    if (!isCompany(patch.company) || !patch.company) throw new Error('Company must be ready, not-yet, or partner.');
+    work.company = patch.company;
+  }
+  const reg = (key: 'sam' | 'sbirGov' | 'portal', value: YesLater | undefined) => {
+    if (value == null) return;
+    if (value !== 'yes' && value !== 'no' && value !== 'later') throw new Error('Registration answers are yes, no, or later.');
+    work.registrations[key] = value === 'yes';
+    work.deferred[key] = value === 'later';
+  };
+  reg('sam', patch.sam);
+  reg('sbirGov', patch.sbirRegistry);
+  reg('portal', patch.portal);
+
+  const topicKeys = ['agency', 'number', 'title', 'closes', 'url'] as const;
+  let topicTouched = false;
+  for (const key of topicKeys) {
+    if (patch[key] != null) topicTouched = true;
+  }
+  if (patch.agency != null) work.topic.agency = text(patch.agency, 80, 'Agency');
+  if (patch.number != null) work.topic.number = text(patch.number, 80, 'Number');
+  if (patch.title != null) work.topic.title = text(patch.title, 300, 'Title');
+  if (patch.closes != null) {
+    const closes = text(patch.closes, 20, 'Close date');
+    if (closes && !isDate(closes)) throw new Error('Close date must be YYYY-MM-DD, copied from the official notice.');
+    work.topic.closes = closes;
+  }
+  if (patch.url != null) {
+    const url = text(patch.url, 500, 'URL');
+    if (url && !isUrl(url)) throw new Error('The solicitation URL must start with http:// or https://.');
+    if (url && url !== current.topic.url && current.phase1.submittedAt) {
+      work.phase1.submittedAt = '';
+      work.phase1.ref = '';
+      work.phase1.award = '';
+      work.phase2.submittedAt = '';
+      work.phase2.ref = '';
+      work.phase2.award = '';
+      if (patch.agency == null) work.topic.agency = '';
+      if (patch.number == null) work.topic.number = '';
+      if (patch.title == null) work.topic.title = '';
+      if (patch.closes == null) work.topic.closes = '';
+      notes.push('The solicitation link changed, so the old submission record was cleared. Copy the new notice in full. Your Phase I writing is still here.');
+    }
+    work.topic.url = url;
+  }
+  if (topicTouched && work.topic.url && !isUrl(work.topic.url)) throw new Error('The solicitation URL must start with http:// or https://.');
+  if (work.topic.closes && !isDate(work.topic.closes)) throw new Error('Close date must be YYYY-MM-DD, copied from the official notice.');
+
+  if (patch.objective != null) work.phase1.objective = text(patch.objective, 8000, 'Objective');
+  if (patch.plan != null) work.phase1.plan = text(patch.plan, 8000, 'Work plan');
+  if (patch.market != null) work.phase1.market = text(patch.market, 8000, 'Customer');
+  if (patch.team != null) work.phase1.team = text(patch.team, 4000, 'Team');
+  if (patch.budget != null) work.phase1.budget = text(patch.budget, 4000, 'Budget note');
+
+  if (patch.submitted) {
+    const problem = missingPackage(work);
+    if (problem) throw new Error(`Not ready to record a Phase I submission. ${problem}`);
+    const ref = text(patch.ref, 80, 'Tracking number');
+    if (!ref) throw new Error('Record the tracking number from the submission you made yourself.');
+    work.phase1.submittedAt = work.phase1.submittedAt || today();
+    work.phase1.ref = ref;
+  }
+  if (patch.award != null) {
+    if (!isAward(patch.award) || !patch.award) throw new Error('Award must be pending, yes, or no.');
+    if (!work.phase1.submittedAt) throw new Error('Record your Phase I submission before the decision.');
+    work.phase1.award = patch.award;
+  }
+
+  if (patch.phase2Plan != null) work.phase2.plan = text(patch.phase2Plan, 8000, 'Phase II plan');
+  if (patch.phase2Customers != null) work.phase2.customers = text(patch.phase2Customers, 8000, 'Customers');
+  if (patch.phase2Submitted) {
+    if (work.phase1.award !== 'yes') throw new Error('Phase II comes after an official Phase I selection. Record that notice first.');
+    if (!work.phase2.plan.trim() || !work.phase2.customers.trim()) throw new Error('Write the Phase II plan and the customer evidence before recording a submission.');
+    const ref = text(patch.phase2Ref, 80, 'Phase II tracking number');
+    if (!ref) throw new Error('Record the Phase II tracking number from the submission you made yourself.');
+    work.phase2.submittedAt = work.phase2.submittedAt || today();
+    work.phase2.ref = ref;
+  }
+  if (patch.phase2Award != null) {
+    if (!isAward(patch.phase2Award) || !patch.phase2Award) throw new Error('Phase II award must be pending, yes, or no.');
+    if (!work.phase2.submittedAt) throw new Error('Record your Phase II submission before the decision.');
+    work.phase2.award = patch.phase2Award;
+  }
+
+  if (patch.buyer != null) work.phase3.buyer = text(patch.buyer, 2000, 'Buyer');
+  if (patch.offer != null) work.phase3.offer = text(patch.offer, 4000, 'Offer');
+  if (patch.money != null) work.phase3.money = text(patch.money, 2000, 'Money');
+
+  return { work, note: notes.join(' ') };
+}
+
+function regGate(id: string, title: string, prompt: string): Gate {
+  return { id, phase: 'I', title, prompt, kind: 'choice', choices: REG };
+}
+
+export function nextGate(work: SbirWork): Gate {
+  if (!work.research.name.trim()) {
+    return { id: 'name', phase: 'I', title: 'Pick the research', prompt: 'What is the research or technology called?', kind: 'text' };
+  }
+  if (!work.research.idea.trim()) {
+    return { id: 'idea', phase: 'I', title: 'Pick the research', prompt: 'What will your company do with it? One or two sentences.', kind: 'text' };
+  }
+  if (!work.research.owner.trim() && !work.skipped.owner) {
+    return { id: 'owner', phase: 'I', title: 'Who owns it', prompt: 'Who owns it? Press enter if this is your own work.', kind: 'text', optional: true };
+  }
+  if (!work.research.source.trim() && !work.skipped.source) {
+    return { id: 'source', phase: 'I', title: 'Where you found it', prompt: 'Link to the listing, patent, or paper. Press enter to skip.', kind: 'text', optional: true };
+  }
+  if (!work.rights) {
+    return { id: 'rights', phase: 'I', title: 'Rights', prompt: 'Can you use this research?', kind: 'choice', choices: RIGHTS };
+  }
+  if (work.rights === 'unavailable') {
+    return {
+      id: 'rights', phase: 'I', title: 'Rights are closed', kind: 'choice', choices: RIGHTS,
+      prompt: 'The owner said no. Leave this until that changes, or pick a different answer if they opened a field of use. Do not write a proposal on a refused license.',
+    };
+  }
+  if (!work.company) {
+    return { id: 'company', phase: 'I', title: 'Company', prompt: 'Where does the company stand? This is your statement, not an eligibility decision.', kind: 'choice', choices: COMPANY };
+  }
+  if (work.company === 'not_yet') {
+    return {
+      id: 'company', phase: 'I', title: 'No company yet', kind: 'choice', choices: COMPANY,
+      prompt: 'SBIR awards go to a for-profit U.S. small business. Form one, or record a research partner, then choose again.',
+    };
+  }
+  if (!work.registrations.sam && !work.deferred.sam) {
+    return regGate('sam', 'SAM.gov', 'Do you have a SAM.gov Unique Entity ID? https://sam.gov/');
+  }
+  if (!work.registrations.sbirGov && !work.deferred.sbirGov) {
+    return regGate('sbirGov', 'SBIR.gov registry', 'Is the company in the SBA company registry on SBIR.gov? https://www.sbir.gov/about');
+  }
+  if (!work.registrations.portal && !work.deferred.portal) {
+    return regGate('portal', 'Agency portal', 'Is the company registered in the agency submission portal named in the solicitation?');
+  }
+  if (!work.topic.agency) return { id: 'agency', phase: 'I', title: 'Find a topic', prompt: 'Which agency issued the solicitation? Copy it from the notice. For example DOE, NIH, NSF, or DoD.', kind: 'text' };
+  if (!work.topic.number) return { id: 'number', phase: 'I', title: 'Find a topic', prompt: 'Solicitation or topic number, copied from the official notice.', kind: 'text' };
+  if (!work.topic.title) return { id: 'title', phase: 'I', title: 'Find a topic', prompt: 'Topic title, copied from the official notice.', kind: 'text' };
+  if (!work.topic.closes) return { id: 'closes', phase: 'I', title: 'Find a topic', prompt: 'Close date from the official notice, as YYYY-MM-DD.', kind: 'text' };
+  if (!work.topic.url) return { id: 'url', phase: 'I', title: 'Find a topic', prompt: 'Official solicitation URL. It must start with https://.', kind: 'text' };
+  if (!work.phase1.objective) return { id: 'objective', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Technical objective for Phase I. A paragraph. Mark anything you have not measured as a guess.', kind: 'text' };
+  if (!work.phase1.plan) return { id: 'plan', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Work plan: what you will do in Phase I to test whether it works.', kind: 'text' };
+  if (!work.phase1.market) return { id: 'market', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Who has the problem, and why they would pay? Call this a hypothesis until a customer says it.', kind: 'text' };
+  if (!work.phase1.team) return { id: 'team', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Who does the research? For SBIR the principal investigator is normally employed by the company. You confirm that.', kind: 'text' };
+  if (!work.phase1.budget) return { id: 'budget', phase: 'I', title: 'Phase I — prove it can work', prompt: 'What would the Phase I money pay for? Do not invent an award amount.', kind: 'text' };
+  if (!work.registrations.sam) return regGate('sam', 'SAM.gov still open', 'SAM.gov is still open. A submission cannot be recorded until this is done. https://sam.gov/');
+  if (!work.registrations.sbirGov) return regGate('sbirGov', 'SBIR.gov registry still open', 'The SBIR.gov company registry is still open. https://www.sbir.gov/about');
+  if (!work.registrations.portal) return regGate('portal', 'Agency portal still open', 'The agency submission portal is still open.');
+  if (!work.phase1.submittedAt) {
+    return {
+      id: 'submit1', phase: 'I', title: 'Phase I submission', kind: 'ref',
+      prompt: 'If you already submitted this yourself, type the tracking number. Press enter if you have not.',
+    };
+  }
+  if (!work.phase1.award) {
+    return { id: 'award1', phase: 'I', title: 'Phase I decision', prompt: 'What did the official notice say?', kind: 'choice', choices: AWARD };
+  }
+  if (work.phase1.award === 'no') {
+    return {
+      id: 'url', phase: 'I', title: 'Phase I was not selected', kind: 'text',
+      prompt: 'Do not start Phase II on a decline. Paste a different official solicitation URL, or q to stop.',
+    };
+  }
+  if (!work.phase2.plan) {
+    return {
+      id: 'phase2plan', phase: 'II', title: 'Phase II — build and demonstrate',
+      prompt: work.phase1.award === 'pending'
+        ? 'Phase I is still pending. You can draft Phase II now. What will you build and demonstrate if Phase I is selected?'
+        : 'What will you build and demonstrate in Phase II? Phase II is not automatic.',
+      kind: 'text',
+    };
+  }
+  if (!work.phase2.customers) {
+    return { id: 'phase2customers', phase: 'II', title: 'Phase II customers', prompt: 'Who has shown interest in using the result? Name them, or write that you have no customer evidence yet.', kind: 'text' };
+  }
+  if (work.phase1.award === 'pending') {
+    return {
+      id: 'wait-award1', phase: 'I', title: 'Waiting on the Phase I notice', kind: 'wait',
+      prompt: 'The Phase II draft is saved. When the official notice arrives: do --award yes, or do --award no. Pending is not a selection.',
+    };
+  }
+  if (!work.phase2.submittedAt) {
+    return { id: 'submit2', phase: 'II', title: 'Phase II submission', kind: 'ref', prompt: 'If you already submitted Phase II yourself, type the tracking number. Press enter if you have not.' };
+  }
+  if (!work.phase2.award) {
+    return { id: 'award2', phase: 'II', title: 'Phase II decision', prompt: 'What did the official Phase II notice say?', kind: 'choice', choices: AWARD };
+  }
+  if (work.phase2.award === 'pending') {
+    return { id: 'wait-award2', phase: 'II', title: 'Waiting on the Phase II notice', kind: 'wait', prompt: 'Record the official Phase II decision when it arrives: do --phase2-award yes, or do --phase2-award no.' };
+  }
+  if (!work.phase3.buyer) {
+    return {
+      id: 'buyer', phase: 'III', title: 'Phase III — sell it', kind: 'text',
+      prompt: work.phase2.award === 'no'
+        ? 'Phase II was not selected. If you still sell this, who pays? The money is not an SBIR award.'
+        : 'Who pays after SBIR? Name the buyer. Phase III is not an SBIR award.',
+    };
+  }
+  if (!work.phase3.offer) {
+    return { id: 'offer', phase: 'III', title: 'Phase III — sell it', prompt: 'What are you selling them, in one paragraph?', kind: 'text' };
+  }
+  if (!work.phase3.money) {
+    return { id: 'money', phase: 'III', title: 'Phase III — sell it', prompt: 'Where does that money come from? A contract, a purchase, or private capital — not the SBIR set-aside.', kind: 'text' };
+  }
+  return {
+    id: 'done', phase: 'III', title: 'Recorded', kind: 'done',
+    prompt: 'You have a research pick, a Phase I record, a Phase II record, and a Phase III buyer. This file is your record. It did not submit, sign, or send anything.',
+  };
+}
+
+export function where(work: SbirWork): { phase: 'I' | 'II' | 'III' | 'done'; heading: string } {
+  const gate = nextGate(work);
+  if (gate.kind === 'done') return { phase: 'done', heading: 'Recorded through Phase III' };
+  if (gate.phase === 'III') return { phase: 'III', heading: 'Phase III — Sell it. This money is not an SBIR award.' };
+  if (work.phase1.award === 'pending') return { phase: 'I', heading: 'Phase I — Prove it can work. Decision still pending.' };
+  if (work.phase1.award === 'no') return { phase: 'I', heading: 'Phase I — Not selected.' };
+  if (gate.phase === 'II') return { phase: 'II', heading: 'Phase II — Build and demonstrate it. A Phase II award is not automatic.' };
+  return { phase: 'I', heading: 'Phase I — Prove it can work.' };
+}
+
+export function renderStatus(work: SbirWork): string {
+  const place = where(work);
+  const gate = nextGate(work);
+  const lines = [place.heading, ''];
+  if (work.research.name) lines.push(work.research.name);
+  if (work.research.idea) lines.push(work.research.idea);
+  if (work.topic.number) lines.push(`${work.topic.agency} ${work.topic.number} · closes ${work.topic.closes || 'date not recorded'}`);
+  lines.push('');
+  if (gate.kind === 'done' || gate.kind === 'stop' || gate.kind === 'wait') {
+    lines.push(gate.title);
+    lines.push(gate.prompt);
+  } else {
+    lines.push(`Next: ${gate.title}`);
+    lines.push(gate.prompt);
+    gate.choices?.forEach((choice, index) => lines.push(`  ${index + 1}  ${choice.label}`));
+  }
+  const open = [
+    !work.registrations.sam ? 'SAM.gov' : '',
+    !work.registrations.sbirGov ? 'SBIR.gov company registry' : '',
+    !work.registrations.portal ? 'agency portal' : '',
+  ].filter(Boolean);
+  if (open.length && work.company && work.company !== 'not_yet' && work.rights && work.rights !== 'unavailable') {
+    lines.push('');
+    lines.push(`Still open before a submission can be recorded: ${open.join(', ')}.`);
+  }
+  lines.push('');
+  lines.push('Nothing is submitted, signed, or sent for you.');
+  return lines.join('\n');
+}
+
+function section(title: string, body: string): string {
+  return `## ${title}\n\n${body.trim() || 'Not recorded yet.'}`;
+}
+
+export function phase1Draft(work: SbirWork): string {
+  const topic = work.topic.url
+    ? `${work.topic.agency} ${work.topic.number}\n${work.topic.title}\nCloses ${work.topic.closes}\n${work.topic.url}`
+    : 'No official solicitation saved yet. Do not invent a deadline or an award amount.';
+  const submitted = work.phase1.submittedAt
+    ? `You recorded a submission on ${work.phase1.submittedAt}, tracking ${work.phase1.ref}. This program did not submit it.`
+    : 'No submission recorded. This file is not an application.';
+  return [
+    `# Phase I working paper — ${work.research.name || 'Untitled'}`,
+    '',
+    '> Edit this into the solicitation\'s required format, then submit it yourself.',
+    '> Claims you have not measured are guesses.',
+    '',
+    section('Research', `${work.research.name}\n\n${work.research.idea}\n\nOwner: ${work.research.owner || 'not recorded'}\nSource: ${work.research.source || 'not recorded'}`),
+    '',
+    section('Rights', `${work.rights || 'not recorded'}${work.rightsNote ? `\n\n${work.rightsNote}` : ''}`),
+    '',
+    section('Company, as you stated it', work.company || 'not recorded'),
+    '',
+    section('Registrations', [
+      `SAM.gov: ${work.registrations.sam ? 'done' : 'open'}`,
+      `SBIR.gov company registry: ${work.registrations.sbirGov ? 'done' : 'open'}`,
+      `Agency portal: ${work.registrations.portal ? 'done' : 'open'}`,
+    ].join('\n')),
+    '',
+    section('Solicitation', topic),
+    '',
+    section('Technical objective', work.phase1.objective),
+    '',
+    section('Work plan', work.phase1.plan),
+    '',
+    section('Customer', work.phase1.market),
+    '',
+    section('Team', work.phase1.team),
+    '',
+    section('What the money pays for', work.phase1.budget),
+    '',
+    section('Submission', `${submitted}\nDecision: ${work.phase1.award || 'not recorded'}`),
+    '',
+  ].join('\n');
+}
+
+export function phase2Draft(work: SbirWork): string {
+  const submitted = work.phase2.submittedAt
+    ? `You recorded a Phase II submission on ${work.phase2.submittedAt}, tracking ${work.phase2.ref}.`
+    : 'No Phase II submission recorded.';
+  return [
+    `# Phase II working paper — ${work.research.name || 'Untitled'}`,
+    '',
+    '> Phase II is not automatic after Phase I. Submit it yourself if you are selected and you choose to apply.',
+    '',
+    section('Phase I decision', work.phase1.award || 'not recorded'),
+    '',
+    section('What you will build and demonstrate', work.phase2.plan),
+    '',
+    section('Customers', work.phase2.customers),
+    '',
+    section('Submission', `${submitted}\nDecision: ${work.phase2.award || 'not recorded'}`),
+    '',
+  ].join('\n');
+}
+
+export function phase3Draft(work: SbirWork): string {
+  return [
+    `# Phase III working paper — ${work.research.name || 'Untitled'}`,
+    '',
+    '> Phase III is not an SBIR award. A customer, a contract, or private capital pays. The SBIR set-aside does not.',
+    '',
+    section('Buyer', work.phase3.buyer),
+    '',
+    section('What you sell', work.phase3.offer),
+    '',
+    section('Where the money comes from', work.phase3.money),
+    '',
+  ].join('\n');
+}
+
+const CHOICE_GATES: Record<string, Choice[]> = {
+  rights: RIGHTS,
+  company: COMPANY,
+  sam: REG,
+  sbirGov: REG,
+  portal: REG,
+  award1: AWARD,
+  award2: AWARD,
+};
+
+export function parseGateAnswer(gate: Gate, line: string): Patch | 'quit' | 'pause' | 'again' {
+  const raw = line.trim();
+  if (raw === 'q' || raw === 'quit' || raw === 'exit') return 'quit';
+  if (gate.kind === 'stop' || gate.kind === 'wait' || gate.kind === 'done') return raw ? 'again' : 'pause';
+  if (gate.kind === 'ref') {
+    if (!raw) return 'pause';
+    return gate.id === 'submit2' ? { phase2Submitted: true, phase2Ref: raw } : { submitted: true, ref: raw };
+  }
+  if (gate.kind === 'choice') {
+    const choices = gate.choices ?? CHOICE_GATES[gate.id] ?? [];
+    const index = Number(raw);
+    const byNumber = Number.isInteger(index) ? choices[index - 1] : undefined;
+    const byValue = choices.find(choice => choice.value === raw.replace(/-/g, '_'));
+    const picked = byNumber ?? byValue;
+    if (!picked) return 'again';
+    return choicePatch(gate.id, picked.value);
+  }
+  if (!raw) {
+    if (gate.id === 'owner') return { skipOwner: true };
+    if (gate.id === 'source') return { skipSource: true };
+    return 'again';
+  }
+  return textPatch(gate.id, raw);
+}
+
+function choicePatch(id: string, value: string): Patch {
+  if (id === 'rights') return { rights: value as Rights };
+  if (id === 'company') return { company: value as Company };
+  if (id === 'sam') return { sam: value as YesLater };
+  if (id === 'sbirGov') return { sbirRegistry: value as YesLater };
+  if (id === 'portal') return { portal: value as YesLater };
+  if (id === 'award1') return { award: value as Award };
+  if (id === 'award2') return { phase2Award: value as Award };
+  throw new Error('That answer does not fit this question.');
+}
+
+function textPatch(id: string, value: string): Patch {
+  switch (id) {
+    case 'name': return { name: value };
+    case 'idea': return { idea: value };
+    case 'owner': return { owner: value };
+    case 'source': return { source: value };
+    case 'agency': return { agency: value };
+    case 'number': return { number: value };
+    case 'title': return { title: value };
+    case 'closes': return { closes: value };
+    case 'url': return { url: value };
+    case 'objective': return { objective: value };
+    case 'plan': return { plan: value };
+    case 'market': return { market: value };
+    case 'team': return { team: value };
+    case 'budget': return { budget: value };
+    case 'phase2plan': return { phase2Plan: value };
+    case 'phase2customers': return { phase2Customers: value };
+    case 'buyer': return { buyer: value };
+    case 'offer': return { offer: value };
+    case 'money': return { money: value };
+    default: throw new Error('That answer does not fit this question.');
+  }
+}
