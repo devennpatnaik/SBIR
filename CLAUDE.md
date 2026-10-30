@@ -1,10 +1,10 @@
 # Lab to Market
 
-The product is a local SBIR walk. Do not send the user to the web UI. If the user pasted `claude-code-prompt.md`, follow that prompt.
+The product is Lab to Market, a local SBIR walk. The program is `/Users/devenpatnaik/Downloads/SBIR/lab-to-market`. `cd /Users/devenpatnaik/Downloads/SBIR` first. Do not send the user to the web UI. If the user pasted `claude-code-prompt.md`, follow that prompt.
 
 ```bash
-./lab-to-market status --json
-./lab-to-market do --name "..." --idea "..." --json
+/Users/devenpatnaik/Downloads/SBIR/lab-to-market status --json
+/Users/devenpatnaik/Downloads/SBIR/lab-to-market do --name "..." --idea "..." --json
 ```
 
 With no arguments in a terminal, `./lab-to-market` asks the next question. From an agent, use `status --json` and `do ... --json` so stdout is one JSON document. Errors go to stderr.

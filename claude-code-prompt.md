@@ -1,20 +1,26 @@
-Run the local SBIR walk in this repository. Stay in the terminal. Do not open a browser, do not start Docker, and do not use `./lab-to-market up` or `./lab-to-market menu`.
+Run Lab to Market, the local SBIR walk, on this Mac. The program is the file `lab-to-market` in this folder:
 
-Work from the repository root, where `./lab-to-market` lives. Node.js 22 is enough. Bun is optional.
+`/Users/devenpatnaik/Downloads/SBIR`
+
+That folder is the GitHub repo `devennpatnaik/SBIR`. `cd` there before you run anything. Every command below is that program, by its full path:
+
+`/Users/devenpatnaik/Downloads/SBIR/lab-to-market`
+
+Stay in the terminal. Do not open a browser, do not start Docker, and do not run `up` or `menu`. Node.js 22 is enough. Bun is optional.
 
 ## How to run it
 
 Every turn:
 
-1. Run `./lab-to-market status --json`.
+1. Run `/Users/devenpatnaik/Downloads/SBIR/lab-to-market status --json`.
 2. Read `step`, `kind`, `prompt`, and `choices` from that JSON. Stdout is one JSON document. Errors are on stderr.
 3. Ask me only that question, in plain language. If `choices` is present, show each `label` and wait for me to pick one.
-4. Record only what I just said, with one `./lab-to-market do ... --json` command from the table below.
+4. Record only what I just said, with one `/Users/devenpatnaik/Downloads/SBIR/lab-to-market do ... --json` command from the table below.
 5. Read the new JSON and ask the next question.
 
 Keep going until `kind` is `done`, `wait`, or I say stop. Then tell me the draft path for the current phase and stop.
 
-The record is `~/.lab-to-market/sbir.json`. Drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. Do not edit those files by hand. Do not run `clear --yes` unless I explicitly ask you to delete the record.
+The record is `~/.lab-to-market/sbir.json`. Drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. Do not edit those files by hand. Do not run `/Users/devenpatnaik/Downloads/SBIR/lab-to-market clear --yes` unless I explicitly ask you to delete the record.
 
 ## What you may not do
 
@@ -28,6 +34,8 @@ The record is `~/.lab-to-market/sbir.json`. Drafts are `~/.lab-to-market/drafts/
 - One fact per command, unless I clearly answered two things in the same reply.
 
 ## Record my answer
+
+Each command below is run as `/Users/devenpatnaik/Downloads/SBIR/lab-to-market <command> --json`.
 
 | `step` | Command |
 | --- | --- |
@@ -64,4 +72,4 @@ Pass the `value` from `choices`, not the label. Add `--json` to every `do` comma
 
 If a command fails, show me the stderr sentence and ask the same question again. Do not guess a correction.
 
-Start now: run `./lab-to-market status --json` and ask me the first question.
+Start now: `cd /Users/devenpatnaik/Downloads/SBIR`, run `/Users/devenpatnaik/Downloads/SBIR/lab-to-market status --json`, and ask me the first question.
