@@ -8,7 +8,7 @@ export const USAGE = `Lab to Market on this machine. No account. No server. A ph
 
 Start by choosing a route. Patents and new papers: you find a record, the draft offers debt, royalties, or equity, and you send the email yourself.
 
-SBIR is for government technology, and it is short enough for a phone. One sentence for the idea. Whether the work is yours. Where the company stands. One official notice you confirm. One spoken Phase I. The draft is saved then. SAM.gov is a checklist on that draft. Phase I proves it, Phase II builds it, and Phase III sells it. Phase III is not an SBIR award. You submit every proposal yourself. No company yet does not block the draft.
+SBIR starts from demand. The program finds open notices and government research that fits each one. You pick a match. Phase I is drafted from that pair. SAM.gov is a checklist on the draft. Phase I proves it, Phase II builds it, and Phase III sells it. Phase III is not an SBIR award. You submit every proposal yourself. No company yet does not block the draft.
 
 Saved at ~/.lab-to-market/sbir.json
 Drafts in ~/.lab-to-market/drafts/

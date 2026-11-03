@@ -10,7 +10,7 @@ No account and no server. Claude Code can run the whole walk. The first question
 
 **Patents and new papers.** You bring a patent or a PubMed article. The program writes a draft offer — debt, royalties, or equity — using only the terms you typed, and it keeps the contact you confirmed. You send the email yourself. Then it asks the route question again: another paper, or SBIR.
 
-**SBIR, for government technology.** On a phone this is a short conversation: the idea, whether you can use it, the company, one official notice you confirm, and one spoken Phase I. The draft is saved before anyone asks about SAM.gov. You still submit every proposal yourself.
+**SBIR, for government technology.** This starts from demand. Claude finds open notices and government research that fits them. You pick one match. The Phase I draft is written from that notice and that technology. You still submit every proposal yourself.
 
 ```bash
 ./lab-to-market

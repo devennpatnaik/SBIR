@@ -117,6 +117,18 @@ export function patchFromFlags(args: Args): Patch {
     deal: dealOf(flag(args, 'deal')),
     terms: flag(args, 'terms'),
     sent: flag(args, 'sent') == null ? undefined : flag(args, 'sent') === 'yes',
+    suggestAgency: flag(args, 'suggest-agency'),
+    suggestNumber: flag(args, 'suggest-number'),
+    suggestTitle: flag(args, 'suggest-title'),
+    suggestCloses: flag(args, 'suggest-closes'),
+    suggestUrl: flag(args, 'suggest-url'),
+    suggestName: flag(args, 'suggest-name'),
+    suggestIdea: flag(args, 'suggest-idea'),
+    suggestOwner: flag(args, 'suggest-owner'),
+    suggestSource: flag(args, 'suggest-source'),
+    pick: flag(args, 'pick'),
+    clearSuggestions: on(args, 'clear-suggestions'),
+    clearMatch: on(args, 'clear-match'),
   };
 }
 
@@ -147,6 +159,7 @@ export function statusPayload(work: SbirWork) {
     phase2: { submittedAt: work.phase2.submittedAt, ref: work.phase2.ref, award: work.phase2.award },
     phase3: work.phase3,
     route: work.route,
+    suggestions: work.suggestions.map((item, index) => ({ n: index + 1, ...item })),
     outreach: openOutreach(work) ?? null,
     sentNotes: work.outreaches.filter(item => item.sentAt).map(item => ({
       title: item.title,
