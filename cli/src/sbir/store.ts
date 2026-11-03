@@ -21,11 +21,29 @@ export function draftPaths(): { phase1: string; phase2: string; phase3: string }
 }
 
 export function loadWork(): SbirWork {
+  const file = workPath();
+  let raw: string;
   try {
-    return normalize(JSON.parse(fs.readFileSync(workPath(), 'utf8')) as unknown);
-  } catch {
-    return emptyWork();
+    raw = fs.readFileSync(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptyWork();
+    throw unreadable(file, error);
   }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('expected a JSON object');
+    return normalize(parsed);
+  } catch (error) {
+    throw unreadable(file, error);
+  }
+}
+
+function unreadable(file: string, error: unknown): Error {
+  const detail = error instanceof SyntaxError
+    ? 'the JSON is invalid'
+    : error instanceof Error ? error.message : 'unreadable';
+  const short = detail.length > 160 ? `${detail.slice(0, 160)}…` : detail;
+  return new Error(`The SBIR file at ${file} could not be read (${short}). It was left untouched.`);
 }
 
 export function saveWork(work: SbirWork): { phase1: string; phase2: string; phase3: string } {

@@ -24,6 +24,10 @@ jobs:
         working-directory: backend
       - name: Unit tests
         run: bun test apps/untitled-app-6ac856247b02af3fede23b91/tests/
+      - name: Text interface tests
+        run: bun test cli/src/cli.test.ts
+      - name: Local SBIR walk
+        run: bun cli/src/sbir/work.test.ts
       - name: Offline guide smoke (no API keys)
         run: bun scripts/smoke-offline.ts
 

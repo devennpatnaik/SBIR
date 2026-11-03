@@ -10,6 +10,9 @@ bun install --minimum-release-age=0
 cd apps/untitled-app-6ac856247b02af3fede23b91 && bun run typecheck
 cd ../../backend && bun run typecheck
 bun test apps/untitled-app-6ac856247b02af3fede23b91/tests/
+bun test cli/src/cli.test.ts
+bun cli/src/sbir/work.test.ts
+node --experimental-strip-types cli/src/sbir/work.test.ts
 bun scripts/smoke-offline.ts
 ./lab-to-market doctor
 # optional Compose:
