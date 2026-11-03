@@ -43,15 +43,16 @@ try {
   assert.equal(nextGate(emptyWork()).id, 'route');
   const legacy = normalize({ version: 1, research: { name: 'Old sensor', idea: '', owner: '', source: '' } });
   assert.equal(legacy.route, 'sbir');
-  assert.equal(nextGate(legacy).id, 'idea');
+  assert.equal(nextGate(legacy).id, 'pitch');
 
   let stuck = step(emptyWork(), { name: 'A', idea: 'B', skipOwner: true, skipSource: true, rights: 'unavailable' });
   assert.equal(nextGate(stuck).id, 'rights');
   stuck = step(stuck, { rights: 'not_needed', company: 'not_yet' });
-  assert.equal(nextGate(stuck).id, 'company');
+  assert.equal(nextGate(stuck).id, 'notice');
+  assert.match(nextGate(stuck).prompt, /official notice|topic/i);
 
   let deferred = step(emptyWork(), { ...ready, sam: 'later', sbirRegistry: undefined, portal: undefined, agency: undefined });
-  assert.equal(nextGate(deferred).id, 'sbirGov');
+  assert.equal(nextGate(deferred).id, 'notice');
 
   let work = step(emptyWork(), ready);
   assert.equal(nextGate(work).id, 'submit1');
@@ -76,25 +77,25 @@ try {
   assert.equal(changed.topic.number, '');
   assert.equal(changed.topic.title, '');
   assert.equal(changed.topic.closes, '');
-  assert.equal(nextGate(changed).id, 'agency');
+  assert.equal(nextGate(changed).id, 'notice');
 
   const kept = step(work, { url: 'https://www.sbir.gov/other', agency: 'NIH' });
   assert.equal(kept.topic.agency, 'NIH');
   assert.equal(kept.phase1.submittedAt, '');
 
   work = step(work, { award: 'no' });
-  assert.equal(nextGate(work).id, 'url');
+  assert.equal(nextGate(work).id, 'notice');
   assert.throws(() => step(work, { url: 'https://www.sbir.gov/next', award: 'pending' }), /submission/);
   const restarted = step(work, { url: 'https://www.sbir.gov/next' });
   assert.equal(restarted.phase1.award, '');
-  assert.equal(nextGate(restarted).id, 'agency');
+  assert.equal(nextGate(restarted).id, 'notice');
 
   work = step(emptyWork(), { ...ready, submitted: true, ref: 'ABC-1', award: 'pending', phase2Plan: 'Build a field unit', phase2Customers: 'One utility asked for a demo' });
   assert.equal(nextGate(work).id, 'wait-award1');
   work = step(work, { award: 'yes' });
   assert.equal(nextGate(work).id, 'submit2');
   work = step(work, { phase2Submitted: true, phase2Ref: 'P2-9', phase2Award: 'no' });
-  assert.equal(nextGate(work).id, 'buyer');
+  assert.equal(nextGate(work).id, 'phase3');
   assert.match(nextGate(work).prompt, /not an SBIR award|not selected/);
   work = step(work, { buyer: 'City water department', offer: 'Sensor kits', money: 'A purchase order, not an SBIR award' });
   assert.equal(nextGate(work).kind, 'done');
@@ -150,7 +151,7 @@ try {
   assert.equal(partial.status, 0, partial.stderr);
   const partialJson = JSON.parse(partial.stdout);
   assert.equal(partialJson.research.name, 'Ammonia sensor');
-  assert.match(partialJson.prompt, /Who owns it/);
+  assert.match(partialJson.prompt, /Can you use this research/);
 
   const full = run([
     'do', '--json',
@@ -210,6 +211,37 @@ try {
   assert.equal(fs.readFileSync(brokenFile, 'utf8'), '{');
   fs.rmSync(brokenDir, { recursive: true, force: true });
 
+  const pitched = parseGateAnswer({ id: 'pitch', phase: 'I', title: 'The idea', prompt: '', kind: 'text' }, 'Cheaper tests for wastewater ammonia.');
+  assert.equal(typeof pitched, 'object');
+  if (typeof pitched === 'object') {
+    assert.equal(pitched.idea, 'Cheaper tests for wastewater ammonia.');
+    assert.equal(pitched.name, 'Cheaper tests for wastewater ammonia');
+  }
+  let phone = step(emptyWork(), {
+    route: 'sbir',
+    name: 'Ammonia sensor',
+    idea: 'Cheaper wastewater tests',
+    rights: 'not_needed',
+    company: 'not_yet',
+    agency: 'DOE',
+    number: 'T-1',
+    title: 'Water sensors',
+    closes: '2026-12-01',
+    url: 'https://www.sbir.gov/example',
+    objective: 'Prove the strip works',
+    plan: 'Run one bench test',
+    market: 'A plant might care',
+    team: 'Me',
+    budget: 'The bench test',
+  });
+  assert.equal(nextGate(phone).id, 'submit1');
+  assert.match(nextGate(phone).prompt, /draft is saved/);
+  assert.match(nextGate(phone).prompt, /small business/);
+  assert.throws(() => step(phone, { submitted: true, ref: 'NO-1' }), /small business/);
+  phone = step(phone, { company: 'ready', sam: 'yes', sbirRegistry: 'yes', portal: 'yes' });
+  assert.equal(nextGate(phone).id, 'submit1');
+  assert.doesNotMatch(nextGate(phone).prompt, /Still open/);
+
   let patent = step(emptyWork(), { route: 'patents' });
   assert.equal(nextGate(patent).id, 'sourceKind');
   assert.equal(parseGateAnswer(nextGate(patent), '2').kind, 'article');
@@ -254,7 +286,7 @@ try {
   const dropped = step(again, { dropOutreach: true });
   assert.equal(dropped.outreaches.length, 1);
   assert.equal(nextGate(dropped).id, 'route');
-  assert.equal(nextGate(step(dropped, { route: 'sbir' })).id, 'name');
+  assert.equal(nextGate(step(dropped, { route: 'sbir' })).id, 'pitch');
 
   const patentDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ltm-patent-'));
   const patentRun = (args: string[]) => spawnSync(bin, args, {

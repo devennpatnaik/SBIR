@@ -32,8 +32,15 @@ The record is `~/.lab-to-market/sbir.json`. SBIR drafts are `~/.lab-to-market/dr
 - If I have not submitted, stop on that question. Tell me the draft path and that I submit it myself. When I come back with the tracking number, record it.
 - Phase II is not automatic. Phase III is a sale. Its money is not an SBIR award.
 - If `kind` is `wait`, stop. Tell me to come back when the official notice arrives. Pending is not a selection.
-- If rights are unavailable, or there is no company yet, stay on that question. Do not draft a proposal past it.
-- One fact per command, unless I clearly answered two things in the same reply.
+- If rights are unavailable, stay on that question. Do not draft a proposal past a refused license.
+- No company yet does not stop the draft. A submission can be recorded only after I have a U.S. small business or a research partner.
+- On a phone, one reply from me can fill a whole step. Do not split `pitch`, `notice`, `write`, `phase2`, or `phase3` into a series of tiny questions.
+- On `pitch`: record `--name` and `--idea` together. The name is a short label taken from my words. The idea is what I said.
+- On `notice`: search public agency and SBIR.gov pages for one real open topic that fits what I said. Read me the agency, number, title, close date, and link. Wait until I say that is the notice. Then record all five in one command. If I paste a link, copy those five facts from that page only. If you cannot find an open notice, say so. Do not invent one. Do not ask me for those five facts one at a time.
+- On `write`: let me talk through Phase I in one answer. Show me five short sections in my words: objective, how I will test it, who has the problem, who does the work, and what the money pays for. Do not invent a customer, a person, a measurement, or a dollar amount. If I left one out, ask once. When I say it is right, record `--objective`, `--plan`, `--market`, `--team`, and `--budget` in one command.
+- On `submit1`: show me the draft path. The prompt lists anything still open, such as the company, SAM.gov, SBIR.gov, or the agency portal. If I say one of those is done, record it (`--company ready` or `partner`, `--sam yes`, `--sbir-registry yes`, `--portal yes`). If I have not submitted, stop. Tell me the draft path and that I submit it myself.
+- On `phase2`: one answer covers what I will build and who has shown interest. No interest yet is a real answer. Record `--phase2-plan` and `--phase2-customers` together.
+- On `phase3`: one answer covers who pays, what I sell, and where the money comes from. Record `--buyer`, `--offer`, and `--money` together. The money is not an SBIR award.
 - On `sourceKind`, `foundTitle`, `identifier`, or `foundUrl`: if I have not confirmed one specific patent or article, you may search public patent and PubMed pages and show me a few real records with their numbers and links. Wait until I pick one. Then record only that record.
 - On `contact`: look up the inventor or corresponding author from the saved link and other public pages. Show me the address and the page where you found it. Record `--contact` and `--contact-source` only after I confirm both. The source has to be an https link.
 - On `deal` and `terms`: use my words. Do not fill in an amount I did not say.
@@ -57,34 +64,19 @@ Each command below is run as `/Users/devenpatnaik/Downloads/SBIR/lab-to-market <
 | `contact` | `do --contact "..."` after I confirm it, or `do --no-contact` |
 | `contactSource` | `do --contact-source "https://..."` |
 | `send` | `do --sent yes` only after I say I sent it |
-| `name` | `do --name "..."` |
-| `idea` | `do --idea "..."` |
-| `owner` | `do --owner "..."` or, if I say it is my own work, `do --skip-owner` |
-| `source` | `do --source "https://..."` or, if I have no link, `do --skip-source` |
-| `rights` | `do --rights not-needed` or `asked` or `available` or `unavailable` |
+| `pitch` | `do --name "..."` and `--idea "..."` together, from my words |
+| `rights` | `do --rights not-needed` or `asked` or `available` or `unavailable`. `not-needed` means the work is mine |
+| `owner` | `do --owner "..."` only when the work is not mine |
+| `source` | `do --source "https://..."` or `do --skip-source` |
 | `company` | `do --company ready` or `not-yet` or `partner` |
-| `sam` | `do --sam yes` or `no` or `later` |
-| `sbirGov` | `do --sbir-registry yes` or `no` or `later` |
-| `portal` | `do --portal yes` or `no` or `later` |
-| `agency` | `do --agency "..."` |
-| `number` | `do --number "..."` |
-| `title` | `do --title "..."` |
-| `closes` | `do --closes YYYY-MM-DD` |
-| `url` | `do --url "https://..."` |
-| `objective` | `do --objective "..."` |
-| `plan` | `do --plan "..."` |
-| `market` | `do --market "..."` |
-| `team` | `do --team "..."` |
-| `budget` | `do --budget "..."` |
-| `submit1` | `do --submitted yes --ref "..."` only with my tracking number |
+| `notice` | one command after I confirm a real notice: `--agency` `--number` `--title` `--closes YYYY-MM-DD` `--url "https://..."` |
+| `write` | one command after I accept the wording: `--objective` `--plan` `--market` `--team` `--budget` |
+| `submit1` | `do --submitted yes --ref "..."` only with my tracking number. Or `--sam yes`, `--sbir-registry yes`, `--portal yes`, `--company ready` when I say that item is done |
 | `award1` | `do --award pending` or `yes` or `no` |
-| `phase2plan` | `do --phase2-plan "..."` |
-| `phase2customers` | `do --phase2-customers "..."` |
+| `phase2` | `do --phase2-plan "..."` and `--phase2-customers "..."` together |
 | `submit2` | `do --phase2-submitted yes --phase2-ref "..."` only with my tracking number |
 | `award2` | `do --phase2-award pending` or `yes` or `no` |
-| `buyer` | `do --buyer "..."` |
-| `offer` | `do --offer "..."` |
-| `money` | `do --money "..."` |
+| `phase3` | `do --buyer "..."` `--offer "..."` `--money "..."` together |
 
 If I want to leave the open patent or article, run `do --drop-outreach`. That returns to `route`. It does not delete a note I already sent. If I want SBIR while a note is still open, run `do --route sbir`. The note stays. `do --route patents` later resumes it.
 

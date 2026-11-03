@@ -336,7 +336,7 @@ function clone(work: SbirWork): SbirWork {
 function missingPackage(work: SbirWork): string | null {
   if (!work.research.name || !work.research.idea) return 'Name the research and what the company will do with it.';
   if (!work.rights || work.rights === 'unavailable') return 'Rights are unresolved. An owner who said no blocks a proposal on that research.';
-  if (work.company !== 'ready' && work.company !== 'partner') return 'Record whether you have a U.S. small business, or a research partner.';
+  if (work.company !== 'ready' && work.company !== 'partner') return 'A submission needs a for-profit U.S. small business, or a research partner. The draft can wait.';
   if (!work.topic.agency || !work.topic.number || !work.topic.title || !work.topic.closes || !work.topic.url) {
     return 'Save the official solicitation: agency, number, title, close date, and URL.';
   }
@@ -376,6 +376,11 @@ export function applyPatch(current: SbirWork, patch: Patch): Applied {
   if (patch.rights != null) {
     if (!isRights(patch.rights) || !patch.rights) throw new Error('Rights must be not-needed, asked, available, or unavailable.');
     work.rights = patch.rights;
+    if (patch.rights === 'not_needed') {
+      work.skipped.owner = true;
+      work.skipped.source = true;
+      if (!work.research.owner) work.research.owner = 'Own work';
+    }
   }
   if (patch.rightsNote != null) work.rightsNote = text(patch.rightsNote, 2000, 'Rights note');
   if (patch.company != null) {
@@ -545,10 +550,6 @@ function rejectPlaceholderContact(value: string): void {
   }
 }
 
-function regGate(id: string, title: string, prompt: string): Gate {
-  return { id, phase: 'I', title, prompt, kind: 'choice', choices: REG };
-}
-
 function routeGate(work: SbirWork): Gate {
   const last = [...work.outreaches].reverse().find(item => item.sentAt);
   const prompt = last
@@ -604,21 +605,38 @@ export function nextGate(work: SbirWork): Gate {
   return routeGate(work);
 }
 
+function topicMissing(work: SbirWork): string[] {
+  const missing: string[] = [];
+  if (!work.topic.agency) missing.push('agency');
+  if (!work.topic.number) missing.push('number');
+  if (!work.topic.title) missing.push('title');
+  if (!work.topic.closes) missing.push('close date');
+  if (!work.topic.url) missing.push('link');
+  return missing;
+}
+
+function writingMissing(work: SbirWork): boolean {
+  return !work.phase1.objective || !work.phase1.plan || !work.phase1.market || !work.phase1.team || !work.phase1.budget;
+}
+
+function stillOpen(work: SbirWork): string[] {
+  const items: string[] = [];
+  if (work.company !== 'ready' && work.company !== 'partner') items.push('a for-profit U.S. small business, or a research partner');
+  if (!work.registrations.sam) items.push('SAM.gov (https://sam.gov/)');
+  if (!work.registrations.sbirGov) items.push('the SBIR.gov company registry (https://www.sbir.gov/about)');
+  if (!work.registrations.portal) items.push('the agency submission portal named in the notice');
+  return items;
+}
+
 function sbirNext(work: SbirWork): Gate {
-  if (!work.research.name.trim()) {
-    return { id: 'name', phase: 'I', title: 'Pick the research', prompt: 'What is the research or technology called?', kind: 'text' };
-  }
-  if (!work.research.idea.trim()) {
-    return { id: 'idea', phase: 'I', title: 'Pick the research', prompt: 'What will your company do with it? One or two sentences.', kind: 'text' };
-  }
-  if (!work.research.owner.trim() && !work.skipped.owner) {
-    return { id: 'owner', phase: 'I', title: 'Who owns it', prompt: 'Who owns it? Press enter if this is your own work.', kind: 'text', optional: true };
-  }
-  if (!work.research.source.trim() && !work.skipped.source) {
-    return { id: 'source', phase: 'I', title: 'Where you found it', prompt: 'Link to the listing, patent, or paper. Press enter to skip.', kind: 'text', optional: true };
+  if (!work.research.name.trim() || !work.research.idea.trim()) {
+    return {
+      id: 'pitch', phase: 'I', title: 'The idea', kind: 'text',
+      prompt: 'In one or two sentences, what should the company do?',
+    };
   }
   if (!work.rights) {
-    return { id: 'rights', phase: 'I', title: 'Rights', prompt: 'Can you use this research?', kind: 'choice', choices: RIGHTS };
+    return { id: 'rights', phase: 'I', title: 'Rights', prompt: 'Can you use this research? Your own work needs no one else\'s permission.', kind: 'choice', choices: RIGHTS };
   }
   if (work.rights === 'unavailable') {
     return {
@@ -626,41 +644,37 @@ function sbirNext(work: SbirWork): Gate {
       prompt: 'The owner said no. Leave this until that changes, or pick a different answer if they opened a field of use. Do not write a proposal on a refused license.',
     };
   }
-  if (!work.company) {
-    return { id: 'company', phase: 'I', title: 'Company', prompt: 'Where does the company stand? This is your statement, not an eligibility decision.', kind: 'choice', choices: COMPANY };
+  if ((work.rights === 'asked' || work.rights === 'available') && !work.research.owner.trim() && !work.skipped.owner) {
+    return { id: 'owner', phase: 'I', title: 'Who owns it', prompt: 'Who owns it?', kind: 'text' };
   }
-  if (work.company === 'not_yet') {
+  if ((work.rights === 'asked' || work.rights === 'available') && !work.research.source.trim() && !work.skipped.source) {
+    return { id: 'source', phase: 'I', title: 'Where you found it', prompt: 'Link to the listing, patent, or paper. Press enter to skip.', kind: 'text', optional: true };
+  }
+  if (!work.company) {
     return {
-      id: 'company', phase: 'I', title: 'No company yet', kind: 'choice', choices: COMPANY,
-      prompt: 'SBIR awards go to a for-profit U.S. small business. Form one, or record a research partner, then choose again.',
+      id: 'company', phase: 'I', title: 'Company', kind: 'choice', choices: COMPANY,
+      prompt: 'Where does the company stand? No company yet is fine. You need a U.S. small business, or a research partner, only before a submission is recorded.',
     };
   }
-  if (!work.registrations.sam && !work.deferred.sam) {
-    return regGate('sam', 'SAM.gov', 'Do you have a SAM.gov Unique Entity ID? https://sam.gov/');
-  }
-  if (!work.registrations.sbirGov && !work.deferred.sbirGov) {
-    return regGate('sbirGov', 'SBIR.gov registry', 'Is the company in the SBA company registry on SBIR.gov? https://www.sbir.gov/about');
-  }
-  if (!work.registrations.portal && !work.deferred.portal) {
-    return regGate('portal', 'Agency portal', 'Is the company registered in the agency submission portal named in the solicitation?');
-  }
-  if (!work.topic.agency) return { id: 'agency', phase: 'I', title: 'Find a topic', prompt: 'Which agency issued the solicitation? Copy it from the notice. For example DOE, NIH, NSF, or DoD.', kind: 'text' };
-  if (!work.topic.number) return { id: 'number', phase: 'I', title: 'Find a topic', prompt: 'Solicitation or topic number, copied from the official notice.', kind: 'text' };
-  if (!work.topic.title) return { id: 'title', phase: 'I', title: 'Find a topic', prompt: 'Topic title, copied from the official notice.', kind: 'text' };
-  if (!work.topic.closes) return { id: 'closes', phase: 'I', title: 'Find a topic', prompt: 'Close date from the official notice, as YYYY-MM-DD.', kind: 'text' };
-  if (!work.topic.url) return { id: 'url', phase: 'I', title: 'Find a topic', prompt: 'Official solicitation URL. It must start with https://.', kind: 'text' };
-  if (!work.phase1.objective) return { id: 'objective', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Technical objective for Phase I. A paragraph. Mark anything you have not measured as a guess.', kind: 'text' };
-  if (!work.phase1.plan) return { id: 'plan', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Work plan: what you will do in Phase I to test whether it works.', kind: 'text' };
-  if (!work.phase1.market) return { id: 'market', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Who has the problem, and why they would pay? Call this a hypothesis until a customer says it.', kind: 'text' };
-  if (!work.phase1.team) return { id: 'team', phase: 'I', title: 'Phase I — prove it can work', prompt: 'Who does the research? For SBIR the principal investigator is normally employed by the company. You confirm that.', kind: 'text' };
-  if (!work.phase1.budget) return { id: 'budget', phase: 'I', title: 'Phase I — prove it can work', prompt: 'What would the Phase I money pay for? Do not invent an award amount.', kind: 'text' };
-  if (!work.registrations.sam) return regGate('sam', 'SAM.gov still open', 'SAM.gov is still open. A submission cannot be recorded until this is done. https://sam.gov/');
-  if (!work.registrations.sbirGov) return regGate('sbirGov', 'SBIR.gov registry still open', 'The SBIR.gov company registry is still open. https://www.sbir.gov/about');
-  if (!work.registrations.portal) return regGate('portal', 'Agency portal still open', 'The agency submission portal is still open.');
-  if (!work.phase1.submittedAt) {
+  const missingTopic = topicMissing(work);
+  if (missingTopic.length) {
     return {
-      id: 'submit1', phase: 'I', title: 'Phase I submission', kind: 'ref',
-      prompt: 'If you already submitted this yourself, type the tracking number. Press enter if you have not.',
+      id: 'notice', phase: 'I', title: 'The official notice', kind: 'text',
+      prompt: `Which government topic should this answer? A few words, or the link if you have it. Still needed from the official notice: ${missingTopic.join(', ')}.`,
+    };
+  }
+  if (writingMissing(work)) {
+    return {
+      id: 'write', phase: 'I', title: 'Phase I — prove it can work', kind: 'text',
+      prompt: 'Talk through Phase I: what you will prove, how you will test it, who has the problem, who does the work, and what the money pays for. Do not name an award amount.',
+    };
+  }
+  if (!work.phase1.submittedAt) {
+    const left = stillOpen(work);
+    const checklist = left.length ? ` Still open before a submission can be recorded: ${left.join('; ')}.` : '';
+    return {
+      id: 'submit1', phase: 'I', title: 'Phase I draft', kind: 'ref',
+      prompt: `The Phase I draft is saved. You submit it yourself.${checklist} If you already submitted, type the tracking number. Press enter if you have not.`,
     };
   }
   if (!work.phase1.award) {
@@ -668,21 +682,18 @@ function sbirNext(work: SbirWork): Gate {
   }
   if (work.phase1.award === 'no') {
     return {
-      id: 'url', phase: 'I', title: 'Phase I was not selected', kind: 'text',
-      prompt: 'Do not start Phase II on a decline. Paste a different official solicitation URL, or q to stop.',
+      id: 'notice', phase: 'I', title: 'Phase I was not selected', kind: 'text',
+      prompt: 'Do not start Phase II on a decline. Paste a different official solicitation link, or say what topic to look up next.',
     };
   }
-  if (!work.phase2.plan) {
+  if (!work.phase2.plan || !work.phase2.customers) {
     return {
-      id: 'phase2plan', phase: 'II', title: 'Phase II — build and demonstrate',
+      id: 'phase2', phase: 'II', title: 'Phase II — build and demonstrate',
       prompt: work.phase1.award === 'pending'
-        ? 'Phase I is still pending. You can draft Phase II now. What will you build and demonstrate if Phase I is selected?'
-        : 'What will you build and demonstrate in Phase II? Phase II is not automatic.',
+        ? 'Phase I is still pending. You can draft Phase II now. What will you build if you are selected, and who has shown interest? No interest yet is an acceptable answer. Phase II is not automatic.'
+        : 'What will you build and demonstrate in Phase II, and who has shown interest? No interest yet is an acceptable answer. Phase II is not automatic.',
       kind: 'text',
     };
-  }
-  if (!work.phase2.customers) {
-    return { id: 'phase2customers', phase: 'II', title: 'Phase II customers', prompt: 'Who has shown interest in using the result? Name them, or write that you have no customer evidence yet.', kind: 'text' };
   }
   if (work.phase1.award === 'pending') {
     return {
@@ -699,19 +710,13 @@ function sbirNext(work: SbirWork): Gate {
   if (work.phase2.award === 'pending') {
     return { id: 'wait-award2', phase: 'II', title: 'Waiting on the Phase II notice', kind: 'wait', prompt: 'Record the official Phase II decision when it arrives: do --phase2-award yes, or do --phase2-award no.' };
   }
-  if (!work.phase3.buyer) {
+  if (!work.phase3.buyer || !work.phase3.offer || !work.phase3.money) {
     return {
-      id: 'buyer', phase: 'III', title: 'Phase III — sell it', kind: 'text',
+      id: 'phase3', phase: 'III', title: 'Phase III — sell it', kind: 'text',
       prompt: work.phase2.award === 'no'
-        ? 'Phase II was not selected. If you still sell this, who pays? The money is not an SBIR award.'
-        : 'Who pays after SBIR? Name the buyer. Phase III is not an SBIR award.',
+        ? 'Phase II was not selected. If you still sell this, who pays, what are you selling, and where does the money come from? The money is not an SBIR award.'
+        : 'Who pays after SBIR, what are you selling them, and where does the money come from? Phase III is not an SBIR award.',
     };
-  }
-  if (!work.phase3.offer) {
-    return { id: 'offer', phase: 'III', title: 'Phase III — sell it', prompt: 'What are you selling them, in one paragraph?', kind: 'text' };
-  }
-  if (!work.phase3.money) {
-    return { id: 'money', phase: 'III', title: 'Phase III — sell it', prompt: 'Where does that money come from? A contract, a purchase, or private capital — not the SBIR set-aside.', kind: 'text' };
   }
   return {
     id: 'done', phase: 'III', title: 'Recorded', kind: 'done',
@@ -755,7 +760,7 @@ export function renderStatus(work: SbirWork): string {
     !work.registrations.sbirGov ? 'SBIR.gov company registry' : '',
     !work.registrations.portal ? 'agency portal' : '',
   ].filter(Boolean);
-  if (open.length && work.company && work.company !== 'not_yet' && work.rights && work.rights !== 'unavailable') {
+  if (open.length && work.company && work.rights && work.rights !== 'unavailable' && (work.topic.url || work.phase1.objective)) {
     lines.push('');
     lines.push(`Still open before a submission can be recorded: ${open.join(', ')}.`);
   }
@@ -958,10 +963,26 @@ function choicePatch(id: string, value: string): Patch {
   throw new Error('That answer does not fit this question.');
 }
 
+function pitchFrom(value: string): Patch {
+  const idea = value.trim();
+  const name = (idea.split(/[.!?]/)[0] ?? idea).trim().slice(0, 80);
+  return { name: name || idea.slice(0, 80), idea };
+}
+
+function noticeFrom(value: string): Patch {
+  if (isUrl(value)) return { url: value };
+  throw new Error('Paste the official notice link, or confirm the agency, number, title, close date, and link together.');
+}
+
 function textPatch(id: string, value: string): Patch {
   switch (id) {
     case 'name': return { name: value };
     case 'idea': return { idea: value };
+    case 'pitch': return pitchFrom(value);
+    case 'notice': return noticeFrom(value);
+    case 'write': return { objective: value, plan: value, market: value, team: value, budget: value };
+    case 'phase2': return { phase2Plan: value, phase2Customers: value };
+    case 'phase3': return { buyer: value, offer: value, money: value };
     case 'owner': return { owner: value };
     case 'source': return { source: value };
     case 'agency': return { agency: value };

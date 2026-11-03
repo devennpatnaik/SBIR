@@ -15,8 +15,10 @@ Live: https://github.com/devennpatnaik/sbir (see `docs/two-tracks.md`)
 
 ```bash
 ./lab-to-market status
-./lab-to-market do --name "Ammonia sensor" --idea "Cheaper wastewater tests"
+./lab-to-market do --route sbir --name "Ammonia sensor" --idea "Cheaper wastewater tests"
 ```
+
+On a phone the SBIR questions are the idea, whether you can use it, the company, one official notice you confirm, and one spoken Phase I. The draft is saved before SAM.gov.
 
 The record is `~/.lab-to-market/sbir.json`. `status` only reads it. Drafts are written when an answer is saved. You submit every proposal yourself, and you send every inventor email yourself.
 
