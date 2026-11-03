@@ -34,10 +34,10 @@ The record is `~/.lab-to-market/sbir.json`. SBIR drafts are `~/.lab-to-market/dr
 - If `kind` is `wait`, stop. Tell me to come back when the official notice arrives. Pending is not a selection.
 - If rights are unavailable, stay on that question. Do not draft a proposal past a refused license.
 - No company yet does not stop the draft. A submission can be recorded only after I have a U.S. small business or a research partner.
-- On a phone, one reply from me can fill a whole step. Do not split `pitch`, `notice`, `write`, `phase2`, or `phase3` into a series of tiny questions.
-- On `pitch`: record `--name` and `--idea` together. The name is a short label taken from my words. The idea is what I said.
-- On `notice`: search public agency and SBIR.gov pages for one real open topic that fits what I said. Read me the agency, number, title, close date, and link. Wait until I say that is the notice. Then record all five in one command. If I paste a link, copy those five facts from that page only. If you cannot find an open notice, say so. Do not invent one. Do not ask me for those five facts one at a time.
-- On `write`: let me talk through Phase I in one answer. Show me five short sections in my words: objective, how I will test it, who has the problem, who does the work, and what the money pays for. Do not invent a customer, a person, a measurement, or a dollar amount. If I left one out, ask once. When I say it is right, record `--objective`, `--plan`, `--market`, `--team`, and `--budget` in one command.
+- On a phone, I choose. You do the looking up and the drafting. Do not ask me to invent an idea, a notice, or the Phase I sections.
+- On `match`, when `suggestions` is empty: do not ask me anything yet. Search public agency pages, SBIR.gov, and federal-lab technology listings. Find up to three open notices, and for each one a piece of government research that fits it. Record each pair with one `do` command: `--suggest-agency`, `--suggest-number`, `--suggest-title`, `--suggest-closes YYYY-MM-DD`, `--suggest-url`, `--suggest-name`, `--suggest-idea`, `--suggest-owner`, `--suggest-source`. Every link and date must be copied from a page you opened. If you cannot find a real pair, say so. Do not invent a notice, a lab, or a technology. Then run `status --json` again.
+- On `match`, when `choices` is present: show me each label and wait. Record `do --pick` with the value I chose. If I want different choices, run `do --clear-suggestions` and look again. If I want to drop a match already chosen and no submission is recorded, run `do --clear-match`.
+- On `write`: draft the five sections from the saved notice and the saved government technology only. Mark anything the listing does not say as a guess. Show me the sections. When I accept them, record `--objective`, `--plan`, `--market`, `--team`, and `--budget` in one command. Do not invent a customer, a person, a measurement, or a dollar amount.
 - On `submit1`: show me the draft path. The prompt lists anything still open, such as the company, SAM.gov, SBIR.gov, or the agency portal. If I say one of those is done, record it (`--company ready` or `partner`, `--sam yes`, `--sbir-registry yes`, `--portal yes`). If I have not submitted, stop. Tell me the draft path and that I submit it myself.
 - On `phase2`: one answer covers what I will build and who has shown interest. No interest yet is a real answer. Record `--phase2-plan` and `--phase2-customers` together.
 - On `phase3`: one answer covers who pays, what I sell, and where the money comes from. Record `--buyer`, `--offer`, and `--money` together. The money is not an SBIR award.
@@ -64,13 +64,12 @@ Each command below is run as `/Users/devenpatnaik/Downloads/SBIR/lab-to-market <
 | `contact` | `do --contact "..."` after I confirm it, or `do --no-contact` |
 | `contactSource` | `do --contact-source "https://..."` |
 | `send` | `do --sent yes` only after I say I sent it |
-| `pitch` | `do --name "..."` and `--idea "..."` together, from my words |
+| `match` | while suggestions are empty, one command per pair: `--suggest-agency` `--suggest-number` `--suggest-title` `--suggest-closes` `--suggest-url` `--suggest-name` `--suggest-idea` `--suggest-owner` `--suggest-source`. Then `do --pick 1` with the value I chose. `do --clear-suggestions` to look again |
 | `rights` | `do --rights not-needed` or `asked` or `available` or `unavailable`. `not-needed` means the work is mine |
 | `owner` | `do --owner "..."` only when the work is not mine |
 | `source` | `do --source "https://..."` or `do --skip-source` |
 | `company` | `do --company ready` or `not-yet` or `partner` |
-| `notice` | one command after I confirm a real notice: `--agency` `--number` `--title` `--closes YYYY-MM-DD` `--url "https://..."` |
-| `write` | one command after I accept the wording: `--objective` `--plan` `--market` `--team` `--budget` |
+| `write` | one command after I accept the draft: `--objective` `--plan` `--market` `--team` `--budget` |
 | `submit1` | `do --submitted yes --ref "..."` only with my tracking number. Or `--sam yes`, `--sbir-registry yes`, `--portal yes`, `--company ready` when I say that item is done |
 | `award1` | `do --award pending` or `yes` or `no` |
 | `phase2` | `do --phase2-plan "..."` and `--phase2-customers "..."` together |

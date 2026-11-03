@@ -2,7 +2,7 @@
 
 The product is Lab to Market, a local walk you can run from a phone in Claude Code. The program is `/Users/devenpatnaik/Downloads/SBIR/lab-to-market`. `cd /Users/devenpatnaik/Downloads/SBIR` first. Do not send the user to the web UI. If the user pasted `claude-code-prompt.md`, follow that prompt.
 
-The first question is the route. `patents` is a patent or a new paper: record the real document, draft an offer of debt, royalties, or equity, and let the user send the email. `sbir` is government technology and has to stay short enough for a phone: one pitch, rights, the company, one confirmed official notice, one spoken Phase I, then the draft. SAM.gov and the other registrations are a checklist on that draft, not questions that come first. Do not invent a patent number, a PMID, a DOI, a URL, a solicitation, or an email address. Do not send mail. A missing company does not block the draft. It blocks recording a submission.
+The first question is the route. `patents` is a patent or a new paper: record the real document, draft an offer of debt, royalties, or equity, and let the user send the email. `sbir` starts from demand, not from an idea. Find open notices and government research that fits each one, record those pairs, and let the user pick. Draft Phase I from the chosen notice and technology. SAM.gov and the other registrations are a checklist on that draft. Do not invent a patent number, a PMID, a DOI, a URL, a solicitation, a lab technology, or an email address. Do not send mail. A missing company does not block the draft. It blocks recording a submission.
 
 ```bash
 /Users/devenpatnaik/Downloads/SBIR/lab-to-market status --json

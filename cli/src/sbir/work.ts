@@ -8,6 +8,18 @@ export type Route = '' | 'patents' | 'sbir';
 export type SourceKind = '' | 'patent' | 'article';
 export type Deal = '' | 'debt' | 'royalties' | 'equity';
 
+export type Match = {
+  agency: string;
+  number: string;
+  title: string;
+  closes: string;
+  url: string;
+  name: string;
+  idea: string;
+  owner: string;
+  source: string;
+};
+
 export type Outreach = {
   kind: SourceKind;
   title: string;
@@ -27,6 +39,7 @@ export type SbirWork = {
   version: 1;
   route: Route;
   outreaches: Outreach[];
+  suggestions: Match[];
   research: { name: string; idea: string; owner: string; source: string };
   skipped: { owner: boolean; source: boolean };
   rights: Rights;
@@ -91,6 +104,18 @@ export type Patch = {
   deal?: Deal;
   terms?: string;
   sent?: boolean;
+  suggestAgency?: string;
+  suggestNumber?: string;
+  suggestTitle?: string;
+  suggestCloses?: string;
+  suggestUrl?: string;
+  suggestName?: string;
+  suggestIdea?: string;
+  suggestOwner?: string;
+  suggestSource?: string;
+  pick?: string;
+  clearSuggestions?: boolean;
+  clearMatch?: boolean;
 };
 
 export type Choice = { value: string; label: string };
@@ -158,6 +183,7 @@ export function emptyWork(): SbirWork {
     version: 1,
     route: '',
     outreaches: [],
+    suggestions: [],
     research: { name: '', idea: '', owner: '', source: '' },
     skipped: { owner: false, source: false },
     rights: '',
@@ -192,6 +218,9 @@ export function normalize(raw: unknown): SbirWork {
   const deferred = row.deferred ?? base.deferred;
   const skipped = row.skipped ?? base.skipped;
   const outreaches = Array.isArray(row.outreaches) ? row.outreaches.map(normalizeOutreach) : [];
+  const suggestions = Array.isArray(row.suggestions)
+    ? row.suggestions.map(normalizeMatch).filter((item): item is Match => item != null).slice(0, 3)
+    : [];
   const named = {
     name: text(research.name, 200, 'Name'),
     idea: text(research.idea, 2000, 'Idea'),
@@ -204,6 +233,7 @@ export function normalize(raw: unknown): SbirWork {
     version: 1,
     route,
     outreaches,
+    suggestions,
     research: named,
     skipped: { owner: Boolean(skipped.owner), source: Boolean(skipped.source) },
     rights: isRights(row.rights) ? row.rights : '',
@@ -272,6 +302,29 @@ function normalizeOutreach(raw: Partial<Outreach> | null): Outreach {
   };
 }
 
+function normalizeMatch(raw: Partial<Match> | null): Match | null {
+  if (!raw) return null;
+  let item: Match;
+  try {
+    item = {
+      agency: text(raw.agency, 80, 'Agency'),
+      number: text(raw.number, 80, 'Number'),
+      title: text(raw.title, 300, 'Title'),
+      closes: text(raw.closes, 20, 'Close date'),
+      url: text(raw.url, 500, 'Notice link'),
+      name: text(raw.name, 200, 'Technology'),
+      idea: text(raw.idea, 2000, 'Technology description'),
+      owner: text(raw.owner, 200, 'Owner'),
+      source: text(raw.source, 500, 'Technology link'),
+    };
+  } catch {
+    return null;
+  }
+  if (!item.agency || !item.number || !item.title || !item.closes || !item.url || !item.name || !item.idea || !item.owner || !item.source) return null;
+  if (!isDate(item.closes) || !isUrl(item.url) || !isUrl(item.source)) return null;
+  return item;
+}
+
 export function openOutreach(work: SbirWork): Outreach | undefined {
   return work.outreaches.find(item => !item.sentAt);
 }
@@ -284,7 +337,11 @@ function sbirPatch(patch: Patch): boolean {
     || patch.objective != null || patch.plan != null || patch.market != null || patch.team != null || patch.budget != null
     || patch.submitted === true || patch.ref != null || patch.award != null
     || patch.phase2Plan != null || patch.phase2Customers != null || patch.phase2Submitted === true || patch.phase2Ref != null || patch.phase2Award != null
-    || patch.buyer != null || patch.offer != null || patch.money != null;
+    || patch.buyer != null || patch.offer != null || patch.money != null
+    || patch.suggestAgency != null || patch.suggestNumber != null || patch.suggestTitle != null
+    || patch.suggestCloses != null || patch.suggestUrl != null || patch.suggestName != null
+    || patch.suggestIdea != null || patch.suggestOwner != null || patch.suggestSource != null
+    || patch.pick != null || patch.clearSuggestions === true || patch.clearMatch === true;
 }
 
 function sbirStarted(work: SbirWork): boolean {
@@ -471,6 +528,59 @@ export function applyPatch(current: SbirWork, patch: Patch): Applied {
   if (patch.offer != null) work.phase3.offer = text(patch.offer, 4000, 'Offer');
   if (patch.money != null) work.phase3.money = text(patch.money, 2000, 'Money');
 
+  if (patch.clearMatch) {
+    if (work.phase1.submittedAt) throw new Error('A submission is already recorded. Choose a different official notice link before replacing it.');
+    work.research.name = '';
+    work.research.idea = '';
+    work.research.owner = '';
+    work.research.source = '';
+    work.skipped = { owner: false, source: false };
+    work.rights = '';
+    work.topic = { agency: '', number: '', title: '', closes: '', url: '' };
+    work.suggestions = [];
+    work.phase1.objective = '';
+    work.phase1.plan = '';
+    work.phase1.market = '';
+    work.phase1.team = '';
+    work.phase1.budget = '';
+  }
+  if (patch.clearSuggestions) work.suggestions = [];
+  if (suggesting(patch)) {
+    const match = suggestionFrom(patch);
+    if (work.suggestions.some(item => item.url === match.url && item.source === match.source)) {
+      throw new Error('That notice and technology are already one of the choices.');
+    }
+    work.suggestions.push(match);
+    if (work.suggestions.length > 3) work.suggestions.shift();
+  }
+  if (patch.pick != null) {
+    const index = Number(patch.pick);
+    const chosen = Number.isInteger(index) ? work.suggestions[index - 1] : undefined;
+    if (!chosen) throw new Error('Pick 1, 2, or 3 from the matches on screen.');
+    if (chosen.url !== current.topic.url && current.phase1.submittedAt) {
+      work.phase1.submittedAt = '';
+      work.phase1.ref = '';
+      work.phase1.award = '';
+      work.phase2.submittedAt = '';
+      work.phase2.ref = '';
+      work.phase2.award = '';
+      notes.push('The solicitation link changed, so the old submission record was cleared. Your Phase I writing is still here.');
+    }
+    work.research.name = chosen.name;
+    work.research.idea = chosen.idea;
+    work.research.owner = chosen.owner;
+    work.research.source = chosen.source;
+    work.skipped = { owner: false, source: false };
+    work.topic = {
+      agency: chosen.agency,
+      number: chosen.number,
+      title: chosen.title,
+      closes: chosen.closes,
+      url: chosen.url,
+    };
+    notes.push('That match is the notice and the government technology. Nothing is submitted.');
+  }
+
   if (patch.dropOutreach) {
     const index = work.outreaches.findIndex(item => !item.sentAt);
     if (index < 0) throw new Error('There is no open patent or article to leave.');
@@ -540,6 +650,45 @@ export function applyPatch(current: SbirWork, patch: Patch): Applied {
   return { work, note: notes.join(' ') };
 }
 
+function suggesting(patch: Patch): boolean {
+  return patch.suggestAgency != null || patch.suggestNumber != null || patch.suggestTitle != null
+    || patch.suggestCloses != null || patch.suggestUrl != null || patch.suggestName != null
+    || patch.suggestIdea != null || patch.suggestOwner != null || patch.suggestSource != null;
+}
+
+function suggestionFrom(patch: Patch): Match {
+  const fields: Array<[keyof Match, string | undefined, string]> = [
+    ['agency', patch.suggestAgency, 'agency'],
+    ['number', patch.suggestNumber, 'number'],
+    ['title', patch.suggestTitle, 'title'],
+    ['closes', patch.suggestCloses, 'close date'],
+    ['url', patch.suggestUrl, 'notice link'],
+    ['name', patch.suggestName, 'technology name'],
+    ['idea', patch.suggestIdea, 'what the technology is'],
+    ['owner', patch.suggestOwner, 'lab or owner'],
+    ['source', patch.suggestSource, 'technology link'],
+  ];
+  const missing = fields.filter(([, value]) => value == null || !value.trim()).map(([, , label]) => label);
+  if (missing.length) throw new Error(`A match needs the official notice and the government technology. Missing ${missing.join(', ')}.`);
+  const item: Match = {
+    agency: text(patch.suggestAgency, 80, 'Agency'),
+    number: text(patch.suggestNumber, 80, 'Number'),
+    title: text(patch.suggestTitle, 300, 'Title'),
+    closes: text(patch.suggestCloses, 20, 'Close date'),
+    url: text(patch.suggestUrl, 500, 'Notice link'),
+    name: text(patch.suggestName, 200, 'Technology'),
+    idea: text(patch.suggestIdea, 2000, 'Technology description'),
+    owner: text(patch.suggestOwner, 200, 'Owner'),
+    source: text(patch.suggestSource, 500, 'Technology link'),
+  };
+  if (!isDate(item.closes)) throw new Error('Close date must be YYYY-MM-DD, copied from the official notice.');
+  if (!isUrl(item.url)) throw new Error('The notice link must start with http:// or https://.');
+  if (!isUrl(item.source)) throw new Error('The technology link must start with http:// or https://.');
+  rejectPlaceholderContact(item.url);
+  rejectPlaceholderContact(item.source);
+  return item;
+}
+
 function rejectPlaceholderContact(value: string): void {
   const lower = value.toLowerCase();
   if (lower.includes('example.com') || lower.includes('example.org') || lower.includes('@example.') || /^(todo|tbd|n\/a|none|unknown|email)$/i.test(value.trim())) {
@@ -605,16 +754,6 @@ export function nextGate(work: SbirWork): Gate {
   return routeGate(work);
 }
 
-function topicMissing(work: SbirWork): string[] {
-  const missing: string[] = [];
-  if (!work.topic.agency) missing.push('agency');
-  if (!work.topic.number) missing.push('number');
-  if (!work.topic.title) missing.push('title');
-  if (!work.topic.closes) missing.push('close date');
-  if (!work.topic.url) missing.push('link');
-  return missing;
-}
-
 function writingMissing(work: SbirWork): boolean {
   return !work.phase1.objective || !work.phase1.plan || !work.phase1.market || !work.phase1.team || !work.phase1.budget;
 }
@@ -628,15 +767,43 @@ function stillOpen(work: SbirWork): string[] {
   return items;
 }
 
-function sbirNext(work: SbirWork): Gate {
-  if (!work.research.name.trim() || !work.research.idea.trim()) {
+function matched(work: SbirWork): boolean {
+  return Boolean(
+    work.research.name.trim() && work.research.idea.trim()
+    && work.topic.agency && work.topic.number && work.topic.title && work.topic.closes && work.topic.url,
+  );
+}
+
+function matchGate(work: SbirWork): Gate {
+  if (work.suggestions.length) {
     return {
-      id: 'pitch', phase: 'I', title: 'The idea', kind: 'text',
-      prompt: 'In one or two sentences, what should the company do?',
+      id: 'match', phase: 'I', title: 'Choose a match', kind: 'choice',
+      prompt: 'Each choice is an official notice and a piece of government research that fits it. Pick one.',
+      choices: work.suggestions.map(item => ({
+        value: String(work.suggestions.indexOf(item) + 1),
+        label: `${item.agency} ${item.number} — ${item.title}. Technology: ${item.name}, ${item.owner}.`,
+      })),
     };
   }
+  const declined = work.phase1.award === 'no';
+  return {
+    id: 'match', phase: 'I', title: 'Notice and technology', kind: 'text',
+    prompt: declined
+      ? 'That notice was not selected. Find a different open notice and government research that fits it. You will choose a match.'
+      : 'Find open SBIR notices and government research that fits each one. You will choose a match.',
+  };
+}
+
+function sbirNext(work: SbirWork): Gate {
+  if (!matched(work)) return matchGate(work);
   if (!work.rights) {
-    return { id: 'rights', phase: 'I', title: 'Rights', prompt: 'Can you use this research? Your own work needs no one else\'s permission.', kind: 'choice', choices: RIGHTS };
+    const owner = work.research.owner && work.research.owner !== 'Own work' ? work.research.owner : '';
+    return {
+      id: 'rights', phase: 'I', title: 'Rights', kind: 'choice', choices: RIGHTS,
+      prompt: owner
+        ? `${owner} is named on the listing. Can you use this research?`
+        : 'Can you use this research? Your own work needs no one else\'s permission.',
+    };
   }
   if (work.rights === 'unavailable') {
     return {
@@ -656,17 +823,10 @@ function sbirNext(work: SbirWork): Gate {
       prompt: 'Where does the company stand? No company yet is fine. You need a U.S. small business, or a research partner, only before a submission is recorded.',
     };
   }
-  const missingTopic = topicMissing(work);
-  if (missingTopic.length) {
-    return {
-      id: 'notice', phase: 'I', title: 'The official notice', kind: 'text',
-      prompt: `Which government topic should this answer? A few words, or the link if you have it. Still needed from the official notice: ${missingTopic.join(', ')}.`,
-    };
-  }
   if (writingMissing(work)) {
     return {
       id: 'write', phase: 'I', title: 'Phase I — prove it can work', kind: 'text',
-      prompt: 'Talk through Phase I: what you will prove, how you will test it, who has the problem, who does the work, and what the money pays for. Do not name an award amount.',
+      prompt: `Phase I can be written from ${work.topic.agency} ${work.topic.number} and ${work.research.name}. Say what to change, or save the draft from that match. Do not name an award amount.`,
     };
   }
   if (!work.phase1.submittedAt) {
@@ -680,12 +840,7 @@ function sbirNext(work: SbirWork): Gate {
   if (!work.phase1.award) {
     return { id: 'award1', phase: 'I', title: 'Phase I decision', prompt: 'What did the official notice say?', kind: 'choice', choices: AWARD };
   }
-  if (work.phase1.award === 'no') {
-    return {
-      id: 'notice', phase: 'I', title: 'Phase I was not selected', kind: 'text',
-      prompt: 'Do not start Phase II on a decline. Paste a different official solicitation link, or say what topic to look up next.',
-    };
-  }
+  if (work.phase1.award === 'no') return matchGate(work);
   if (!work.phase2.plan || !work.phase2.customers) {
     return {
       id: 'phase2', phase: 'II', title: 'Phase II — build and demonstrate',
@@ -951,6 +1106,7 @@ export function parseGateAnswer(gate: Gate, line: string): Patch | 'quit' | 'pau
 
 function choicePatch(id: string, value: string): Patch {
   if (id === 'route') return { route: value as Route };
+  if (id === 'match') return { pick: value };
   if (id === 'sourceKind') return { kind: value as SourceKind };
   if (id === 'deal') return { deal: value as Deal };
   if (id === 'rights') return { rights: value as Rights };
@@ -980,7 +1136,10 @@ function textPatch(id: string, value: string): Patch {
     case 'idea': return { idea: value };
     case 'pitch': return pitchFrom(value);
     case 'notice': return noticeFrom(value);
-    case 'write': return { objective: value, plan: value, market: value, team: value, budget: value };
+    case 'match': throw new Error('Pick 1, 2, or 3 after the matches are on screen.');
+    case 'write':
+      if (/^yes$/i.test(value.trim())) throw new Error('Save the five sections with the draft text, not the word yes.');
+      return { objective: value, plan: value, market: value, team: value, budget: value };
     case 'phase2': return { phase2Plan: value, phase2Customers: value };
     case 'phase3': return { buyer: value, offer: value, money: value };
     case 'owner': return { owner: value };
