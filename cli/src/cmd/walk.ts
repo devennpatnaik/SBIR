@@ -1,7 +1,7 @@
 import readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { flag, on, type Args } from '../args.ts';
-import { clearWork, draftPaths, loadWork, saveWork, writeDrafts } from '../sbir/store.ts';
+import { clearWork, draftPaths, loadWork, saveWork } from '../sbir/store.ts';
 import {
   applyPatch,
   nextGate,
@@ -111,6 +111,7 @@ export function statusPayload(work: SbirWork) {
     phase2: { submittedAt: work.phase2.submittedAt, ref: work.phase2.ref, award: work.phase2.award },
     phase3: work.phase3,
     drafts,
+    draft: draftFile(work),
   };
 }
 
@@ -122,9 +123,15 @@ function draftFile(work: SbirWork): string {
   return drafts.phase1;
 }
 
+export function leaveLine(reason: 'quit' | 'pause', gate: { kind: string }, draft: string): string {
+  const where = `Draft: ${draft}`;
+  if (reason === 'pause' && gate.kind === 'ref') return `No submission recorded. You submit it yourself.\n${where}`;
+  if (reason === 'pause') return `Left this for later.\n${where}`;
+  return `Stopped.\n${where}`;
+}
+
 function printWork(work: SbirWork, json: boolean, note = '', save = true): void {
   if (save) saveWork(work);
-  else writeDrafts(work);
   if (json) {
     console.log(JSON.stringify({ ...statusPayload(work), note: note || undefined }, null, 2));
     return;
@@ -164,10 +171,12 @@ async function askOnce(ask: Ask, json: boolean): Promise<void> {
   const line = await ask('> ');
   const parsed = parseGateAnswer(gate, line);
   if (parsed === 'quit' || parsed === 'pause') {
-    if (!json) console.log(parsed === 'pause' ? 'Left this for later. The draft is unchanged.' : 'Stopped. The draft is saved.');
+    const note = leaveLine(parsed, gate, draftFile(work));
+    if (json) console.log(JSON.stringify({ ...statusPayload(work), note }, null, 2));
+    else console.log(note);
     return;
   }
-  if (parsed === 'again') throw new Error('That was not one of the choices.');
+  if (parsed === 'again') throw new Error(gate.kind === 'choice' ? 'That was not one of the choices.' : 'That did not answer the question.');
   const applied = applyPatch(work, parsed);
   printWork(applied.work, json, applied.note);
 }
@@ -188,9 +197,12 @@ export async function walkLoop(): Promise<void> {
       }
       const line = await ask('\n> ');
       const parsed = parseGateAnswer(gate, line);
-      if (parsed === 'quit' || parsed === 'pause') return;
+      if (parsed === 'quit' || parsed === 'pause') {
+        console.log(`\n${leaveLine(parsed, gate, draftFile(work))}`);
+        return;
+      }
       if (parsed === 'again') {
-        console.log('\nUse one of the numbers above, or q to leave.\n');
+        console.log(gate.kind === 'choice' ? '\nUse one of the numbers above, or q to leave.\n' : '\nThat did not answer the question. q leaves.\n');
         continue;
       }
       try {

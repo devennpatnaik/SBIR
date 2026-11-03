@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clearWork, loadWork, saveWork } from './store.ts';
-import { applyPatch, emptyWork, nextGate, phase1Draft, type Patch, type SbirWork } from './work.ts';
+import { leaveLine } from '../cmd/walk.ts';
+import { applyPatch, emptyWork, nextGate, parseGateAnswer, phase1Draft, type Patch, type SbirWork } from './work.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const bin = path.join(root, 'lab-to-market');
@@ -51,6 +52,11 @@ try {
 
   let work = step(emptyWork(), ready);
   assert.equal(nextGate(work).id, 'submit1');
+  assert.equal(parseGateAnswer(nextGate(work), ''), 'pause');
+  assert.equal(parseGateAnswer(nextGate(work), 'q'), 'quit');
+  assert.match(leaveLine('pause', nextGate(work), '/tmp/drafts/phase-1.md'), /No submission recorded/);
+  assert.match(leaveLine('pause', nextGate(work), '/tmp/drafts/phase-1.md'), /phase-1\.md/);
+  assert.match(leaveLine('quit', nextGate(work), '/tmp/drafts/phase-1.md'), /Stopped/);
   assert.throws(() => step(work, { submitted: true }), /tracking number/);
   assert.throws(() => step(work, { url: 'not a url' }), /http/);
   assert.throws(() => step(work, { closes: 'December' }), /YYYY-MM-DD/);
@@ -127,8 +133,11 @@ try {
 
   const status = run(['status', '--json']);
   assert.equal(status.status, 0, status.stderr);
-  assert.equal(JSON.parse(status.stdout).next, 'Pick the research');
+  const fresh = JSON.parse(status.stdout);
+  assert.equal(fresh.next, 'Pick the research');
+  assert.equal(fresh.draft, path.join(cliDir, 'drafts', 'phase-1.md'));
   assert.equal(fs.existsSync(path.join(cliDir, 'sbir.json')), false);
+  assert.equal(fs.existsSync(path.join(cliDir, 'drafts')), false);
 
   const partial = run(['do', '--name', 'Ammonia sensor', '--idea', 'Cheaper wastewater tests', '--json']);
   assert.equal(partial.status, 0, partial.stderr);
@@ -154,6 +163,11 @@ try {
   const done = JSON.parse(full.stdout);
   assert.equal(done.finished, true);
   assert.equal(done.phase1.ref, 'ABC-1');
+  assert.equal(done.draft, path.join(cliDir, 'drafts', 'phase-3.md'));
+  const saved = fs.readFileSync(path.join(cliDir, 'sbir.json'), 'utf8');
+  const reread = run(['status', '--json']);
+  assert.equal(reread.status, 0, reread.stderr);
+  assert.equal(fs.readFileSync(path.join(cliDir, 'sbir.json'), 'utf8'), saved);
   assert.match(fs.readFileSync(path.join(cliDir, 'drafts', 'phase-1.md'), 'utf8'), /ABC-1/);
   assert.match(fs.readFileSync(path.join(cliDir, 'drafts', 'phase-3.md'), 'utf8'), /City water department/);
 
@@ -167,6 +181,27 @@ try {
   assert.equal(run(['clear', '--yes']).status, 0);
   assert.equal(fs.existsSync(path.join(cliDir, 'sbir.json')), false);
   assert.equal(JSON.parse(run(['status', '--json']).stdout).research.name, '');
+
+  const brokenDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ltm-broken-'));
+  const brokenFile = path.join(brokenDir, 'sbir.json');
+  fs.writeFileSync(brokenFile, '{', { mode: 0o600 });
+  const broken = spawnSync(bin, ['status', '--json'], {
+    cwd: root,
+    env: { ...process.env, LTM_DIR: brokenDir },
+    encoding: 'utf8',
+  });
+  assert.notEqual(broken.status, 0);
+  assert.match(broken.stderr, /left untouched/);
+  assert.equal(fs.readFileSync(brokenFile, 'utf8'), '{');
+  assert.equal(fs.existsSync(path.join(brokenDir, 'drafts')), false);
+  const brokenDo = spawnSync(bin, ['do', '--name', 'Should not replace', '--json'], {
+    cwd: root,
+    env: { ...process.env, LTM_DIR: brokenDir },
+    encoding: 'utf8',
+  });
+  assert.notEqual(brokenDo.status, 0);
+  assert.equal(fs.readFileSync(brokenFile, 'utf8'), '{');
+  fs.rmSync(brokenDir, { recursive: true, force: true });
 
   console.log('sbir walk ok');
 } finally {

@@ -11,12 +11,22 @@ Live: https://github.com/devennpatnaik/sbir (see `docs/two-tracks.md`)
 | 5 | Learning flywheel | **Done+** | Demo seeds sample outcomes (excluded from cohort); Insights example panel; pursue ranking uses cohort when ≥3 |
 | 6 | UX polish | **Done** | Two tracks + pursue lists |
 
-## Works without an API key
+## SBIR walk (no account, no server)
+
+```bash
+./lab-to-market status
+./lab-to-market do --name "Ammonia sensor" --idea "Cheaper wastewater tests"
+```
+
+The record is `~/.lab-to-market/sbir.json`. `status` only reads it. Drafts are written when an answer is saved. You submit every proposal yourself.
+
+## Older lab database
+
+Needs `./lab-to-market up` (the old web UI is http://localhost:8080).
 
 ```bash
 ./lab-to-market doctor
 ./lab-to-market up
-# → http://localhost:8080
 ```
 
 - **Pursue** — select from a ranked list (most promising unpicked first), then open next step  

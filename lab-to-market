@@ -49,8 +49,8 @@ doctor() {
     echo "INFO API not running yet (start with ./lab-to-market up)"
   fi
   echo ""
-  echo "Text interface: ./lab-to-market"
-  echo "API for that interface: ./lab-to-market up"
+  echo "SBIR walk (no server): ./lab-to-market"
+  echo "Older lab database: ./lab-to-market up, then ./lab-to-market menu"
   [[ $ok -eq 1 ]] || exit 1
 }
 
@@ -80,7 +80,8 @@ package_release() {
     lab-to-market README.md .env.example \
     deploy apps backend packages prisma scripts package.json bun.lock bunfig.toml .github
   echo "Wrote $out/$name"
-  echo "Install: tar -xzf $name && cd lab-to-market-* 2>/dev/null; ./lab-to-market doctor && ./lab-to-market up"
+  echo "SBIR walk: ./lab-to-market status"
+  echo "Older database: ./lab-to-market doctor && ./lab-to-market up"
 }
 
 is_stack() {
@@ -115,7 +116,8 @@ case "$cmd" in
     docker compose up -d --build "$@"
     echo ""
     echo "API            → http://localhost:${API_PORT:-8787}"
-    echo "Text interface → ./lab-to-market"
+    echo "SBIR walk      → ./lab-to-market   (no server)"
+    echo "Older menu     → ./lab-to-market menu"
     echo "Legacy web UI  → http://localhost:${WEB_PORT:-8080}"
     echo "Offline guide works without an LLM key. Optional: set OPENAI_API_KEY or ANTHROPIC_API_KEY in deploy/selfhost/.env"
     ;;

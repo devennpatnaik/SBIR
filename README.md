@@ -23,7 +23,7 @@ Phase I proves it can work. Phase II builds and demonstrates it, and is not auto
 
 `./lab-to-market menu` is the older list of lab records, grants, and patents. Those commands need `./lab-to-market up`. `path`, `guide`, and `programs` still run with no server.
 
-CI: `bun test cli/src/cli.test.ts`, `bun scripts/smoke-offline.ts`, and `scripts/ci-workflow.yml (install as GitHub Action when token has workflow scope)`.
+CI: `bun test cli/src/cli.test.ts`, `bun cli/src/sbir/work.test.ts`, `bun scripts/smoke-offline.ts`, and `scripts/ci-workflow.yml (install as GitHub Action when token has workflow scope)`. Node 22 can run the walk test without Bun: `node --experimental-strip-types cli/src/sbir/work.test.ts`.
 
 ## API and legacy web UI
 
@@ -32,7 +32,7 @@ CI: `bun test cli/src/cli.test.ts`, `bun scripts/smoke-offline.ts`, and `scripts
 ./lab-to-market up
 ```
 
-`up` starts the API the text interface talks to, and still serves the old web UI at **http://localhost:8080**. Day-to-day use is the terminal. Optional keys only affect pathway LLM drafting if you add them later.
+`up` starts Postgres, the API, and the old web UI at **http://localhost:8080**. The SBIR walk does not use that stack. `menu`, grants, and patents search do. Optional keys only affect pathway LLM drafting if you add them later.
 
 ## Quick start (Docker Compose — no Bourne account)
 
