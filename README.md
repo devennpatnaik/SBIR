@@ -8,7 +8,7 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 
 No account and no server. Claude Code can run the whole walk. The first question is the route.
 
-**Patents and new papers.** You bring a patent or a PubMed article. The program writes a draft offer — debt, royalties, or equity — using only the terms you typed, and it keeps the contact you confirmed. You send the email yourself. Then it asks the route question again: another paper, or SBIR.
+**Patents and new papers.** This starts from an unsolved problem. Claude finds problems that new biology or other technology could help, and a real patent or PubMed article for each one. You pick a match. The program writes a draft offer — debt, royalties, or equity — using only the terms you typed, and it keeps the contact you confirmed. You send the email yourself. Then it asks the route question again: another paper, or SBIR.
 
 **SBIR, for government technology.** This starts from demand. Claude finds open notices and government research that fits them. You pick one match. The Phase I draft is written from that notice and that technology. You still submit every proposal yourself.
 

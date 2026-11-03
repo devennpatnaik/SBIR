@@ -41,7 +41,8 @@ The record is `~/.lab-to-market/sbir.json`. SBIR drafts are `~/.lab-to-market/dr
 - On `submit1`: show me the draft path. The prompt lists anything still open, such as the company, SAM.gov, SBIR.gov, or the agency portal. If I say one of those is done, record it (`--company ready` or `partner`, `--sam yes`, `--sbir-registry yes`, `--portal yes`). If I have not submitted, stop. Tell me the draft path and that I submit it myself.
 - On `phase2`: one answer covers what I will build and who has shown interest. No interest yet is a real answer. Record `--phase2-plan` and `--phase2-customers` together.
 - On `phase3`: one answer covers who pays, what I sell, and where the money comes from. Record `--buyer`, `--offer`, and `--money` together. The money is not an SBIR award.
-- On `sourceKind`, `foundTitle`, `identifier`, or `foundUrl`: if I have not confirmed one specific patent or article, you may search public patent and PubMed pages and show me a few real records with their numbers and links. Wait until I pick one. Then record only that record.
+- On `lead`, when `leads` is empty: do not ask me anything yet. Think of unsolved problems that new biology or other technology could help. For each problem, find one real patent or one real PubMed article that might help. Record up to three pairs. Each command is `--problem`, `--lead-kind patent` or `article`, `--lead-title`, `--lead-identifier` (patent number, PMID, or DOI), `--lead-url`, `--lead-novelty` (what the record itself says is new), and `--lead-inventor`. Copy the identifier, link, and novelty from the page you opened. Do not invent a problem's document, a number, or a person. Then run `status --json` again.
+- On `lead`, when `choices` is present: show me each label and wait. Record `do --pick` with the value I chose. If I want different choices, run `do --clear-leads` and look again. If I want to drop a chosen document before any email is recorded, run `do --clear-lead`.
 - On `contact`: look up the inventor or corresponding author from the saved link and other public pages. Show me the address and the page where you found it. Record `--contact` and `--contact-source` only after I confirm both. The source has to be an https link.
 - On `deal` and `terms`: use my words. Do not fill in an amount I did not say.
 - On `send`: show me the draft path and the email in that file. Ask me to send it. If I have not, stop and tell me the path.
@@ -53,12 +54,7 @@ Each command below is run as `/Users/devenpatnaik/Downloads/SBIR/lab-to-market <
 | `step` | Command |
 | --- | --- |
 | `route` | `do --route patents` or `do --route sbir` |
-| `sourceKind` | `do --kind patent` or `do --kind article` |
-| `foundTitle` | `do --found-title "..."` |
-| `identifier` | `do --identifier "..."` |
-| `foundUrl` | `do --found-url "https://..."` |
-| `novelty` | `do --novelty "..."` |
-| `inventor` | `do --inventor "..."` |
+| `lead` | while leads are empty, one command per pair: `--problem` `--lead-kind patent` or `article` `--lead-title` `--lead-identifier` `--lead-url` `--lead-novelty` `--lead-inventor`. Then `do --pick 1`. `do --clear-leads` to look again |
 | `deal` | `do --deal debt` or `royalties` or `equity` |
 | `terms` | `do --terms "..."` |
 | `contact` | `do --contact "..."` after I confirm it, or `do --no-contact` |

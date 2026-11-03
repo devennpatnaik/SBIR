@@ -6,7 +6,7 @@ export const USAGE = `Lab to Market on this machine. No account. No server. A ph
   ./lab-to-market do --route sbir --name "Sensor" --idea "Cheaper wastewater tests"
   ./lab-to-market clear --yes             delete this machine's file
 
-Start by choosing a route. Patents and new papers: you find a record, the draft offers debt, royalties, or equity, and you send the email yourself.
+Start by choosing a route. Patents and new papers start from an unsolved problem. The program finds a real patent or PubMed article that might help. You pick a match. The draft offers debt, royalties, or equity, and you send the email yourself.
 
 SBIR starts from demand. The program finds open notices and government research that fits each one. You pick a match. Phase I is drafted from that pair. SAM.gov is a checklist on the draft. Phase I proves it, Phase II builds it, and Phase III sells it. Phase III is not an SBIR award. You submit every proposal yourself. No company yet does not block the draft.
 
@@ -28,10 +28,9 @@ A few answers you will type yourself, copied from official pages:
   do --phase2-award yes|no|pending
   do --buyer "..." --offer "..." --money "..."
 
-A patent or a paper, after --route patents:
-  do --kind patent|article
-  do --found-title "..." --identifier "US 1,234,567 or PMID 123" --found-url https://...
-  do --novelty "..." --inventor "..."
+A patent or a paper, after --route patents. First record a problem and a real document, then pick it:
+  do --problem "..." --lead-kind patent|article --lead-title "..." --lead-identifier "US 1,234,567 or PMID 123" --lead-url https://... --lead-novelty "..." --lead-inventor "..."
+  do --pick 1
   do --deal debt|royalties|equity --terms "..."
   do --contact "the address you copied" --contact-source https://...
   do --no-contact
