@@ -18,7 +18,7 @@ Live: https://github.com/devennpatnaik/sbir (see `docs/two-tracks.md`)
 ./lab-to-market do --route sbir --name "Ammonia sensor" --idea "Cheaper wastewater tests"
 ```
 
-SBIR starts from an official notice paired with government research. The person picks a match. The draft is saved before SAM.gov.
+Both routes start from demand. SBIR pairs an official notice with government research. Patents and PubMed pair an unsolved problem with a real document. The person picks a match. The SBIR draft is saved before SAM.gov.
 
 The record is `~/.lab-to-market/sbir.json`. `status` only reads it. Drafts are written when an answer is saved. You submit every proposal yourself, and you send every inventor email yourself.
 

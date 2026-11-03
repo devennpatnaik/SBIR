@@ -20,7 +20,18 @@ export type Match = {
   source: string;
 };
 
+export type Lead = {
+  problem: string;
+  kind: 'patent' | 'article';
+  title: string;
+  identifier: string;
+  url: string;
+  novelty: string;
+  inventor: string;
+};
+
 export type Outreach = {
+  problem: string;
   kind: SourceKind;
   title: string;
   identifier: string;
@@ -40,6 +51,7 @@ export type SbirWork = {
   route: Route;
   outreaches: Outreach[];
   suggestions: Match[];
+  leads: Lead[];
   research: { name: string; idea: string; owner: string; source: string };
   skipped: { owner: boolean; source: boolean };
   rights: Rights;
@@ -116,6 +128,15 @@ export type Patch = {
   pick?: string;
   clearSuggestions?: boolean;
   clearMatch?: boolean;
+  problem?: string;
+  leadKind?: SourceKind;
+  leadTitle?: string;
+  leadIdentifier?: string;
+  leadUrl?: string;
+  leadNovelty?: string;
+  leadInventor?: string;
+  clearLeads?: boolean;
+  clearLead?: boolean;
 };
 
 export type Choice = { value: string; label: string };
@@ -156,7 +177,7 @@ const AWARD: Choice[] = [
 ];
 
 const ROUTE: Choice[] = [
-  { value: 'patents', label: 'A patent or a new paper. Draft an offer to the inventor. I send the email myself.' },
+  { value: 'patents', label: 'Patents and new papers. You pick an unsolved problem and a matching patent or article. I send the email.' },
   { value: 'sbir', label: 'Government technology, through SBIR. An agency pays a small business to do the R&D.' },
 ];
 
@@ -173,7 +194,7 @@ const DEAL: Choice[] = [
 
 export function emptyOutreach(): Outreach {
   return {
-    kind: '', title: '', identifier: '', url: '', novelty: '', inventor: '',
+    problem: '', kind: '', title: '', identifier: '', url: '', novelty: '', inventor: '',
     contact: '', contactSource: '', noContact: false, deal: '', terms: '', sentAt: '',
   };
 }
@@ -184,6 +205,7 @@ export function emptyWork(): SbirWork {
     route: '',
     outreaches: [],
     suggestions: [],
+    leads: [],
     research: { name: '', idea: '', owner: '', source: '' },
     skipped: { owner: false, source: false },
     rights: '',
@@ -221,6 +243,9 @@ export function normalize(raw: unknown): SbirWork {
   const suggestions = Array.isArray(row.suggestions)
     ? row.suggestions.map(normalizeMatch).filter((item): item is Match => item != null).slice(0, 3)
     : [];
+  const leads = Array.isArray(row.leads)
+    ? row.leads.map(normalizeLead).filter((item): item is Lead => item != null).slice(0, 3)
+    : [];
   const named = {
     name: text(research.name, 200, 'Name'),
     idea: text(research.idea, 2000, 'Idea'),
@@ -234,6 +259,7 @@ export function normalize(raw: unknown): SbirWork {
     route,
     outreaches,
     suggestions,
+    leads,
     research: named,
     skipped: { owner: Boolean(skipped.owner), source: Boolean(skipped.source) },
     rights: isRights(row.rights) ? row.rights : '',
@@ -287,6 +313,7 @@ function normalizeOutreach(raw: Partial<Outreach> | null): Outreach {
   const base = emptyOutreach();
   const row = raw ?? base;
   return {
+    problem: text(row.problem, 500, 'Problem'),
     kind: row.kind === 'patent' || row.kind === 'article' ? row.kind : '',
     title: text(row.title, 300, 'Title'),
     identifier: text(row.identifier, 120, 'Identifier'),
@@ -322,6 +349,27 @@ function normalizeMatch(raw: Partial<Match> | null): Match | null {
   }
   if (!item.agency || !item.number || !item.title || !item.closes || !item.url || !item.name || !item.idea || !item.owner || !item.source) return null;
   if (!isDate(item.closes) || !isUrl(item.url) || !isUrl(item.source)) return null;
+  return item;
+}
+
+function normalizeLead(raw: Partial<Lead> | null): Lead | null {
+  if (!raw || (raw.kind !== 'patent' && raw.kind !== 'article')) return null;
+  let item: Lead;
+  try {
+    item = {
+      problem: text(raw.problem, 500, 'Problem'),
+      kind: raw.kind,
+      title: text(raw.title, 300, 'Title'),
+      identifier: text(raw.identifier, 120, 'Identifier'),
+      url: text(raw.url, 500, 'Link'),
+      novelty: text(raw.novelty, 2000, 'What is new'),
+      inventor: text(raw.inventor, 200, 'Inventor'),
+    };
+  } catch {
+    return null;
+  }
+  if (!item.problem || !item.title || !item.identifier || !item.url || !item.novelty || !item.inventor) return null;
+  if (!isUrl(item.url) || !/\d/.test(item.identifier)) return null;
   return item;
 }
 
@@ -553,7 +601,7 @@ export function applyPatch(current: SbirWork, patch: Patch): Applied {
     work.suggestions.push(match);
     if (work.suggestions.length > 3) work.suggestions.shift();
   }
-  if (patch.pick != null) {
+  if (patch.pick != null && patch.route !== 'patents' && work.route !== 'patents') {
     const index = Number(patch.pick);
     const chosen = Number.isInteger(index) ? work.suggestions[index - 1] : undefined;
     if (!chosen) throw new Error('Pick 1, 2, or 3 from the matches on screen.');
@@ -647,7 +695,93 @@ export function applyPatch(current: SbirWork, patch: Patch): Applied {
     }
   }
 
+  if (patch.clearLead) {
+    const open = openOutreach(work);
+    if (!open) throw new Error('There is no open patent or article to replace.');
+    const fresh = emptyOutreach();
+    open.problem = fresh.problem;
+    open.kind = fresh.kind;
+    open.title = fresh.title;
+    open.identifier = fresh.identifier;
+    open.url = fresh.url;
+    open.novelty = fresh.novelty;
+    open.inventor = fresh.inventor;
+    open.contact = fresh.contact;
+    open.contactSource = fresh.contactSource;
+    open.noContact = false;
+    open.deal = fresh.deal;
+    open.terms = fresh.terms;
+    work.leads = [];
+  }
+  if (patch.clearLeads) work.leads = [];
+  if (!work.route && leading(patch)) {
+    work.route = 'patents';
+    if (!openOutreach(work)) work.outreaches.push(emptyOutreach());
+  }
+  if (leading(patch)) {
+    const lead = leadFrom(patch);
+    if (work.leads.some(item => item.url === lead.url && item.identifier === lead.identifier)) {
+      throw new Error('That problem and document are already one of the choices.');
+    }
+    work.leads.push(lead);
+    if (work.leads.length > 3) work.leads.shift();
+  }
+  if (patch.pick != null && (work.route === 'patents' || patch.route === 'patents')) {
+    const index = Number(patch.pick);
+    const chosen = Number.isInteger(index) ? work.leads[index - 1] : undefined;
+    if (!chosen) throw new Error('Pick 1, 2, or 3 from the matches on screen.');
+    if (!openOutreach(work)) work.outreaches.push(emptyOutreach());
+    const open = openOutreach(work);
+    if (!open) throw new Error('Choose the patent route first.');
+    open.problem = chosen.problem;
+    open.kind = chosen.kind;
+    open.title = chosen.title;
+    open.identifier = chosen.identifier;
+    open.url = chosen.url;
+    open.novelty = chosen.novelty;
+    open.inventor = chosen.inventor;
+    open.contact = '';
+    open.contactSource = '';
+    open.noContact = false;
+    open.deal = '';
+    open.terms = '';
+    notes.push('That match is the problem and the patent or paper. Nothing is emailed.');
+  }
+
   return { work, note: notes.join(' ') };
+}
+
+function leading(patch: Patch): boolean {
+  return patch.problem != null || patch.leadKind != null || patch.leadTitle != null || patch.leadIdentifier != null
+    || patch.leadUrl != null || patch.leadNovelty != null || patch.leadInventor != null;
+}
+
+function leadFrom(patch: Patch): Lead {
+  const kind = patch.leadKind;
+  if (kind !== 'patent' && kind !== 'article') throw new Error('Kind must be patent or article.');
+  const fields: Array<[string | undefined, string]> = [
+    [patch.problem, 'the unsolved problem'],
+    [patch.leadTitle, 'title'],
+    [patch.leadIdentifier, 'patent number, PMID, or DOI'],
+    [patch.leadUrl, 'document link'],
+    [patch.leadNovelty, 'what the record says is new'],
+    [patch.leadInventor, 'inventor or corresponding author'],
+  ];
+  const missing = fields.filter(([value]) => value == null || !value.trim()).map(([, label]) => label);
+  if (missing.length) throw new Error(`A match needs an unsolved problem and a real patent or article. Missing ${missing.join(', ')}.`);
+  const item: Lead = {
+    problem: text(patch.problem, 500, 'Problem'),
+    kind,
+    title: text(patch.leadTitle, 300, 'Title'),
+    identifier: text(patch.leadIdentifier, 120, 'Identifier'),
+    url: text(patch.leadUrl, 500, 'Link'),
+    novelty: text(patch.leadNovelty, 2000, 'What is new'),
+    inventor: text(patch.leadInventor, 200, 'Inventor'),
+  };
+  if (!isUrl(item.url)) throw new Error('The patent or article link must start with http:// or https://.');
+  if (!/\d/.test(item.identifier)) throw new Error('The identifier must be a patent number, PMID, or DOI copied from the record.');
+  rejectPlaceholderContact(item.url);
+  return item;
 }
 
 function suggesting(patch: Patch): boolean {
@@ -707,26 +841,29 @@ function routeGate(work: SbirWork): Gate {
   return { id: 'route', phase: 'I', title: 'Choose a route', prompt, kind: 'choice', choices: ROUTE };
 }
 
-function patentGate(item: Outreach): Gate {
-  if (!item.kind) {
-    return { id: 'sourceKind', phase: 'patent', title: 'Find something new', prompt: 'Is this a patent, or a research article?', kind: 'choice', choices: SOURCE_KIND };
-  }
-  const record = item.kind === 'article' ? 'article' : 'patent';
-  if (!item.title) return { id: 'foundTitle', phase: 'patent', title: 'Find something new', prompt: `${record === 'article' ? 'Article' : 'Patent'} title, copied from the record.`, kind: 'text' };
-  if (!item.identifier) {
+function documentReady(item: Outreach): boolean {
+  return Boolean(item.kind && item.title.trim() && item.identifier.trim() && item.url && item.novelty.trim() && item.inventor.trim());
+}
+
+function leadGate(work: SbirWork): Gate {
+  if (work.leads.length) {
     return {
-      id: 'identifier', phase: 'patent', title: 'Find something new', kind: 'text',
-      prompt: record === 'article' ? 'PMID or DOI, copied from the article.' : 'Patent number, copied from the record.',
+      id: 'lead', phase: 'patent', title: 'Choose a match', kind: 'choice',
+      prompt: 'Each choice is an unsolved problem and a patent or paper that might help. Pick one.',
+      choices: work.leads.map((item, index) => ({
+        value: String(index + 1),
+        label: `${item.problem} Match: ${item.kind === 'article' ? 'Article' : 'Patent'} ${item.identifier} — ${item.title}. ${item.inventor}.`,
+      })),
     };
   }
-  if (!item.url) return { id: 'foundUrl', phase: 'patent', title: 'Find something new', prompt: 'Link to that patent or article. It must start with https://.', kind: 'text' };
-  if (!item.novelty) return { id: 'novelty', phase: 'patent', title: 'What is new', prompt: 'What is new about it, in your words? One or two sentences. Mark a guess as a guess.', kind: 'text' };
-  if (!item.inventor) {
-    return {
-      id: 'inventor', phase: 'patent', title: 'Who made it', kind: 'text',
-      prompt: record === 'article' ? 'Corresponding author, copied from the article.' : 'Inventor, copied from the patent.',
-    };
-  }
+  return {
+    id: 'lead', phase: 'patent', title: 'Problem and research', kind: 'text',
+    prompt: 'Find unsolved problems that new biology or other technology could help, and a real patent or PubMed article for each. You will choose a match.',
+  };
+}
+
+function patentGate(work: SbirWork, item: Outreach): Gate {
+  if (!documentReady(item)) return leadGate(work);
   if (!item.deal) return { id: 'deal', phase: 'patent', title: 'The offer', prompt: 'What kind of deal are you offering? You will write the terms next. Do not invent an amount.', kind: 'choice', choices: DEAL };
   if (!item.terms.trim()) return { id: 'terms', phase: 'patent', title: 'The offer', prompt: 'Write the terms in your own words. Include a number only if you mean that number. This is not a signed agreement.', kind: 'text' };
   if (!item.contact) {
@@ -747,7 +884,7 @@ function patentGate(item: Outreach): Gate {
 export function nextGate(work: SbirWork): Gate {
   if (work.route === 'patents') {
     const open = openOutreach(work);
-    if (open) return patentGate(open);
+    if (open) return patentGate(work, open);
     return routeGate(work);
   }
   if (work.route === 'sbir') return sbirNext(work);
@@ -1033,6 +1170,8 @@ export function outreachDraft(item: Outreach): string {
     `> ${sent}`,
     '> Numbers appear only where you wrote them. This is not a signed agreement.',
     '',
+    section('The problem', item.problem),
+    '',
     section('Who it is for', `${who}: ${item.inventor || 'not recorded'}\nContact: ${contact}\nFound at: ${item.contactSource || 'not recorded'}`),
     '',
     section('The work', [
@@ -1054,7 +1193,7 @@ export function outreachDraft(item: Outreach): string {
       '',
       `Hello ${item.inventor || ''}`.trim() + ',',
       '',
-      `I read ${item.title || 'your work'}${item.identifier ? ` (${item.identifier})` : ''}. ${item.novelty || ''}`.trim(),
+      [item.problem ? `The problem I want to work on: ${item.problem}` : '', `I read ${item.title || 'your work'}${item.identifier ? ` (${item.identifier})` : ''}. ${item.novelty || ''}`].filter(Boolean).join('\n\n'),
       '',
       dealLetter(item),
       '',
@@ -1106,7 +1245,7 @@ export function parseGateAnswer(gate: Gate, line: string): Patch | 'quit' | 'pau
 
 function choicePatch(id: string, value: string): Patch {
   if (id === 'route') return { route: value as Route };
-  if (id === 'match') return { pick: value };
+  if (id === 'match' || id === 'lead') return { pick: value };
   if (id === 'sourceKind') return { kind: value as SourceKind };
   if (id === 'deal') return { deal: value as Deal };
   if (id === 'rights') return { rights: value as Rights };
@@ -1136,7 +1275,8 @@ function textPatch(id: string, value: string): Patch {
     case 'idea': return { idea: value };
     case 'pitch': return pitchFrom(value);
     case 'notice': return noticeFrom(value);
-    case 'match': throw new Error('Pick 1, 2, or 3 after the matches are on screen.');
+    case 'match':
+    case 'lead': throw new Error('Pick 1, 2, or 3 after the matches are on screen.');
     case 'write':
       if (/^yes$/i.test(value.trim())) throw new Error('Save the five sections with the draft text, not the word yes.');
       return { objective: value, plan: value, market: value, team: value, budget: value };

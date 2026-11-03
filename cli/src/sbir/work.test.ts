@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clearWork, loadWork, saveWork } from './store.ts';
 import { leaveLine } from '../cmd/walk.ts';
-import { applyPatch, emptyWork, nextGate, normalize, parseGateAnswer, phase1Draft, type Patch, type SbirWork } from './work.ts';
+import { applyPatch, emptyWork, nextGate, normalize, outreachDraft, parseGateAnswer, phase1Draft, type Patch, type SbirWork } from './work.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const bin = path.join(root, 'lab-to-market');
@@ -125,7 +125,7 @@ try {
   assert.equal(nextGate(selected).kind, 'done');
   const fromSbir = step(selected, { route: 'patents' });
   assert.equal(fromSbir.phase1.ref, 'ABC-1');
-  assert.equal(nextGate(fromSbir).id, 'sourceKind');
+  assert.equal(nextGate(fromSbir).id, 'lead');
   const draft = phase1Draft(selected);
   assert.match(draft, /Cheaper wastewater tests/);
   assert.match(draft, /not an application|did not submit/);
@@ -282,8 +282,28 @@ try {
   assert.doesNotMatch(nextGate(phone).prompt, /Still open/);
 
   let patent = step(emptyWork(), { route: 'patents' });
-  assert.equal(nextGate(patent).id, 'sourceKind');
-  assert.equal(parseGateAnswer(nextGate(patent), '2').kind, 'article');
+  assert.equal(nextGate(patent).id, 'lead');
+  assert.match(nextGate(patent).prompt, /unsolved problems/);
+  const lead = {
+    problem: 'Hospitals still miss early sepsis.',
+    leadKind: 'article' as const,
+    leadTitle: 'A paper sensor',
+    leadIdentifier: 'PMID 12345678',
+    leadUrl: 'https://pubmed.ncbi.nlm.nih.gov/12345678/',
+    leadNovelty: 'The abstract reports a cheaper strip for a bacterial marker.',
+    leadInventor: 'Ada Lovelace',
+  };
+  assert.throws(() => step(patent, { ...lead, leadUrl: 'https://example.com/paper' }), /placeholder/);
+  assert.throws(() => step(patent, { ...lead, leadIdentifier: 'no number' }), /PMID/);
+  patent = step(patent, lead);
+  assert.match(nextGate(patent).choices?.[0]?.label ?? '', /early sepsis/);
+  assert.match(nextGate(patent).choices?.[0]?.label ?? '', /PMID 12345678/);
+  patent = step(patent, { pick: '1' });
+  assert.equal(patent.outreaches[0]?.problem, lead.problem);
+  assert.equal(patent.outreaches[0]?.kind, 'article');
+  assert.equal(patent.outreaches[0]?.inventor, 'Ada Lovelace');
+  assert.equal(nextGate(patent).id, 'deal');
+  assert.match(outreachDraft(patent.outreaches[0]!), /early sepsis/);
   patent = step(patent, {
     kind: 'article',
     foundTitle: 'A paper sensor',
@@ -321,7 +341,7 @@ try {
   assert.match(note, /tto@university.edu/);
   const again = step(sent, { route: 'patents' });
   assert.equal(again.outreaches.length, 2);
-  assert.equal(nextGate(again).id, 'sourceKind');
+  assert.equal(nextGate(again).id, 'lead');
   const dropped = step(again, { dropOutreach: true });
   assert.equal(dropped.outreaches.length, 1);
   assert.equal(nextGate(dropped).id, 'route');
@@ -335,7 +355,7 @@ try {
   });
   const opened = patentRun(['do', '--route', 'patents', '--json']);
   assert.equal(opened.status, 0, opened.stderr);
-  assert.equal(JSON.parse(opened.stdout).step, 'sourceKind');
+  assert.equal(JSON.parse(opened.stdout).step, 'lead');
   const noted = patentRun([
     'do', '--json',
     '--kind', 'patent',

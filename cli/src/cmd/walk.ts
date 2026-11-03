@@ -129,6 +129,15 @@ export function patchFromFlags(args: Args): Patch {
     pick: flag(args, 'pick'),
     clearSuggestions: on(args, 'clear-suggestions'),
     clearMatch: on(args, 'clear-match'),
+    problem: flag(args, 'problem'),
+    leadKind: kindOf(flag(args, 'lead-kind')),
+    leadTitle: flag(args, 'lead-title'),
+    leadIdentifier: flag(args, 'lead-identifier'),
+    leadUrl: flag(args, 'lead-url'),
+    leadNovelty: flag(args, 'lead-novelty'),
+    leadInventor: flag(args, 'lead-inventor'),
+    clearLeads: on(args, 'clear-leads'),
+    clearLead: on(args, 'clear-lead'),
   };
 }
 
@@ -160,6 +169,7 @@ export function statusPayload(work: SbirWork) {
     phase3: work.phase3,
     route: work.route,
     suggestions: work.suggestions.map((item, index) => ({ n: index + 1, ...item })),
+    leads: work.leads.map((item, index) => ({ n: index + 1, ...item })),
     outreach: openOutreach(work) ?? null,
     sentNotes: work.outreaches.filter(item => item.sentAt).map(item => ({
       title: item.title,
