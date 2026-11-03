@@ -1,18 +1,22 @@
 import readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { flag, on, type Args } from '../args.ts';
-import { clearWork, draftPaths, loadWork, saveWork } from '../sbir/store.ts';
+import { clearWork, draftPaths, loadWork, outreachFile, saveWork } from '../sbir/store.ts';
 import {
   applyPatch,
   nextGate,
+  openOutreach,
   parseGateAnswer,
   renderStatus,
   where,
   type Award,
   type Company,
+  type Deal,
   type Patch,
   type Rights,
+  type Route,
   type SbirWork,
+  type SourceKind,
   type YesLater,
 } from '../sbir/work.ts';
 import type { Ask } from './account.ts';
@@ -42,6 +46,24 @@ function awardOf(value: string | undefined): Award | undefined {
   if (value == null) return undefined;
   if (value === 'pending' || value === 'yes' || value === 'no') return value;
   throw new Error('Award must be pending, yes, or no.');
+}
+
+function routeOf(value: string | undefined): Route | undefined {
+  if (value == null) return undefined;
+  if (value === 'patents' || value === 'sbir') return value;
+  throw new Error('Route must be patents or sbir.');
+}
+
+function kindOf(value: string | undefined): SourceKind | undefined {
+  if (value == null) return undefined;
+  if (value === 'patent' || value === 'article') return value;
+  throw new Error('Kind must be patent or article.');
+}
+
+function dealOf(value: string | undefined): Deal | undefined {
+  if (value == null) return undefined;
+  if (value === 'debt' || value === 'royalties' || value === 'equity') return value;
+  throw new Error('Deal must be debt, royalties, or equity.');
 }
 
 export function patchFromFlags(args: Args): Patch {
@@ -81,6 +103,20 @@ export function patchFromFlags(args: Args): Patch {
     buyer: flag(args, 'buyer'),
     offer: flag(args, 'offer'),
     money: flag(args, 'money'),
+    route: routeOf(flag(args, 'route')),
+    dropOutreach: on(args, 'drop-outreach'),
+    kind: kindOf(flag(args, 'kind')),
+    foundTitle: flag(args, 'found-title'),
+    identifier: flag(args, 'identifier'),
+    foundUrl: flag(args, 'found-url'),
+    novelty: flag(args, 'novelty'),
+    inventor: flag(args, 'inventor'),
+    contact: flag(args, 'contact'),
+    contactSource: flag(args, 'contact-source'),
+    noContact: on(args, 'no-contact'),
+    deal: dealOf(flag(args, 'deal')),
+    terms: flag(args, 'terms'),
+    sent: flag(args, 'sent') == null ? undefined : flag(args, 'sent') === 'yes',
   };
 }
 
@@ -110,6 +146,14 @@ export function statusPayload(work: SbirWork) {
     phase1: { submittedAt: work.phase1.submittedAt, ref: work.phase1.ref, award: work.phase1.award },
     phase2: { submittedAt: work.phase2.submittedAt, ref: work.phase2.ref, award: work.phase2.award },
     phase3: work.phase3,
+    route: work.route,
+    outreach: openOutreach(work) ?? null,
+    sentNotes: work.outreaches.filter(item => item.sentAt).map(item => ({
+      title: item.title,
+      inventor: item.inventor,
+      kind: item.kind,
+      sentAt: item.sentAt,
+    })),
     drafts,
     draft: draftFile(work),
   };
@@ -117,14 +161,22 @@ export function statusPayload(work: SbirWork) {
 
 function draftFile(work: SbirWork): string {
   const gate = nextGate(work);
+  const openIndex = work.outreaches.findIndex(item => !item.sentAt);
+  if (gate.phase === 'patent' && openIndex >= 0) return outreachFile(openIndex);
+  if (gate.id === 'route') {
+    let last = -1;
+    work.outreaches.forEach((item, index) => { if (item.sentAt) last = index; });
+    if (last >= 0) return outreachFile(last);
+  }
   const drafts = draftPaths();
   if (gate.kind === 'done' || gate.phase === 'III') return drafts.phase3;
   if (gate.phase === 'II') return drafts.phase2;
   return drafts.phase1;
 }
 
-export function leaveLine(reason: 'quit' | 'pause', gate: { kind: string }, draft: string): string {
+export function leaveLine(reason: 'quit' | 'pause', gate: { kind: string; id?: string }, draft: string): string {
   const where = `Draft: ${draft}`;
+  if (reason === 'pause' && gate.id === 'send') return `No email recorded. You send it yourself.\n${where}`;
   if (reason === 'pause' && gate.kind === 'ref') return `No submission recorded. You submit it yourself.\n${where}`;
   if (reason === 'pause') return `Left this for later.\n${where}`;
   return `Stopped.\n${where}`;

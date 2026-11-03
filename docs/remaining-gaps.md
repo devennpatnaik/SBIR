@@ -18,7 +18,9 @@ Live: https://github.com/devennpatnaik/sbir (see `docs/two-tracks.md`)
 ./lab-to-market do --name "Ammonia sensor" --idea "Cheaper wastewater tests"
 ```
 
-The record is `~/.lab-to-market/sbir.json`. `status` only reads it. Drafts are written when an answer is saved. You submit every proposal yourself.
+The record is `~/.lab-to-market/sbir.json`. `status` only reads it. Drafts are written when an answer is saved. You submit every proposal yourself, and you send every inventor email yourself.
+
+The first question is the route. `patents` records a patent or a paper you found, writes an offer (debt, royalties, or equity), and returns to that question after you record that you sent the email. `sbir` is the government-technology walk. The program does not invent a document number or an email address.
 
 ## Older lab database
 
