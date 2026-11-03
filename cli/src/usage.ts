@@ -1,12 +1,12 @@
-export const USAGE = `SBIR on this machine. No account. No server.
+export const USAGE = `Lab to Market on this machine. No account. No server. A phone is enough.
 
   ./lab-to-market                         ask the next question
   ./lab-to-market status                  where you are
-  ./lab-to-market do --name "Sensor" --idea "Cheaper wastewater tests"
-  ./lab-to-market clear --yes             delete this machine's SBIR file
+  ./lab-to-market do --route patents
+  ./lab-to-market do --route sbir --name "Sensor" --idea "Cheaper wastewater tests"
+  ./lab-to-market clear --yes             delete this machine's file
 
-You pick the research, then walk Phase I (prove it), Phase II (build it), and Phase III (sell it).
-Phase III is not an SBIR award. You submit every proposal yourself.
+Start by choosing a route. Patents and new papers: you find a record, the draft offers debt, royalties, or equity, and you send the email yourself. SBIR is for government technology: Phase I proves it, Phase II builds it, and Phase III sells it. Phase III is not an SBIR award. You submit every proposal yourself.
 
 Saved at ~/.lab-to-market/sbir.json
 Drafts in ~/.lab-to-market/drafts/
@@ -26,5 +26,15 @@ A few answers you will type yourself, copied from official pages:
   do --phase2-award yes|no|pending
   do --buyer "..." --offer "..." --money "..."
 
-Add --json for a single JSON document. The old lab database, grants, and patents search still exist behind ./lab-to-market menu, and need ./lab-to-market up.
+A patent or a paper, after --route patents:
+  do --kind patent|article
+  do --found-title "..." --identifier "US 1,234,567 or PMID 123" --found-url https://...
+  do --novelty "..." --inventor "..."
+  do --deal debt|royalties|equity --terms "..."
+  do --contact "the address you copied" --contact-source https://...
+  do --no-contact
+  do --sent yes
+  do --drop-outreach
+
+Add --json for a single JSON document. Nothing is emailed for you. The old lab database still sits behind ./lab-to-market menu, and needs ./lab-to-market up.
 `;

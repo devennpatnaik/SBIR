@@ -3,7 +3,7 @@ export type Args = {
   flags: Record<string, string | boolean>;
 };
 
-const BOOL = new Set(['json', 'help', 'h', 'small-business', 'shortlisted', 'yes', 'skip-owner', 'skip-source']);
+const BOOL = new Set(['json', 'help', 'h', 'small-business', 'shortlisted', 'yes', 'skip-owner', 'skip-source', 'no-contact', 'drop-outreach']);
 
 /** Split argv into positional words and flags. `--json` is boolean; `--track patents` and `--idea=water` both work. */
 export function parseArgs(argv: string[]): Args {

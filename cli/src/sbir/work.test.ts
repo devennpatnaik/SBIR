@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clearWork, loadWork, saveWork } from './store.ts';
 import { leaveLine } from '../cmd/walk.ts';
-import { applyPatch, emptyWork, nextGate, parseGateAnswer, phase1Draft, type Patch, type SbirWork } from './work.ts';
+import { applyPatch, emptyWork, nextGate, normalize, parseGateAnswer, phase1Draft, type Patch, type SbirWork } from './work.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const bin = path.join(root, 'lab-to-market');
@@ -40,7 +40,10 @@ const ready: Patch = {
 };
 
 try {
-  assert.equal(nextGate(emptyWork()).id, 'name');
+  assert.equal(nextGate(emptyWork()).id, 'route');
+  const legacy = normalize({ version: 1, research: { name: 'Old sensor', idea: '', owner: '', source: '' } });
+  assert.equal(legacy.route, 'sbir');
+  assert.equal(nextGate(legacy).id, 'idea');
 
   let stuck = step(emptyWork(), { name: 'A', idea: 'B', skipOwner: true, skipSource: true, rights: 'unavailable' });
   assert.equal(nextGate(stuck).id, 'rights');
@@ -111,6 +114,9 @@ try {
     money: 'A purchase order',
   });
   assert.equal(nextGate(selected).kind, 'done');
+  const fromSbir = step(selected, { route: 'patents' });
+  assert.equal(fromSbir.phase1.ref, 'ABC-1');
+  assert.equal(nextGate(fromSbir).id, 'sourceKind');
   const draft = phase1Draft(selected);
   assert.match(draft, /Cheaper wastewater tests/);
   assert.match(draft, /not an application|did not submit/);
@@ -134,7 +140,8 @@ try {
   const status = run(['status', '--json']);
   assert.equal(status.status, 0, status.stderr);
   const fresh = JSON.parse(status.stdout);
-  assert.equal(fresh.next, 'Pick the research');
+  assert.equal(fresh.step, 'route');
+  assert.equal(fresh.next, 'Choose a route');
   assert.equal(fresh.draft, path.join(cliDir, 'drafts', 'phase-1.md'));
   assert.equal(fs.existsSync(path.join(cliDir, 'sbir.json')), false);
   assert.equal(fs.existsSync(path.join(cliDir, 'drafts')), false);
@@ -202,6 +209,89 @@ try {
   assert.notEqual(brokenDo.status, 0);
   assert.equal(fs.readFileSync(brokenFile, 'utf8'), '{');
   fs.rmSync(brokenDir, { recursive: true, force: true });
+
+  let patent = step(emptyWork(), { route: 'patents' });
+  assert.equal(nextGate(patent).id, 'sourceKind');
+  assert.equal(parseGateAnswer(nextGate(patent), '2').kind, 'article');
+  patent = step(patent, {
+    kind: 'article',
+    foundTitle: 'A paper sensor',
+    identifier: 'PMID 12345678',
+    foundUrl: 'https://pubmed.ncbi.nlm.nih.gov/12345678/',
+    novelty: 'It detects ammonia with a cheaper strip.',
+    inventor: 'Ada Lovelace',
+    deal: 'royalties',
+    terms: 'Two percent of net sales for ten years.',
+  });
+  assert.equal(nextGate(patent).id, 'contact');
+  assert.deepEqual(parseGateAnswer(nextGate(patent), ''), { noContact: true });
+  assert.throws(() => step(patent, { contact: 'ada@example.com' }), /placeholder/);
+  assert.throws(() => step(patent, { sent: true }), /contact/);
+  patent = step(patent, { noContact: true });
+  assert.equal(nextGate(patent).id, 'contact');
+  assert.match(nextGate(patent).prompt, /does not invent/);
+  patent = step(patent, {
+    contact: 'tto@university.edu',
+    contactSource: 'https://pubmed.ncbi.nlm.nih.gov/12345678/',
+  });
+  assert.equal(nextGate(patent).id, 'send');
+  assert.equal(parseGateAnswer(nextGate(patent), ''), 'pause');
+  assert.equal(parseGateAnswer(nextGate(patent), 'maybe'), 'again');
+  const sent = step(patent, { sent: true });
+  saveWork(sent);
+  assert.equal(sent.route, '');
+  assert.ok(sent.outreaches[0]?.sentAt);
+  assert.equal(nextGate(sent).id, 'route');
+  assert.match(nextGate(sent).prompt, /did not send it/);
+  const note = fs.readFileSync(path.join(dir, 'drafts', 'outreach-1.md'), 'utf8');
+  assert.match(note, /was not emailed|did not send it/);
+  assert.match(note, /royalty/i);
+  assert.match(note, /Two percent of net sales/);
+  assert.match(note, /tto@university.edu/);
+  const again = step(sent, { route: 'patents' });
+  assert.equal(again.outreaches.length, 2);
+  assert.equal(nextGate(again).id, 'sourceKind');
+  const dropped = step(again, { dropOutreach: true });
+  assert.equal(dropped.outreaches.length, 1);
+  assert.equal(nextGate(dropped).id, 'route');
+  assert.equal(nextGate(step(dropped, { route: 'sbir' })).id, 'name');
+
+  const patentDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ltm-patent-'));
+  const patentRun = (args: string[]) => spawnSync(bin, args, {
+    cwd: root,
+    env: { ...process.env, LTM_DIR: patentDir },
+    encoding: 'utf8',
+  });
+  const opened = patentRun(['do', '--route', 'patents', '--json']);
+  assert.equal(opened.status, 0, opened.stderr);
+  assert.equal(JSON.parse(opened.stdout).step, 'sourceKind');
+  const noted = patentRun([
+    'do', '--json',
+    '--kind', 'patent',
+    '--found-title', 'Ammonia strip',
+    '--identifier', 'US 9,999,999',
+    '--found-url', 'https://patents.google.com/patent/US9999999',
+    '--novelty', 'A cheaper strip for wastewater ammonia.',
+    '--inventor', 'Grace Hopper',
+    '--deal', 'equity',
+    '--terms', 'Five percent of the company.',
+    '--contact', 'licensing@lab.edu',
+    '--contact-source', 'https://patents.google.com/patent/US9999999',
+  ]);
+  assert.equal(noted.status, 0, noted.stderr);
+  assert.equal(JSON.parse(noted.stdout).step, 'send');
+  assert.match(fs.readFileSync(path.join(patentDir, 'drafts', 'outreach-1.md'), 'utf8'), /Five percent of the company/);
+  assert.match(fs.readFileSync(path.join(patentDir, 'drafts', 'outreach-1.md'), 'utf8'), /This file was not emailed/);
+  const mailed = patentRun(['do', '--sent', 'yes', '--json']);
+  assert.equal(mailed.status, 0, mailed.stderr);
+  const back = JSON.parse(mailed.stdout);
+  assert.equal(back.step, 'route');
+  assert.equal(back.sentNotes.length, 1);
+  assert.match(back.note, /did not send it/);
+  const invented = patentRun(['do', '--route', 'patents', '--contact', 'inventor@example.com', '--json']);
+  assert.notEqual(invented.status, 0);
+  assert.match(invented.stderr, /placeholder/);
+  fs.rmSync(patentDir, { recursive: true, force: true });
 
   console.log('sbir walk ok');
 } finally {

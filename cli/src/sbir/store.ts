@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { emptyWork, normalize, phase1Draft, phase2Draft, phase3Draft, type SbirWork } from './work.ts';
+import { emptyWork, normalize, outreachDraft, phase1Draft, phase2Draft, phase3Draft, type SbirWork } from './work.ts';
 
 export function dataDir(): string {
   return process.env.LTM_DIR || path.join(os.homedir(), '.lab-to-market');
@@ -18,6 +18,10 @@ export function draftPaths(): { phase1: string; phase2: string; phase3: string }
     phase2: path.join(dir, 'phase-2.md'),
     phase3: path.join(dir, 'phase-3.md'),
   };
+}
+
+export function outreachFile(index: number): string {
+  return path.join(dataDir(), 'drafts', `outreach-${index + 1}.md`);
 }
 
 export function loadWork(): SbirWork {
@@ -60,11 +64,28 @@ export function writeDrafts(work: SbirWork): { phase1: string; phase2: string; p
   fs.writeFileSync(drafts.phase1, phase1Draft(work), { mode: 0o600 });
   fs.writeFileSync(drafts.phase2, phase2Draft(work), { mode: 0o600 });
   fs.writeFileSync(drafts.phase3, phase3Draft(work), { mode: 0o600 });
+  work.outreaches.forEach((item, index) => {
+    fs.writeFileSync(outreachFile(index), outreachDraft(item), { mode: 0o600 });
+  });
+  let names: string[] = [];
+  try { names = fs.readdirSync(path.dirname(drafts.phase1)); } catch { names = []; }
+  for (const name of names) {
+    const match = /^outreach-(\d+)\.md$/.exec(name);
+    if (!match) continue;
+    if (Number(match[1]) > work.outreaches.length) fs.rmSync(path.join(path.dirname(drafts.phase1), name));
+  }
   return drafts;
 }
 
 export function clearWork(): void {
-  for (const file of [workPath(), ...Object.values(draftPaths())]) {
+  const files = [workPath(), ...Object.values(draftPaths())];
+  const dir = path.dirname(draftPaths().phase1);
+  try {
+    for (const name of fs.readdirSync(dir)) {
+      if (/^outreach-\d+\.md$/.test(name)) files.push(path.join(dir, name));
+    }
+  } catch { /* no draft folder */ }
+  for (const file of files) {
     try { fs.rmSync(file); } catch { /* already gone */ }
   }
 }

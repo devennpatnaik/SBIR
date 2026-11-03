@@ -1,6 +1,8 @@
 # Lab to Market
 
-The product is Lab to Market, a local SBIR walk. The program is `/Users/devenpatnaik/Downloads/SBIR/lab-to-market`. `cd /Users/devenpatnaik/Downloads/SBIR` first. Do not send the user to the web UI. If the user pasted `claude-code-prompt.md`, follow that prompt.
+The product is Lab to Market, a local walk you can run from a phone in Claude Code. The program is `/Users/devenpatnaik/Downloads/SBIR/lab-to-market`. `cd /Users/devenpatnaik/Downloads/SBIR` first. Do not send the user to the web UI. If the user pasted `claude-code-prompt.md`, follow that prompt.
+
+The first question is the route. `patents` is a patent or a new paper: record the real document, draft an offer of debt, royalties, or equity, and let the user send the email. `sbir` is government technology, Phase I through Phase III. Do not invent a patent number, a PMID, a DOI, a URL, or an email address. Do not send mail.
 
 ```bash
 /Users/devenpatnaik/Downloads/SBIR/lab-to-market status --json
@@ -11,7 +13,7 @@ With no arguments in a terminal, `./lab-to-market` asks the next question. From 
 
 The record is `~/.lab-to-market/sbir.json`. Drafts are in `~/.lab-to-market/drafts/`. Set `LTM_DIR` to use another folder. `clear --yes` deletes that record only.
 
-Nothing is submitted, signed, or sent. Phase III is not an SBIR award. Do not invent a deadline, a tracking number, or an award decision.
+Nothing is emailed, submitted, signed, or sent. Phase III is not an SBIR award. Do not invent a deadline, a tracking number, an award decision, or a contact.
 
 `./lab-to-market menu` is the older lab database. It needs `./lab-to-market up`. `path`, `guide`, and `programs` do not.
 

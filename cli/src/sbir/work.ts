@@ -1,12 +1,32 @@
-/** Local SBIR record. One file on this machine. Nothing here is submitted. */
+/** Local record. One file on this machine. Nothing here is submitted or emailed. */
 
 export type Rights = '' | 'not_needed' | 'asked' | 'available' | 'unavailable';
 export type Company = '' | 'ready' | 'not_yet' | 'partner';
 export type Award = '' | 'pending' | 'yes' | 'no';
 export type YesLater = 'yes' | 'no' | 'later';
+export type Route = '' | 'patents' | 'sbir';
+export type SourceKind = '' | 'patent' | 'article';
+export type Deal = '' | 'debt' | 'royalties' | 'equity';
+
+export type Outreach = {
+  kind: SourceKind;
+  title: string;
+  identifier: string;
+  url: string;
+  novelty: string;
+  inventor: string;
+  contact: string;
+  contactSource: string;
+  noContact: boolean;
+  deal: Deal;
+  terms: string;
+  sentAt: string;
+};
 
 export type SbirWork = {
   version: 1;
+  route: Route;
+  outreaches: Outreach[];
   research: { name: string; idea: string; owner: string; source: string };
   skipped: { owner: boolean; source: boolean };
   rights: Rights;
@@ -57,13 +77,27 @@ export type Patch = {
   buyer?: string;
   offer?: string;
   money?: string;
+  route?: Route;
+  dropOutreach?: boolean;
+  kind?: SourceKind;
+  foundTitle?: string;
+  identifier?: string;
+  foundUrl?: string;
+  novelty?: string;
+  inventor?: string;
+  contact?: string;
+  contactSource?: string;
+  noContact?: boolean;
+  deal?: Deal;
+  terms?: string;
+  sent?: boolean;
 };
 
 export type Choice = { value: string; label: string };
 
 export type Gate = {
   id: string;
-  phase: 'I' | 'II' | 'III';
+  phase: 'I' | 'II' | 'III' | 'patent';
   title: string;
   prompt: string;
   kind: 'text' | 'choice' | 'ref' | 'stop' | 'wait' | 'done';
@@ -96,9 +130,34 @@ const AWARD: Choice[] = [
   { value: 'no', label: 'Official notice says we were not selected.' },
 ];
 
+const ROUTE: Choice[] = [
+  { value: 'patents', label: 'A patent or a new paper. Draft an offer to the inventor. I send the email myself.' },
+  { value: 'sbir', label: 'Government technology, through SBIR. An agency pays a small business to do the R&D.' },
+];
+
+const SOURCE_KIND: Choice[] = [
+  { value: 'patent', label: 'A patent' },
+  { value: 'article', label: 'A research article, including PubMed' },
+];
+
+const DEAL: Choice[] = [
+  { value: 'debt', label: 'Debt. The company borrows and repays.' },
+  { value: 'royalties', label: 'Royalties. The inventor is paid a share of sales.' },
+  { value: 'equity', label: 'Equity. The inventor owns a share of the company.' },
+];
+
+export function emptyOutreach(): Outreach {
+  return {
+    kind: '', title: '', identifier: '', url: '', novelty: '', inventor: '',
+    contact: '', contactSource: '', noContact: false, deal: '', terms: '', sentAt: '',
+  };
+}
+
 export function emptyWork(): SbirWork {
   return {
     version: 1,
+    route: '',
+    outreaches: [],
     research: { name: '', idea: '', owner: '', source: '' },
     skipped: { owner: false, source: false },
     rights: '',
@@ -132,14 +191,20 @@ export function normalize(raw: unknown): SbirWork {
   const registrations = row.registrations ?? base.registrations;
   const deferred = row.deferred ?? base.deferred;
   const skipped = row.skipped ?? base.skipped;
-  return {
+  const outreaches = Array.isArray(row.outreaches) ? row.outreaches.map(normalizeOutreach) : [];
+  const named = {
+    name: text(research.name, 200, 'Name'),
+    idea: text(research.idea, 2000, 'Idea'),
+    owner: text(research.owner, 200, 'Owner'),
+    source: text(research.source, 500, 'Link'),
+  };
+  const routeGiven = Object.prototype.hasOwnProperty.call(row, 'route');
+  const route: Route = row.route === 'patents' || row.route === 'sbir' ? row.route : '';
+  const drafted: SbirWork = {
     version: 1,
-    research: {
-      name: text(research.name, 200, 'Name'),
-      idea: text(research.idea, 2000, 'Idea'),
-      owner: text(research.owner, 200, 'Owner'),
-      source: text(research.source, 500, 'Link'),
-    },
+    route,
+    outreaches,
+    research: named,
     skipped: { owner: Boolean(skipped.owner), source: Boolean(skipped.source) },
     rights: isRights(row.rights) ? row.rights : '',
     rightsNote: text(row.rightsNote, 2000, 'Rights note'),
@@ -184,6 +249,56 @@ export function normalize(raw: unknown): SbirWork {
       money: text(phase3.money, 2000, 'Money'),
     },
   };
+  if (!routeGiven && sbirStarted(drafted)) drafted.route = 'sbir';
+  return drafted;
+}
+
+function normalizeOutreach(raw: Partial<Outreach> | null): Outreach {
+  const base = emptyOutreach();
+  const row = raw ?? base;
+  return {
+    kind: row.kind === 'patent' || row.kind === 'article' ? row.kind : '',
+    title: text(row.title, 300, 'Title'),
+    identifier: text(row.identifier, 120, 'Identifier'),
+    url: text(row.url, 500, 'Link'),
+    novelty: text(row.novelty, 2000, 'What is new'),
+    inventor: text(row.inventor, 200, 'Inventor'),
+    contact: text(row.contact, 300, 'Contact'),
+    contactSource: text(row.contactSource, 500, 'Contact page'),
+    noContact: Boolean(row.noContact),
+    deal: row.deal === 'debt' || row.deal === 'royalties' || row.deal === 'equity' ? row.deal : '',
+    terms: text(row.terms, 4000, 'Terms'),
+    sentAt: text(row.sentAt, 20, 'Sent date'),
+  };
+}
+
+export function openOutreach(work: SbirWork): Outreach | undefined {
+  return work.outreaches.find(item => !item.sentAt);
+}
+
+function sbirPatch(patch: Patch): boolean {
+  return patch.name != null || patch.idea != null || patch.owner != null || patch.skipOwner === true || patch.source != null || patch.skipSource === true
+    || patch.rights != null || patch.rightsNote != null || patch.company != null
+    || patch.sam != null || patch.sbirRegistry != null || patch.portal != null
+    || patch.agency != null || patch.number != null || patch.title != null || patch.closes != null || patch.url != null
+    || patch.objective != null || patch.plan != null || patch.market != null || patch.team != null || patch.budget != null
+    || patch.submitted === true || patch.ref != null || patch.award != null
+    || patch.phase2Plan != null || patch.phase2Customers != null || patch.phase2Submitted === true || patch.phase2Ref != null || patch.phase2Award != null
+    || patch.buyer != null || patch.offer != null || patch.money != null;
+}
+
+function sbirStarted(work: SbirWork): boolean {
+  return Boolean(
+    work.research.name || work.research.idea || work.research.owner || work.research.source
+    || work.skipped.owner || work.skipped.source
+    || work.rights || work.company
+    || work.registrations.sam || work.registrations.sbirGov || work.registrations.portal
+    || work.topic.agency || work.topic.number || work.topic.title || work.topic.closes || work.topic.url
+    || work.phase1.objective || work.phase1.plan || work.phase1.market || work.phase1.team || work.phase1.budget
+    || work.phase1.submittedAt || work.phase1.award
+    || work.phase2.plan || work.phase2.customers || work.phase2.submittedAt || work.phase2.award
+    || work.phase3.buyer || work.phase3.offer || work.phase3.money,
+  );
 }
 
 function isRights(value: unknown): value is Rights {
@@ -351,14 +466,145 @@ export function applyPatch(current: SbirWork, patch: Patch): Applied {
   if (patch.offer != null) work.phase3.offer = text(patch.offer, 4000, 'Offer');
   if (patch.money != null) work.phase3.money = text(patch.money, 2000, 'Money');
 
+  if (patch.dropOutreach) {
+    const index = work.outreaches.findIndex(item => !item.sentAt);
+    if (index < 0) throw new Error('There is no open patent or article to leave.');
+    work.outreaches.splice(index, 1);
+    work.route = '';
+  }
+  if (patch.route != null) {
+    if (patch.route !== 'patents' && patch.route !== 'sbir') throw new Error('Route must be patents or sbir.');
+    work.route = patch.route;
+    if (patch.route === 'patents' && !openOutreach(work)) work.outreaches.push(emptyOutreach());
+  } else if (!work.route && sbirPatch(patch)) {
+    work.route = 'sbir';
+  }
+
+  const patentTouched = patch.kind != null || patch.foundTitle != null || patch.identifier != null
+    || patch.foundUrl != null || patch.novelty != null || patch.inventor != null
+    || patch.contact != null || patch.contactSource != null || patch.noContact || patch.deal != null || patch.terms != null;
+  if (patentTouched || patch.sent) {
+    const open = openOutreach(work);
+    if (!open) throw new Error('Choose the patent route first.');
+    if (patch.noContact) {
+      open.noContact = true;
+      open.contact = '';
+      open.contactSource = '';
+    }
+    if (patch.kind != null) {
+      if (patch.kind !== 'patent' && patch.kind !== 'article') throw new Error('Kind must be patent or article.');
+      open.kind = patch.kind;
+    }
+    if (patch.foundTitle != null) open.title = text(patch.foundTitle, 300, 'Title');
+    if (patch.identifier != null) open.identifier = text(patch.identifier, 120, 'Identifier');
+    if (patch.foundUrl != null) {
+      const url = text(patch.foundUrl, 500, 'Link');
+      if (url && !isUrl(url)) throw new Error('The patent or article link must start with http:// or https://.');
+      open.url = url;
+    }
+    if (patch.novelty != null) open.novelty = text(patch.novelty, 2000, 'What is new');
+    if (patch.inventor != null) open.inventor = text(patch.inventor, 200, 'Inventor');
+    if (patch.deal != null) {
+      if (patch.deal !== 'debt' && patch.deal !== 'royalties' && patch.deal !== 'equity') throw new Error('Deal must be debt, royalties, or equity.');
+      open.deal = patch.deal;
+    }
+    if (patch.terms != null) open.terms = text(patch.terms, 4000, 'Terms');
+    if (patch.contact != null && patch.contact.trim()) {
+      const contact = text(patch.contact, 300, 'Contact');
+      rejectPlaceholderContact(contact);
+      open.contact = contact;
+      open.noContact = false;
+    }
+    if (patch.contactSource != null && patch.contactSource.trim()) {
+      const source = text(patch.contactSource, 500, 'Contact page');
+      if (!isUrl(source)) throw new Error('The contact page must start with http:// or https://.');
+      rejectPlaceholderContact(source);
+      open.contactSource = source;
+    }
+    if (patch.sent) {
+      if (!open.contact || !open.contactSource) throw new Error('A sent email needs a public contact and the page where you found it. This program does not invent an address and does not send mail.');
+      if (!open.deal || !open.terms.trim()) throw new Error('Write the deal and the terms before you record that you sent the email.');
+      if (!open.title || !open.identifier || !open.url || !open.inventor) throw new Error('The draft is missing the work, the inventor, or the link.');
+      open.sentAt = open.sentAt || today();
+      open.noContact = false;
+      work.route = '';
+      notes.push('You recorded that you sent the email. This program did not send it.');
+    }
+  }
+
   return { work, note: notes.join(' ') };
+}
+
+function rejectPlaceholderContact(value: string): void {
+  const lower = value.toLowerCase();
+  if (lower.includes('example.com') || lower.includes('example.org') || lower.includes('@example.') || /^(todo|tbd|n\/a|none|unknown|email)$/i.test(value.trim())) {
+    throw new Error('That contact looks like a placeholder. Copy a public address from a real page, or record that none was found.');
+  }
+  if (!value.includes('://') && !/@/.test(value) && !/\d/.test(value)) {
+    throw new Error('A contact is an email or a street address, copied from a page. A name alone is not a contact.');
+  }
 }
 
 function regGate(id: string, title: string, prompt: string): Gate {
   return { id, phase: 'I', title, prompt, kind: 'choice', choices: REG };
 }
 
+function routeGate(work: SbirWork): Gate {
+  const last = [...work.outreaches].reverse().find(item => item.sentAt);
+  const prompt = last
+    ? `You recorded that you sent the note about ${last.title || 'that work'} to ${last.inventor || 'the inventor'}. This program did not send it. What next?`
+    : 'Two ways to start from this phone. Which one now?';
+  return { id: 'route', phase: 'I', title: 'Choose a route', prompt, kind: 'choice', choices: ROUTE };
+}
+
+function patentGate(item: Outreach): Gate {
+  if (!item.kind) {
+    return { id: 'sourceKind', phase: 'patent', title: 'Find something new', prompt: 'Is this a patent, or a research article?', kind: 'choice', choices: SOURCE_KIND };
+  }
+  const record = item.kind === 'article' ? 'article' : 'patent';
+  if (!item.title) return { id: 'foundTitle', phase: 'patent', title: 'Find something new', prompt: `${record === 'article' ? 'Article' : 'Patent'} title, copied from the record.`, kind: 'text' };
+  if (!item.identifier) {
+    return {
+      id: 'identifier', phase: 'patent', title: 'Find something new', kind: 'text',
+      prompt: record === 'article' ? 'PMID or DOI, copied from the article.' : 'Patent number, copied from the record.',
+    };
+  }
+  if (!item.url) return { id: 'foundUrl', phase: 'patent', title: 'Find something new', prompt: 'Link to that patent or article. It must start with https://.', kind: 'text' };
+  if (!item.novelty) return { id: 'novelty', phase: 'patent', title: 'What is new', prompt: 'What is new about it, in your words? One or two sentences. Mark a guess as a guess.', kind: 'text' };
+  if (!item.inventor) {
+    return {
+      id: 'inventor', phase: 'patent', title: 'Who made it', kind: 'text',
+      prompt: record === 'article' ? 'Corresponding author, copied from the article.' : 'Inventor, copied from the patent.',
+    };
+  }
+  if (!item.deal) return { id: 'deal', phase: 'patent', title: 'The offer', prompt: 'What kind of deal are you offering? You will write the terms next. Do not invent an amount.', kind: 'choice', choices: DEAL };
+  if (!item.terms.trim()) return { id: 'terms', phase: 'patent', title: 'The offer', prompt: 'Write the terms in your own words. Include a number only if you mean that number. This is not a signed agreement.', kind: 'text' };
+  if (!item.contact) {
+    return {
+      id: 'contact', phase: 'patent', title: 'How to reach them', kind: 'text',
+      prompt: item.noContact
+        ? 'No public contact is saved. Paste an email or a street address from a page that names this person, or leave this one and choose again. This program does not invent an address.'
+        : 'What public email or street address should the note use? Copy it from a page that names this person. Press enter if you cannot find one.',
+    };
+  }
+  if (!item.contactSource) return { id: 'contactSource', phase: 'patent', title: 'Where you found them', prompt: 'Paste the link to the page where that contact is published. It must start with https://.', kind: 'text' };
+  return {
+    id: 'send', phase: 'patent', title: 'Send it yourself', kind: 'ref',
+    prompt: `The draft to ${item.inventor} is saved. If you already sent that email yourself, type yes. Press enter if you have not. This program does not send it.`,
+  };
+}
+
 export function nextGate(work: SbirWork): Gate {
+  if (work.route === 'patents') {
+    const open = openOutreach(work);
+    if (open) return patentGate(open);
+    return routeGate(work);
+  }
+  if (work.route === 'sbir') return sbirNext(work);
+  return routeGate(work);
+}
+
+function sbirNext(work: SbirWork): Gate {
   if (!work.research.name.trim()) {
     return { id: 'name', phase: 'I', title: 'Pick the research', prompt: 'What is the research or technology called?', kind: 'text' };
   }
@@ -469,12 +715,14 @@ export function nextGate(work: SbirWork): Gate {
   }
   return {
     id: 'done', phase: 'III', title: 'Recorded', kind: 'done',
-    prompt: 'You have a research pick, a Phase I record, a Phase II record, and a Phase III buyer. This file is your record. It did not submit, sign, or send anything.',
+    prompt: 'You have a research pick, a Phase I record, a Phase II record, and a Phase III buyer. This file is your record. It did not submit, sign, or send anything. A patent or a paper is the other route, whenever you want it.',
   };
 }
 
-export function where(work: SbirWork): { phase: 'I' | 'II' | 'III' | 'done'; heading: string } {
+export function where(work: SbirWork): { phase: 'I' | 'II' | 'III' | 'done' | 'choose' | 'patent'; heading: string } {
   const gate = nextGate(work);
+  if (gate.id === 'route') return { phase: 'choose', heading: 'Choose a route. A patent or a new paper, or SBIR for government technology.' };
+  if (gate.phase === 'patent') return { phase: 'patent', heading: 'Patents and new research. You find the record, you write the terms, and you send the email.' };
   if (gate.kind === 'done') return { phase: 'done', heading: 'Recorded through Phase III' };
   if (gate.phase === 'III') return { phase: 'III', heading: 'Phase III — Sell it. This money is not an SBIR award.' };
   if (work.phase1.award === 'pending') return { phase: 'I', heading: 'Phase I — Prove it can work. Decision still pending.' };
@@ -490,6 +738,9 @@ export function renderStatus(work: SbirWork): string {
   if (work.research.name) lines.push(work.research.name);
   if (work.research.idea) lines.push(work.research.idea);
   if (work.topic.number) lines.push(`${work.topic.agency} ${work.topic.number} · closes ${work.topic.closes || 'date not recorded'}`);
+  const current = openOutreach(work);
+  if (current?.title) lines.push(current.title);
+  if (current?.inventor) lines.push(current.inventor);
   lines.push('');
   if (gate.kind === 'done' || gate.kind === 'stop' || gate.kind === 'wait') {
     lines.push(gate.title);
@@ -509,7 +760,7 @@ export function renderStatus(work: SbirWork): string {
     lines.push(`Still open before a submission can be recorded: ${open.join(', ')}.`);
   }
   lines.push('');
-  lines.push('Nothing is submitted, signed, or sent for you.');
+  lines.push('Nothing is emailed, submitted, signed, or sent for you.');
   return lines.join('\n');
 }
 
@@ -594,7 +845,69 @@ export function phase3Draft(work: SbirWork): string {
   ].join('\n');
 }
 
+function dealLetter(item: Outreach): string {
+  const terms = item.terms.trim() || 'I have not written the terms yet.';
+  if (item.deal === 'debt') return `I want to build a company around this. The deal I can offer is debt: the company borrows and repays.\n\n${terms}`;
+  if (item.deal === 'royalties') return `I want to build a company around this. The deal I can offer is a royalty: the company pays you a share of sales.\n\n${terms}`;
+  if (item.deal === 'equity') return `I want to build a company around this. The deal I can offer is equity: you would own a share of the company.\n\n${terms}`;
+  return 'I have not chosen debt, royalties, or equity yet.';
+}
+
+export function outreachDraft(item: Outreach): string {
+  const dealLine = item.deal === 'debt'
+    ? 'Debt. The company would borrow and repay. Any amount, rate, or schedule is only what is written under Terms.'
+    : item.deal === 'royalties'
+      ? 'Royalties. The inventor would be paid a share of sales. The share is only what is written under Terms.'
+      : item.deal === 'equity'
+        ? 'Equity. The inventor would own a share of the company. The share is only what is written under Terms.'
+        : 'Not chosen yet.';
+  const contact = item.contact || 'No public contact is recorded. Do not invent an email address.';
+  const who = item.kind === 'article' ? 'Corresponding author' : 'Inventor';
+  const subject = item.title ? `A proposal to commercialize ${item.title}` : 'A proposal to commercialize your work';
+  const sent = item.sentAt
+    ? `You recorded that you sent this on ${item.sentAt}. This program did not send it.`
+    : 'This file was not emailed. You send it yourself.';
+  return [
+    `# Draft for ${item.inventor || 'the inventor'} — ${item.title || 'Untitled'}`,
+    '',
+    `> ${sent}`,
+    '> Numbers appear only where you wrote them. This is not a signed agreement.',
+    '',
+    section('Who it is for', `${who}: ${item.inventor || 'not recorded'}\nContact: ${contact}\nFound at: ${item.contactSource || 'not recorded'}`),
+    '',
+    section('The work', [
+      item.kind === 'article' ? 'Research article' : item.kind === 'patent' ? 'Patent' : 'Not recorded',
+      item.identifier,
+      item.title,
+      item.url,
+    ].filter(Boolean).join('\n')),
+    '',
+    section('What is new', item.novelty),
+    '',
+    section('Deal', dealLine),
+    '',
+    section('Terms you wrote', item.terms),
+    '',
+    section('Email to copy', [
+      `To: ${item.contact || '(no public contact recorded)'}`,
+      `Subject: ${subject}`,
+      '',
+      `Hello ${item.inventor || ''}`.trim() + ',',
+      '',
+      `I read ${item.title || 'your work'}${item.identifier ? ` (${item.identifier})` : ''}. ${item.novelty || ''}`.trim(),
+      '',
+      dealLetter(item),
+      '',
+      'If you want to talk, reply to this note. Nothing in it is a signed agreement.',
+    ].join('\n')),
+    '',
+  ].join('\n');
+}
+
 const CHOICE_GATES: Record<string, Choice[]> = {
+  route: ROUTE,
+  sourceKind: SOURCE_KIND,
+  deal: DEAL,
   rights: RIGHTS,
   company: COMPANY,
   sam: REG,
@@ -610,6 +923,7 @@ export function parseGateAnswer(gate: Gate, line: string): Patch | 'quit' | 'pau
   if (gate.kind === 'stop' || gate.kind === 'wait' || gate.kind === 'done') return raw ? 'again' : 'pause';
   if (gate.kind === 'ref') {
     if (!raw) return 'pause';
+    if (gate.id === 'send') return raw.toLowerCase() === 'yes' ? { sent: true } : 'again';
     return gate.id === 'submit2' ? { phase2Submitted: true, phase2Ref: raw } : { submitted: true, ref: raw };
   }
   if (gate.kind === 'choice') {
@@ -624,12 +938,16 @@ export function parseGateAnswer(gate: Gate, line: string): Patch | 'quit' | 'pau
   if (!raw) {
     if (gate.id === 'owner') return { skipOwner: true };
     if (gate.id === 'source') return { skipSource: true };
+    if (gate.id === 'contact') return { noContact: true };
     return 'again';
   }
   return textPatch(gate.id, raw);
 }
 
 function choicePatch(id: string, value: string): Patch {
+  if (id === 'route') return { route: value as Route };
+  if (id === 'sourceKind') return { kind: value as SourceKind };
+  if (id === 'deal') return { deal: value as Deal };
   if (id === 'rights') return { rights: value as Rights };
   if (id === 'company') return { company: value as Company };
   if (id === 'sam') return { sam: value as YesLater };
@@ -661,6 +979,14 @@ function textPatch(id: string, value: string): Patch {
     case 'buyer': return { buyer: value };
     case 'offer': return { offer: value };
     case 'money': return { money: value };
+    case 'foundTitle': return { foundTitle: value };
+    case 'identifier': return { identifier: value };
+    case 'foundUrl': return { foundUrl: value };
+    case 'novelty': return { novelty: value };
+    case 'inventor': return { inventor: value };
+    case 'terms': return { terms: value };
+    case 'contact': return { contact: value };
+    case 'contactSource': return { contactSource: value };
     default: throw new Error('That answer does not fit this question.');
   }
 }

@@ -4,9 +4,13 @@ Help entrepreneurs commercialize lab, university, and inventor technologies: dis
 
 **Canonical remote:** Deven’s private GitHub repository (Bourne git hosting is abandoned).
 
-## SBIR on this machine
+## On this machine, including a phone
 
-No account and no server. You pick the research, then walk Phase I, Phase II, and Phase III. The program asks one question at a time and writes the record on this computer. You still submit every proposal yourself.
+No account and no server. Claude Code can run the whole walk. The first question is the route.
+
+**Patents and new papers.** You bring a patent or a PubMed article. The program writes a draft offer — debt, royalties, or equity — using only the terms you typed, and it keeps the contact you confirmed. You send the email yourself. Then it asks the route question again: another paper, or SBIR.
+
+**SBIR, for government technology.** You pick the research, then walk Phase I, Phase II, and Phase III. You still submit every proposal yourself.
 
 ```bash
 ./lab-to-market
@@ -15,7 +19,7 @@ No account and no server. You pick the research, then walk Phase I, Phase II, an
 ./lab-to-market clear --yes
 ```
 
-The record is `~/.lab-to-market/sbir.json`. Drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. `LTM_DIR` moves that folder. Add `--json` when another program is driving the commands.
+The record is `~/.lab-to-market/sbir.json`. SBIR drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. Each inventor note is `drafts/outreach-1.md`, then `outreach-2.md`, and so on. `LTM_DIR` moves that folder. Add `--json` when another program is driving the commands. `status` only reads the file.
 
 Phase I proves it can work. Phase II builds and demonstrates it, and is not automatic. Phase III is a sale paid by a customer or by private capital, not an SBIR award. Close dates, tracking numbers, and award decisions are copied from official notices. This program does not invent them, and it does not submit, sign, or send anything.
 

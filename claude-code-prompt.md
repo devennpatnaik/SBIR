@@ -1,12 +1,12 @@
-Run Lab to Market, the local SBIR walk, on this Mac. The program is the file `lab-to-market` in this folder:
+Run Lab to Market from this repo. On this Mac the folder is:
 
 `/Users/devenpatnaik/Downloads/SBIR`
 
-That folder is the GitHub repo `devennpatnaik/SBIR`. `cd` there before you run anything. Every command below is that program, by its full path:
+That folder is the GitHub repo `devennpatnaik/SBIR`. On a phone, use the same repo wherever it is open. `cd` there before you run anything. Every command below is that program. On this Mac, call it by its full path:
 
 `/Users/devenpatnaik/Downloads/SBIR/lab-to-market`
 
-Stay in the terminal. Do not open a browser, do not start Docker, and do not run `up` or `menu`. Node.js 22 is enough. Bun is optional.
+This is the whole product. A phone and this chat are enough to start a company. Stay in the terminal. Do not open a browser, do not start Docker, and do not run `up` or `menu`. If that Mac path is not on this machine, run `./lab-to-market` from the repo root. Node.js 22 is enough. Bun is optional.
 
 ## How to run it
 
@@ -18,20 +18,26 @@ Every turn:
 4. Record only what I just said, with one `/Users/devenpatnaik/Downloads/SBIR/lab-to-market do ... --json` command from the table below.
 5. Read the new JSON and ask the next question.
 
-Keep going until `kind` is `done`, `wait`, or I say stop. Then tell me the draft path for the current phase and stop.
+Keep going until `kind` is `done`, `wait`, or I say stop. Then tell me the draft path and stop. After I record that I sent an inventor email, `step` is `route` again. Ask that question. Do not stop there.
 
-The record is `~/.lab-to-market/sbir.json`. Drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. Do not edit those files by hand. Do not run `/Users/devenpatnaik/Downloads/SBIR/lab-to-market clear --yes` unless I explicitly ask you to delete the record.
+The record is `~/.lab-to-market/sbir.json`. SBIR drafts are `~/.lab-to-market/drafts/phase-1.md`, `phase-2.md`, and `phase-3.md`. Inventor notes are `outreach-1.md`, `outreach-2.md`, and so on, in that same drafts folder. Do not edit those files by hand. Do not run `clear --yes` unless I explicitly ask you to delete the record. The `draft` field in the JSON is the file for the current question.
 
 ## What you may not do
 
-- Do not invent a solicitation, a URL, a close date, a tracking number, an award decision, a dollar amount, or a customer.
-- Do not say that anything was submitted, signed, licensed, or sent. I submit every proposal myself.
+- Do not invent a solicitation, a URL, a close date, a tracking number, an award decision, a dollar amount, a customer, a patent number, a PMID, a DOI, or an email address.
+- Do not say that anything was submitted, signed, licensed, or sent. I submit every proposal myself. I send every email myself.
 - Do not record `--submitted yes` or `--phase2-submitted yes` unless I give you the tracking number from a submission I already made.
+- Do not record `--sent yes` unless I tell you I already sent that email.
+- Do not guess an email from a name. If you cannot find a public contact on a real page, say so and run `do --no-contact`. A placeholder such as example.com is not a contact.
 - If I have not submitted, stop on that question. Tell me the draft path and that I submit it myself. When I come back with the tracking number, record it.
 - Phase II is not automatic. Phase III is a sale. Its money is not an SBIR award.
 - If `kind` is `wait`, stop. Tell me to come back when the official notice arrives. Pending is not a selection.
 - If rights are unavailable, or there is no company yet, stay on that question. Do not draft a proposal past it.
 - One fact per command, unless I clearly answered two things in the same reply.
+- On `sourceKind`, `foundTitle`, `identifier`, or `foundUrl`: if I have not confirmed one specific patent or article, you may search public patent and PubMed pages and show me a few real records with their numbers and links. Wait until I pick one. Then record only that record.
+- On `contact`: look up the inventor or corresponding author from the saved link and other public pages. Show me the address and the page where you found it. Record `--contact` and `--contact-source` only after I confirm both. The source has to be an https link.
+- On `deal` and `terms`: use my words. Do not fill in an amount I did not say.
+- On `send`: show me the draft path and the email in that file. Ask me to send it. If I have not, stop and tell me the path.
 
 ## Record my answer
 
@@ -39,6 +45,18 @@ Each command below is run as `/Users/devenpatnaik/Downloads/SBIR/lab-to-market <
 
 | `step` | Command |
 | --- | --- |
+| `route` | `do --route patents` or `do --route sbir` |
+| `sourceKind` | `do --kind patent` or `do --kind article` |
+| `foundTitle` | `do --found-title "..."` |
+| `identifier` | `do --identifier "..."` |
+| `foundUrl` | `do --found-url "https://..."` |
+| `novelty` | `do --novelty "..."` |
+| `inventor` | `do --inventor "..."` |
+| `deal` | `do --deal debt` or `royalties` or `equity` |
+| `terms` | `do --terms "..."` |
+| `contact` | `do --contact "..."` after I confirm it, or `do --no-contact` |
+| `contactSource` | `do --contact-source "https://..."` |
+| `send` | `do --sent yes` only after I say I sent it |
 | `name` | `do --name "..."` |
 | `idea` | `do --idea "..."` |
 | `owner` | `do --owner "..."` or, if I say it is my own work, `do --skip-owner` |
@@ -67,6 +85,8 @@ Each command below is run as `/Users/devenpatnaik/Downloads/SBIR/lab-to-market <
 | `buyer` | `do --buyer "..."` |
 | `offer` | `do --offer "..."` |
 | `money` | `do --money "..."` |
+
+If I want to leave the open patent or article, run `do --drop-outreach`. That returns to `route`. It does not delete a note I already sent. If I want SBIR while a note is still open, run `do --route sbir`. The note stays. `do --route patents` later resumes it.
 
 Pass the `value` from `choices`, not the label. Add `--json` to every `do` command.
 
