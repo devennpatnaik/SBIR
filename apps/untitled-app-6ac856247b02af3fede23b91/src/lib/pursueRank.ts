@@ -9,7 +9,8 @@ import type { Evaluation, Technology } from './types.ts';
 export type PursueStatus = 'unpicked' | 'progress' | 'done';
 
 export function techPursueStatus(t: Technology, hasProject: boolean): PursueStatus {
-  if (t.archived) return 'done';
+  if (t.archived || t.match_path === 'skip') return 'done';
+  if (t.match_path === 'outreach' || t.match_path === 'sbir_topic') return 'progress';
   if (t.shortlisted || hasProject) return 'progress';
   return 'unpicked';
 }
@@ -24,10 +25,26 @@ export function sbirPromiseScore(
   const applied = applyLearningScore(base, insights);
   let score = applied.score ?? base ?? 28;
   if (t.agency) score += 4;
-  if (/federal|national lab|doe|nasa|nih|darpa|army|navy|air force/i.test(`${t.lab_name} ${t.agency}`)) score += 6;
-  if (t.licensing_status === 'available') score += 5;
+  if (/federal|national lab|doe|nasa|nih|darpa|army|navy|air force|va|dod/i.test(`${t.lab_name} ${t.agency}`)) score += 6;
+  if (t.licensing_status === 'available' || t.licensing_status === 'available_unverified' || t.licensing_status === 'available_verified') score += 5;
   if (summarize(ev, t).confidence === 'high') score += 3;
   else if (summarize(ev, t).confidence === 'medium') score += 1;
+  // DFU match: demote already-acted leads inside the progress bucket.
+  if (t.match_path === 'outreach' || t.match_path === 'sbir_topic') score -= 8;
+  if (t.match_path === 'skip') score -= 40;
+  return Math.max(0, Math.min(100, score));
+}
+
+/** DFU / chronic-wound promise: federal + PubMed-shaped leads in the locked problem space. */
+export function dfuPromiseScore(
+  t: Technology,
+  ev: Evaluation | undefined,
+  insights: CohortInsights | null | undefined,
+): number {
+  let score = sbirPromiseScore(t, ev, insights);
+  if (/dfu|chronic wound|diabetic foot/i.test(`${t.category} ${t.problem_space || ''} ${t.name} ${t.description}`)) score += 10;
+  if (/va|nih|dod/i.test(t.agency || '')) score += 4;
+  if (/pubmed/i.test(t.source_name || '')) score += 2;
   return Math.max(0, Math.min(100, score));
 }
 

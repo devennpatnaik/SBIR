@@ -5,6 +5,8 @@ export type Technology = {
   sbir_relevance: string; open_questions: string; source_text: string; source_fetched_at: string | null; shortlisted: boolean;
   archived: boolean; is_sample: boolean; last_reviewed_at: string | null; created_at: string; updated_at: string;
   origin_kind?: string; patent_key?: string; patent_status?: string; patent_expires?: string | null; patent_assignee?: string; patent_country?: string;
+  /** v1 DFU match loop */
+  problem_space?: string; match_path?: string; match_acted_at?: string | null;
 };
 export type ScoreEntry = { score: number | null; rationale: string; evidence: string; confidence: 'low' | 'medium' | 'high' };
 export type Evaluation = {

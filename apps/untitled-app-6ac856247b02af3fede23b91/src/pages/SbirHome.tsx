@@ -1,70 +1,41 @@
-import { ArrowRight, Landmark, FlaskConical, Wallet, ListChecks } from 'lucide-react';
-import { enterTrack, navigate } from '../lib/router';
+import { ArrowRight, Bandage, ListChecks } from 'lucide-react';
+import { navigate } from '../lib/router';
+import { PROBLEM_SPACE_LABEL } from '../lib/dfu';
 import { Button } from '../components/ui';
-import { Dashboard } from './Dashboard';
 
-/** Track A home — SBIR-eligible government R&D + process handholding. */
+/** Default track home — DFU match loop, not SBIR curriculum. */
 export function SbirHome({ signedIn }: { signedIn: boolean }) {
-  if (signedIn) {
-    return (
-      <div className="track-home sbir-track-home">
-        <TrackBanner />
-        <div className="pursue-home-cta">
-          <div>
-            <p className="eyebrow">SELECT → PURSUE</p>
-            <h2 className="editorial">Pick one thing. Move it forward.</h2>
-            <p>Choose a government R&amp;D lead or SBIR process step from a list — no chat.</p>
-          </div>
-          <Button variant="primary" onClick={() => navigate('sbir/pursue')}>
-            Open pursue list <ArrowRight size={16} />
-          </Button>
-        </div>
-        <Dashboard />
-      </div>
-    );
-  }
   return (
-    <main className="track-home sbir-track-home guest">
-      <TrackBanner />
-      <p className="eyebrow">TRACK A · SBIR ROUTE</p>
-      <h1 className="editorial">Get paid to bring<br/>government research<br/>to market.</h1>
+    <main className={`track-home sbir-track-home dfu-home${signedIn ? '' : ' guest'}`}>
+      <div className="track-banner dfu" role="status">
+        <Bandage size={16} />
+        <span><strong>{PROBLEM_SPACE_LABEL}</strong> — innovation → commercialization match (v1)</span>
+      </div>
+      <p className="eyebrow">LAB TO MARKET · MVP</p>
+      <h1 className="editorial">Match overlooked<br />wound-care research<br />to a next move.</h1>
       <p className="track-lede">
-        This track is for <strong>SBIR-eligible government R&D</strong> — federal labs and agency-backed
-        technology that can feed an SBIR/STTR application. We hand-hold you through the process:
-        find a fit, follow up on rights, prepare funding steps, and log outcomes that matter for SBIR.
+        One problem space: diabetic foot ulcers and chronic non-healing wounds.
+        Discover PubMed-shaped and NIH/VA/DoD leads, rank the most promising unpicked,
+        pick a path card (outreach, SBIR topic, or skip), and log the outcome.
+        Not an SBIR curriculum. Not a patents browser.
       </p>
       <div className="track-actions">
         <Button variant="primary" onClick={() => navigate('sbir/pursue')}>
-          Pursue from a list <ArrowRight size={16} />
+          Open DFU pursue queue <ArrowRight size={16} />
         </Button>
-        <Button onClick={() => navigate('sbir/path')}>
-          See the SBIR path <ArrowRight size={16} />
-        </Button>
-        <Button onClick={() => navigate('start/sbir')}>
-          Start with three questions <ArrowRight size={16} />
-        </Button>
-        <Button onClick={() => navigate('signin')}>Sign in to your workspace</Button>
+        {signedIn ? null : <Button onClick={() => navigate('signin')}>Sign in to save outcomes</Button>}
       </div>
       <ul className="track-pillars">
-        <li><Landmark size={18} /><span><strong>Gov R&D focus</strong>Federal lab and agency-backed inventions that can feed SBIR/STTR.</span></li>
-        <li><ListChecks size={18} /><span><strong>Process steps</strong>Eligibility, solicitation, licensing follow-ups, proposal prep.</span></li>
-        <li><Wallet size={18} /><span><strong>Get paid to develop</strong>Commercialization coaching aimed at agency funding paths.</span></li>
-        <li><FlaskConical size={18} /><span><strong>Layer 4 outcomes</strong>Log lab response, diligence, and SBIR award signals.</span></li>
+        <li><ListChecks size={18} /><span><strong>One ranked queue</strong>Most promising unpicked DFU / wound leads first.</span></li>
+        <li><Bandage size={18} /><span><strong>Three path cards</strong>Inventor/TTO outreach · matching SBIR topic · skip.</span></li>
+        <li><ListChecks size={18} /><span><strong>Outcome lite</strong>Log contacted / reply / interest — feed the ranking.</span></li>
       </ul>
-      <p className="track-switch">
-        Looking for patents registered anywhere that may not be SBIR-eligible?{' '}
-        <button type="button" onClick={() => enterTrack('patents')}>Switch to worldwide patents →</button>
+      <p className="track-switch demoted">
+        Need the old SBIR path walk or patents search?{' '}
+        <button type="button" onClick={() => navigate('sbir/path')}>SBIR path (demoted)</button>
+        {' · '}
+        <button type="button" onClick={() => navigate('patents/home')}>Patents (demoted)</button>
       </p>
     </main>
-  );
-}
-
-function TrackBanner() {
-  return (
-    <div className="track-banner sbir" role="status">
-      <Landmark size={16} />
-      <span><strong>SBIR route</strong> — government R&D · process handholding · commercialization coaching</span>
-      <button type="button" className="track-switch-btn" onClick={() => enterTrack('patents')}>Switch to patents</button>
-    </div>
   );
 }

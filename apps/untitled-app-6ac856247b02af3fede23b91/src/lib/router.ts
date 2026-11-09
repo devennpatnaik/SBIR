@@ -97,7 +97,7 @@ export const navigate = (path: string) => {
 
   if (clean === 'sbir' || clean.startsWith('sbir/')) {
     persistTrack('sbir');
-    window.location.hash = `/${clean === 'sbir' ? 'sbir/home' : clean}`;
+    window.location.hash = `/${clean === 'sbir' ? 'sbir/pursue' : clean}`;
     return;
   }
   if (clean === 'patents' || clean.startsWith('patents/')) {
@@ -126,10 +126,11 @@ export const navigate = (path: string) => {
 };
 
 /** Enter a track and land on its home (or an optional in-track path). */
-export function enterTrack(track: ProductTrack, inTrackPath = 'home') {
+export function enterTrack(track: ProductTrack, inTrackPath?: string) {
   persistTrack(track);
-  const path = inTrackPath.replace(/^\//, '');
-  window.location.hash = `/${track}/${path || 'home'}`;
+  const fallback = track === 'sbir' ? 'pursue' : 'home';
+  const path = (inTrackPath ?? fallback).replace(/^\//, '');
+  window.location.hash = `/${track}/${path || fallback}`;
 }
 
 let account = '';
