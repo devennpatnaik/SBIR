@@ -6,8 +6,8 @@ export type ProductTrack = 'sbir' | 'patents';
 const STORAGE_KEY = 'ltm:active-track';
 
 export const TRACK_LABEL: Record<ProductTrack, string> = {
-  sbir: 'SBIR route',
-  patents: 'Worldwide patents',
+  sbir: 'DFU match',
+  patents: 'Patents (demoted)',
 };
 
 export function isProductTrack(v: string | null | undefined): v is ProductTrack {
@@ -33,7 +33,8 @@ export function persistTrack(track: ProductTrack) {
 
 /** Default home path inside a track (without leading hash). */
 export function trackHome(track: ProductTrack): string {
-  return track === 'sbir' ? 'sbir/home' : 'patents/home';
+  // DFU MVP: land on the ranked pursue queue, not the SBIR curriculum home.
+  return track === 'sbir' ? 'sbir/pursue' : 'patents/home';
 }
 
 export function otherTrack(track: ProductTrack): ProductTrack {

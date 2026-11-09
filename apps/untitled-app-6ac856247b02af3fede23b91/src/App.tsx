@@ -29,12 +29,12 @@ import { Pursue } from './pages/Pursue';
 import { Insights } from './pages/Insights';
 
 const SBIR_EXPLORE = [
-  { key: 'pursue', label: 'Pursue' },
+  { key: 'pursue', label: 'DFU queue' },
   { key: 'discover', label: 'Gov R&D' },
   { key: 'compare', label: 'Compare' },
   { key: 'insights', label: 'What we learned' },
-  { key: 'pathways', label: 'Pathways' },
-  { key: 'funding', label: 'SBIR & funding' },
+  { key: 'pathways', label: 'Pathways (demoted)' },
+  { key: 'funding', label: 'SBIR funding (demoted)' },
 ];
 const SBIR_WORKSPACE = [
   { key: 'projects', label: 'My project' },
@@ -161,7 +161,7 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
     ? (['start', 'plan', 'path'].includes(section) ? [] : PATENT_NAV)
     : (['start', 'plan', 'path'].includes(section) ? [] : group === 'explore' ? SBIR_EXPLORE : group === 'workspace' ? SBIR_WORKSPACE : []);
 
-  const homeHref = isPatents ? '#/patents/home' : '#/sbir/home';
+  const homeHref = isPatents ? '#/patents/home' : '#/sbir/pursue';
 
   return (
     <div className={`app-shell track-${track}`}>
@@ -178,8 +178,8 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
               </>
             ) : (
               <>
-                <a href="#/sbir/pursue" aria-current={active === 'pursue' ? 'page' : undefined}>Pursue</a>
-                <a href="#/sbir/discover" aria-current={group === 'explore' && active !== 'pursue' ? 'page' : undefined}>Gov R&amp;D</a>
+                <a href="#/sbir/pursue" aria-current={active === 'pursue' || active === 'home' ? 'page' : undefined}>DFU queue</a>
+                <a href="#/sbir/discover" aria-current={group === 'explore' && active !== 'pursue' && active !== 'home' ? 'page' : undefined}>Gov R&amp;D</a>
                 <a href={`#/sbir/${projectLink}`} aria-current={group === 'workspace' || section === 'plan' ? 'page' : undefined}>{simple ? 'My plan' : 'Workspace'}</a>
               </>
             )}
@@ -223,12 +223,11 @@ function Workspace({ user }: { user: { id: string; email: string } }) {
               </>
             ) : (
               <>
-                <a href="#/sbir/pursue">Pursue next step <ArrowUpRight size={16} /></a>
-                <a href="#/sbir/home">SBIR home <ArrowUpRight size={16} /></a>
-                <a href="#/sbir/path">The SBIR path <ArrowUpRight size={16} /></a>
-                <a href="#/start/sbir">Start an SBIR idea <ArrowUpRight size={16} /></a>
-                <a href="#/sbir/funding">SBIR &amp; funding <ArrowUpRight size={16} /></a>
+                <a href="#/sbir/pursue">DFU pursue queue <ArrowUpRight size={16} /></a>
                 <a href={`#/sbir/${fullProjectLink}`}>Full workspace <ArrowUpRight size={16} /></a>
+                <a href="#/sbir/path">SBIR path (demoted) <ArrowUpRight size={16} /></a>
+                <a href="#/sbir/funding">SBIR funding (demoted) <ArrowUpRight size={16} /></a>
+                <a href="#/patents/home">Patents (demoted) <ArrowUpRight size={16} /></a>
                 <a href="#/sbir/help">Free help &amp; programs <ArrowUpRight size={16} /></a>
               </>
             )}
@@ -281,7 +280,8 @@ function renderPage({
   const isPatents = track === 'patents';
 
   if (section === 'home' || section === 'dashboard') {
-    return isPatents ? <Patents signedIn /> : <SbirHome signedIn />;
+    // DFU MVP: home is the ranked pursue queue; SbirHome remains at #/sbir/about via discover fallback below.
+    return isPatents ? <Patents signedIn /> : <Pursue track="sbir" />;
   }
   if (section === 'pursue') return <Pursue track={track} />;
   if (section === 'start') return <QuickStart key={id ?? ''} userId={userId} preset={id === 'sbir' || id === 'explore' ? id : undefined} />;

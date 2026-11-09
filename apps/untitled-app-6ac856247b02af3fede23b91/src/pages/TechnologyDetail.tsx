@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Star } from 'lucide-react';
 import { deleteRow, fmtDate, nowIso, updateRow, useQuery } from '../lib/data';
 import { TECH_LICENSING_STATUS } from '../lib/constants';
+import { isDfuLead } from '../lib/dfu';
 import { navigate } from '../lib/router';
 import { summarize } from '../lib/scoring';
 import { useSettings } from '../lib/settings';
@@ -11,6 +12,8 @@ import { ConfidenceBadge, ScoreEditor } from '../components/Scoring';
 import { SelectTechButton } from '../components/SelectTech';
 import { SourcesPanel } from '../components/Sources';
 import { OutcomesForm } from '../components/Outcomes';
+import { OutcomeLite } from '../components/OutcomeLite';
+import { PathCards } from '../components/PathCards';
 import { Badge, Button, Card, Disclosure, displayName, displaySummary, ErrorNote, Notice, PageHeader, SampleBadge, SourceLink, Tabs } from '../components/ui';
 
 export function TechnologyDetail({ id, trackMode = 'sbir' }: { id: string; trackMode?: 'sbir' | 'patents' }) {
@@ -28,20 +31,31 @@ export function TechnologyDetail({ id, trackMode = 'sbir' }: { id: string; track
     ? ([['overview', 'Overview'], ['edit', 'Edit details'], ['outcomes', 'Notes'], ['evidence', 'Sources'], ['source', 'Original text']] as const)
     : ([['overview', 'Overview'], ['edit', 'Edit details'], ['score', 'Score'], ['outcomes', 'What happened'], ['evidence', 'Sources & evidence'], ['source', 'Original source text']] as const);
 
+  const dfu = !patentsTrack && isDfuLead(t);
+
   return (
     <div>
-      <button type="button" onClick={() => navigate(patentsTrack ? 'shortlist' : 'discover')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />{patentsTrack ? 'Back to shortlist' : 'All technologies'}</button>
+      <button type="button" onClick={() => navigate(patentsTrack ? 'shortlist' : dfu ? 'pursue' : 'discover')} className="mb-2 inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"><ArrowLeft className="size-4" />{patentsTrack ? 'Back to shortlist' : dfu ? 'Back to DFU queue' : 'All technologies'}</button>
       <PageHeader title={t.name}
-        subtitle={<span className="flex flex-wrap items-center gap-2">{t.is_sample && <SampleBadge />}{displayName(t.lab_name)}{t.source_url && <SourceLink url={t.source_url} label="Original listing" />}<span className="text-xs text-slate-500">Last reviewed {fmtDate(t.last_reviewed_at)}</span></span>}
+        subtitle={<span className="flex flex-wrap items-center gap-2">{t.is_sample && <SampleBadge />}{dfu && <Badge>DFU / chronic wounds</Badge>}{displayName(t.lab_name)}{t.source_url && <SourceLink url={t.source_url} label="Original listing" />}<span className="text-xs text-slate-500">Last reviewed {fmtDate(t.last_reviewed_at)}</span></span>}
         actions={<>
           <Button onClick={() => updateRow('technologies', t.id, { shortlisted: !t.shortlisted })}><Star className={t.shortlisted ? 'size-4 fill-amber-400 text-amber-500' : 'size-4'} />{t.shortlisted ? 'Shortlisted' : 'Shortlist'}</Button>
           <Button onClick={() => updateRow('technologies', t.id, { last_reviewed_at: nowIso() })}>Mark reviewed today</Button>
-          {!patentsTrack && <SelectTechButton tech={t} evaluation={ev.data[0]} project={pr.data[0]} />}
+          {!patentsTrack && !dfu && <SelectTechButton tech={t} evaluation={ev.data[0]} project={pr.data[0]} />}
         </>} />
       <Tabs tabs={[...tabs]} value={tab} onChange={setTab} />
       <div className="mt-4">
         {tab === 'overview' && (
-          <div><section className="project-story"><p className="eyebrow">THE TECHNOLOGY, IN PLAIN ENGLISH</p><p className="editorial thesis-text">{displaySummary(t.description)||'Add a description from the official listing.'}</p></section><div className="grid gap-5 md:grid-cols-2"><Card title="Where it could help"><p className="text-sm leading-relaxed">{displayName(t.applications)||'Applications not recorded.'}</p></Card><Card title="Who might use it"><p className="text-sm leading-relaxed">{displayName(t.customers)||'Potential customers not recorded.'}</p></Card></div>
+          <div><section className="project-story"><p className="eyebrow">{dfu ? 'DFU / CHRONIC WOUNDS LEAD' : 'THE TECHNOLOGY, IN PLAIN ENGLISH'}</p><p className="editorial thesis-text">{displaySummary(t.description)||'Add a description from the official listing.'}</p></section>
+          {dfu && (
+            <>
+              <PathCards tech={t} projectId={pr.data[0]?.id} />
+              <div className="mt-5">
+                <OutcomeLite technologyId={t.id} projectId={pr.data[0]?.id} isSample={t.is_sample} />
+              </div>
+            </>
+          )}
+          <div className="grid gap-5 md:grid-cols-2 mt-5"><Card title="Where it could help"><p className="text-sm leading-relaxed">{displayName(t.applications)||'Applications not recorded.'}</p></Card><Card title="Who might use it"><p className="text-sm leading-relaxed">{displayName(t.customers)||'Potential customers not recorded.'}</p></Card></div>
           <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4 md:p-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>

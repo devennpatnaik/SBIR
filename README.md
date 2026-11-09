@@ -1,6 +1,8 @@
 # Lab to Market
 
-Help entrepreneurs commercialize lab, university, and inventor technologies: discover options, license IP, pursue SBIR/STTR and other funding, and track what actually worked (**Layer 4** learning feedback).
+**v1 MVP:** match overlooked **diabetic foot ulcer / chronic wound** research to a next commercialization move — discover → rank → path cards (outreach / SBIR topic / skip) → log outcome. See [`docs/mvp-thesis.md`](docs/mvp-thesis.md).
+
+Legacy surfaces (SBIR Phase walk, worldwide patents) remain available but are demoted from the default home.
 
 **Canonical remote:** Deven’s private GitHub repository (Bourne git hosting is abandoned).
 
@@ -51,7 +53,7 @@ Open **http://localhost:8080**
 | PostgREST | `3001` |
 | Postgres | `5432` |
 
-Create an account on the sign-in screen. Migrations (including Layer 4 `investigation_outcomes`) apply automatically on first DB boot.
+Create an account on the sign-in screen. You land on the **DFU pursue queue**; curated PubMed + NIH/VA/DoD seed leads load automatically (`POST /dfu/seed`). Migrations (Layer 4 + DFU `problem_space` / `match_path`) apply on first DB boot.
 
 ### Environment
 
